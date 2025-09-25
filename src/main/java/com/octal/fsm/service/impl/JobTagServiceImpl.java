@@ -1,0 +1,164 @@
+package com.octal.fsm.service.impl;
+
+import com.octal.fsm.common.CommonConstants;
+import com.octal.fsm.dto.JobTagDTO;
+import com.octal.fsm.dto.JobTypeDTO;
+import com.octal.fsm.dto.PageItem;
+import com.octal.fsm.entities.JobTag;
+import com.octal.fsm.exceptions.CodeException;
+import com.octal.fsm.exceptions.ErrorCode;
+import com.octal.fsm.models.request.PageRequest;
+import com.octal.fsm.repositories.JobTagRepository;
+import com.octal.fsm.service.JobTagService;
+import com.octal.fsm.specification.GenericSpecificationsBuilder;
+import com.octal.fsm.specification.SpecificationFactory;
+import com.octal.fsm.utils.TextUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class JobTagServiceImpl implements JobTagService {
+
+    @Autowired
+    private JobTagRepository jobTagRepository;
+    @Autowired
+    private SpecificationFactory<JobTag> jobTagSpecificationFactory;
+
+
+
+    @Override
+    public String addJobTag(JobTagDTO.Add add) throws CodeException {
+        if (TextUtils.isEmpty(add.getName()))
+            throw new CodeException("Tag name is required", ErrorCode.COMMON);
+        Optional<JobTag> optionalJobTag = jobTagRepository.findByUuid(add.getId());
+        if (optionalJobTag.isPresent() && !optionalJobTag.get().getUuid().equals(add.getId())) {
+            throw new CodeException("JobTag is already present!", ErrorCode.RECORD_NOT_FOUND);
+        }
+        JobTag newJobTagRecord = null;
+        if (TextUtils.isEmpty(add.getId())) {
+            newJobTagRecord = new JobTag();
+            newJobTagRecord.setCreatedAt(LocalDateTime.now());
+            newJobTagRecord.setUpdatedAt(LocalDateTime.now());
+        } else {
+            Optional<JobTag> jobTag = jobTagRepository.findByUuid(add.getId());
+            if (jobTag.isPresent()) {
+                newJobTagRecord = jobTag.get();
+                newJobTagRecord.setUpdatedAt(LocalDateTime.now());
+            } else {
+                throw new CodeException("jobType not Found!", ErrorCode.COMMON);
+            }
+        }
+        newJobTagRecord.setActive(Boolean.TRUE.equals(add.isActive()));
+        newJobTagRecord.setDeleted(false);
+        newJobTagRecord.setName(add.getName());
+        JobTag jobTag = jobTagRepository.save
+                (newJobTagRecord);
+        return jobTag.getUuid();
+    }
+
+    @Override
+    public Boolean deleteById(String id) throws CodeException {
+        Optional<JobTag> jobTagRecord = jobTagRepository.findByUuid(id);
+        if (jobTagRecord.isPresent()) {
+            jobTagRecord.get().setDeleted(true);
+            jobTagRepository.save(jobTagRecord.get());
+            return true;
+        } else {
+            throw new CodeException(CommonConstants.JOB_TAG_NOT_FOUND + id, ErrorCode.COMMON);
+        }
+    }
+
+    @Override
+    public JobTypeDTO.Detail getJobTagByUuid(String id) throws CodeException {
+        Optional<JobTag> jobTagOptional = jobTagRepository.findByUuid(id);
+        if (jobTagOptional.isPresent()) {
+            JobTypeDTO.Detail jobType = new JobTypeDTO.Detail();
+            jobType.setName(jobTagOptional.get().getName());
+            jobType.setId(jobTagOptional.get().getUuid());
+            jobType.setIsActive(jobTagOptional.get().getActive());
+            jobType.setCreatedAt(jobTagOptional.get().getCreatedAt().toString());
+            return jobType;
+        } else {
+            throw new CodeException(CommonConstants.JOB_TAG_NOT_FOUND + id, ErrorCode.COMMON);
+        }
+    }
+
+    @Override
+    public Boolean changeStatus(String id) throws CodeException {
+        Optional<JobTag> jobTagRecord = jobTagRepository.findByUuid(id);
+
+        if (jobTagRecord.isPresent()) {
+            JobTag jobTag = jobTagRecord.get();
+
+            if (Boolean.TRUE.equals(jobTag.getActive())) {
+                jobTag.setActive(false);
+                jobTagRepository.save(jobTag);
+                return false;
+            } else {
+                jobTag.setActive(true);
+                jobTagRepository.save(jobTag);
+                return true;
+            }
+        } else {
+            throw new CodeException(CommonConstants.JOB_TAG_NOT_FOUND + id, ErrorCode.COMMON);
+        }
+    }
+
+
+    @Override
+    public PageItem<JobTagDTO.Detail> getAllJobTags(PageRequest.List listRequest) {
+        String trimmedText = listRequest.getSearchText().trim();
+        listRequest.setSearchText(trimmedText);
+        GenericSpecificationsBuilder<JobTag> builder = new GenericSpecificationsBuilder<>();
+        Pageable pageable = null;
+        if (Boolean.TRUE.equals(listRequest.getAsc())) {
+            pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
+        } else {
+            pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
+        }
+        prepareJobTagSearchFilter(listRequest, builder);
+        Page<JobTag> pagedResult = jobTagRepository.findAll(builder.build(), pageable);
+        List<JobTagDTO.Detail> responseList = new ArrayList<>();
+        for(JobTag jobTag:pagedResult.getContent()){
+            JobTagDTO.Detail dto=new JobTagDTO.Detail();
+            dto.setId(jobTag.getUuid());
+            dto.setName(jobTag.getName());
+            dto.setIsActive(jobTag.getActive());
+            dto.setCreatedAt(String.valueOf(jobTag.getCreatedAt()));
+            dto.setUpdatedAt(String.valueOf(jobTag.getUpdatedAt()));
+            responseList.add(dto);
+        }
+
+        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, listRequest.getPageNumber(),
+                listRequest.getPageSize());
+    }
+
+    private void prepareJobTagSearchFilter(PageRequest.List listRequest, GenericSpecificationsBuilder<JobTag> builder) {
+
+        builder.with(jobTagSpecificationFactory.isEqual("deleted", false));
+
+        if (org.apache.commons.lang.StringUtils.isNotBlank(listRequest.getSearchText())) {
+            builder.with(jobTagSpecificationFactory.like("name", listRequest.getSearchText()));
+        }
+        if(listRequest.getIsActive()!=null){
+            builder.with(jobTagSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
+        }
+        if (listRequest.getStartDate() != null) {
+            builder.with(jobTagSpecificationFactory.isGreaterThanOrEquals("createdAt", listRequest.getStartDate().atStartOfDay()));
+        }
+
+        if (listRequest.getEndDate() != null) {
+            builder.with(jobTagSpecificationFactory.isLessThanOrEquals("createdAt", listRequest.getEndDate().atTime(23,59,59)));
+        }
+
+    }
+
+}
