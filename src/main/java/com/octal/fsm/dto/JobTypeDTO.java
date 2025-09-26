@@ -18,7 +18,7 @@ public class JobTypeDTO {
         private String name;
         private Boolean isActive;
         private String description;
-        List<JobTaskDTO.Add> jobTasks;
+        private List<JobTaskDTO.Add> jobTasks;
     }
 
     @Data
@@ -31,7 +31,7 @@ public class JobTypeDTO {
         private String updatedAt;
         private Boolean isActive;
         private String description;
-        List<JobTaskDTO.Detail>jobTasks;
+        private List<JobTaskDTO.Detail>jobTasks;
     }
 
 

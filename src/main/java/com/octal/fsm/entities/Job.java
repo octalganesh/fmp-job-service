@@ -71,5 +71,8 @@ public class Job extends AbstractPersistable{
     @Column(name = "estimated_cost")
     private Double estimatedCost;
 
+    //todo start date and end date of job
+    //todo start time and end time of job
+
 }
 
