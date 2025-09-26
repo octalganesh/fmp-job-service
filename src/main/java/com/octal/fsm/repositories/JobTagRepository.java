@@ -12,4 +12,8 @@ import java.util.Optional;
 public interface JobTagRepository extends JpaRepository<JobTag,Long>, JpaSpecificationExecutor<JobTag> {
 
     Optional<JobTag> findByUuid(String id);
+
+    Boolean existsByName(String name);
+
+    Boolean existsByNameAndUuidNot(String name, String id);
 }
