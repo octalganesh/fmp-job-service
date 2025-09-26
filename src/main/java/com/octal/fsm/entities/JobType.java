@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -20,7 +21,7 @@ public class JobType extends AbstractPersistable{
 
     private String description;
 
-    @ManyToMany(cascade = CascadeType.ALL,targetEntity = JobTask.class)
-    private List<JobTask> jobTasks;
+    @OneToMany(cascade = CascadeType.ALL,orphanRemoval = true)
+    private List<JobTask> jobTasks=new ArrayList<>();
 
 }

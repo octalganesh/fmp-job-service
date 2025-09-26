@@ -45,11 +45,32 @@ public class JobTypeServiceImpl implements JobTypeService {
             newJobTypeRecord = new JobType();
             newJobTypeRecord.setCreatedAt(LocalDateTime.now());
             newJobTypeRecord.setUpdatedAt(LocalDateTime.now());
+            if(add.getJobTasks()!=null){
+                newJobTypeRecord.getJobTasks().addAll(add.getJobTasks().stream()
+                        .map(dto -> {
+                            com.octal.fsm.entities.JobTask entity = new com.octal.fsm.entities.JobTask();
+                            entity.setName(dto.getName());
+                            entity.setDescription(dto.getDescription());
+                            return entity;
+                        })
+                        .collect(java.util.stream.Collectors.toList()));
+            }
         } else {
             Optional<JobType> jobType = jobTypeRepository.findByUuid(add.getId());
             if (jobType.isPresent()) {
                 newJobTypeRecord = jobType.get();
                 newJobTypeRecord.setUpdatedAt(LocalDateTime.now());
+                newJobTypeRecord.getJobTasks().clear();
+                if(add.getJobTasks()!=null){
+                    newJobTypeRecord.getJobTasks().addAll(add.getJobTasks().stream()
+                            .map(dto -> {
+                                com.octal.fsm.entities.JobTask entity = new com.octal.fsm.entities.JobTask();
+                                entity.setName(dto.getName());
+                                entity.setDescription(dto.getDescription());
+                                return entity;
+                            })
+                            .collect(java.util.stream.Collectors.toList()));
+                }
             } else {
                 throw new CodeException("jobType not Found!", ErrorCode.COMMON);
             }
@@ -58,16 +79,6 @@ public class JobTypeServiceImpl implements JobTypeService {
         newJobTypeRecord.setDeleted(false);
         newJobTypeRecord.setName(add.getName());
         newJobTypeRecord.setDescription(add.getDescription());
-        if(add.getJobTasks()!=null){
-            newJobTypeRecord.setJobTasks(add.getJobTasks().stream()
-                    .map(dto -> {
-                        com.octal.fsm.entities.JobTask entity = new com.octal.fsm.entities.JobTask();
-                        entity.setName(dto.getName());
-                        entity.setDescription(dto.getDescription());
-                        return entity;
-                    })
-                    .collect(java.util.stream.Collectors.toList()));
-        }
         JobType jobType = jobTypeRepository.save
                 (newJobTypeRecord);
         return jobType.getUuid();
