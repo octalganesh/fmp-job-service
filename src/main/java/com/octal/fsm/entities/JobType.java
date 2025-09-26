@@ -17,8 +17,10 @@ import java.util.List;
 @Table(name = "job_type")
 public class JobType extends AbstractPersistable{
 
+    @Column(name = "name")
     private String name;
 
+    @Column(name = "description",length = 512)
     private String description;
 
     @OneToMany(cascade = CascadeType.ALL,orphanRemoval = true)
