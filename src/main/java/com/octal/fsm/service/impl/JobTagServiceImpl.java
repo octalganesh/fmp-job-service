@@ -128,9 +128,17 @@ public class JobTagServiceImpl implements JobTagService {
         GenericSpecificationsBuilder<JobTag> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
-            pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
+            if(!TextUtils.isEmpty(listRequest.getSortBy())){
+                pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getSortBy()).ascending());
+            }else {
+                pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
+            }
         } else {
-            pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
+            if(!TextUtils.isEmpty(listRequest.getSortBy())){
+                pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getSortBy()).descending());
+            }else {
+                pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
+            }
         }
         prepareJobTagSearchFilter(listRequest, builder);
         Page<JobTag> pagedResult = jobTagRepository.findAll(builder.build(), pageable);
