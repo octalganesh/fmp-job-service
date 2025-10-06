@@ -13,6 +13,7 @@ public class JobTaskDTO {
     public static class Add {
         private String id;
         private String name;
+        private String jobTypeId;
         private Boolean isActive;
         private String description;
     }

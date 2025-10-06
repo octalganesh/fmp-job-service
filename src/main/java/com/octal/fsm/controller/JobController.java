@@ -25,7 +25,6 @@ public class JobController extends BaseController {
     @Autowired
     private JobService jobService;
 
-
     /**
      * Create a new job
      */
@@ -35,7 +34,6 @@ public class JobController extends BaseController {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
             String jobId = jobService.addJob(addJobDTO);
-
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job created successfully", jobId, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
