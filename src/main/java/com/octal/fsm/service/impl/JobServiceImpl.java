@@ -60,6 +60,8 @@ public class JobServiceImpl implements JobService {
             Job savedJob = jobRepository.save(updatedJob);
 
             return jobTransformer.transformToDetailDTO(savedJob);
+        } catch (CodeException e) {
+            throw e;
         } catch (Exception e) {
             throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
         }
@@ -80,6 +82,8 @@ public class JobServiceImpl implements JobService {
             jobRepository.save(job);
 
             return true;
+        } catch (CodeException e) {
+            throw e;
         } catch (Exception e) {
             throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
         }
@@ -94,6 +98,8 @@ public class JobServiceImpl implements JobService {
             }
 
             return jobTransformer.transformToDetailDTO(jobOpt.get());
+        } catch (CodeException e) {
+            throw e;
         } catch (Exception e) {
             throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
         }

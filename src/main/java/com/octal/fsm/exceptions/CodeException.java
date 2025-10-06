@@ -26,4 +26,8 @@ public class CodeException extends Exception {
     public ErrorCode getCode() {
         return this.code;
     }
+    
+    public ErrorCode getErrorCode() {
+        return this.code;
+    }
 }

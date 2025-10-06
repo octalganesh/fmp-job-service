@@ -15,7 +15,7 @@ public class CommonConstants {
     public static final String WIDGET_NOT_FOUND = "Widget not found by id : ";
     public static final String TECHNICIAN_NOT_FOUND = "Technician not found by id : ";
     public static final String JOB_TYPE_NOT_FOUND = "JobType not found by id : ";
-    public static final String JOB_TAG_NOT_FOUND = "JobType not found by id : ";
+    public static final String JOB_TAG_NOT_FOUND = "JobTag not found by id : ";
     public static final String CUSTOMER_NOT_FOUND = "Customer not found for the given id: ";
     public static final String DOCUMENT_TYPE_NOT_FOUND = "DocumentType not found by id : ";
     public static final String DESIGNATION_NOT_FOUND = "Designation not found by id : ";

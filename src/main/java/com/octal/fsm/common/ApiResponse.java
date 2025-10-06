@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus;
 @NoArgsConstructor
 public class ApiResponse {
 
-    private Boolean successful;
+    private Boolean success;
     private String message;
     private  Object data;
     private String status;
