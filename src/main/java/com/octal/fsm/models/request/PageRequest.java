@@ -35,6 +35,7 @@ public class PageRequest {
         private String assignedLeads;
         private String joinDate;
         private String designation;
+        private String sortBy;
     }
 
 
