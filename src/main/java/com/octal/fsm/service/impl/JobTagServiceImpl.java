@@ -38,18 +38,26 @@ public class JobTagServiceImpl implements JobTagService {
     public String addJobTag(JobTagDTO.Add add) throws CodeException {
         if (TextUtils.isEmpty(add.getName()))
             throw new CodeException("Tag name is required", ErrorCode.COMMON);
-        Optional<JobTag> optionalJobTag = jobTagRepository.findByUuid(add.getId());
-        if (optionalJobTag.isPresent() && !optionalJobTag.get().getUuid().equals(add.getId())) {
-            throw new CodeException("JobTag is already present!", ErrorCode.RECORD_NOT_FOUND);
-        }
+//        Optional<JobTag> optionalJobTag = jobTagRepository.findByUuid(add.getId());
+//        if (optionalJobTag.isPresent() && !optionalJobTag.get().getUuid().equals(add.getId())) {
+//            throw new CodeException("JobTag is already present!", ErrorCode.RECORD_NOT_FOUND);
+//        }
         JobTag newJobTagRecord = null;
         if (TextUtils.isEmpty(add.getId())) {
+            Boolean isTagExist = jobTagRepository.existsByName(add.getName());
+            if(isTagExist){
+                throw new CodeException("Tag name is already exist", ErrorCode.COMMON);
+            }
             newJobTagRecord = new JobTag();
             newJobTagRecord.setCreatedAt(LocalDateTime.now());
             newJobTagRecord.setUpdatedAt(LocalDateTime.now());
         } else {
             Optional<JobTag> jobTag = jobTagRepository.findByUuid(add.getId());
             if (jobTag.isPresent()) {
+                Boolean isTagExist = jobTagRepository.existsByNameAndUuidNot(add.getName(),add.getId());
+                if(isTagExist){
+                    throw new CodeException("Tag name is already exist", ErrorCode.COMMON);
+                }
                 newJobTagRecord = jobTag.get();
                 newJobTagRecord.setUpdatedAt(LocalDateTime.now());
             } else {
@@ -120,9 +128,17 @@ public class JobTagServiceImpl implements JobTagService {
         GenericSpecificationsBuilder<JobTag> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
-            pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
+            if(!TextUtils.isEmpty(listRequest.getSortBy())){
+                pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getSortBy()).ascending());
+            }else {
+                pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
+            }
         } else {
-            pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
+            if(!TextUtils.isEmpty(listRequest.getSortBy())){
+                pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getSortBy()).descending());
+            }else {
+                pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
+            }
         }
         prepareJobTagSearchFilter(listRequest, builder);
         Page<JobTag> pagedResult = jobTagRepository.findAll(builder.build(), pageable);

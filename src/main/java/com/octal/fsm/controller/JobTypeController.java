@@ -2,6 +2,7 @@ package com.octal.fsm.controller;
 
 import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.common.CommonConstants;
+import com.octal.fsm.dto.JobTaskDTO;
 import com.octal.fsm.dto.JobTypeDTO;
 import com.octal.fsm.models.request.PageRequest;;
 import com.octal.fsm.service.JobTypeService;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
@@ -27,12 +29,25 @@ public class JobTypeController extends BaseController {
 
 
     @PostMapping(value = "/add-jobType")
-    public ResponseEntity<ApiResponse>addJobType(@RequestBody JobTypeDTO.Add jobTypeDTO, HttpServletRequest request){
+    public ResponseEntity<ApiResponse> addJobType(@RequestBody JobTypeDTO.Add jobTypeDTO, HttpServletRequest request) {
         logger.info("JobTypeController.addJobType");
         String userName = request.getHeader(CommonConstants.USER_NAME);
         try {
             String messageResponse = TextUtils.isEmpty(jobTypeDTO.getId()) ? "jobType added Successfully!" : "jobType updated Successfully!";
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, messageResponse,jobTypeService.addJobType(jobTypeDTO), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, messageResponse, jobTypeService.addJobType(jobTypeDTO), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            return handleException(e);
+        }
+    }
+
+    @PostMapping(value = "/add-job-task")
+    public ResponseEntity<ApiResponse> addJobTask(@RequestBody JobTaskDTO.Add jobTypeDTO, HttpServletRequest request) {
+        logger.info("JobTypeController.addJobTask");
+        String userName = request.getHeader(CommonConstants.USER_NAME);
+        try {
+            String messageResponse = TextUtils.isEmpty(jobTypeDTO.getId()) ? "Task Added Successfully!" : "Task Updated Successfully!";
+            jobTypeService.addJobTaskByJobTypeId(jobTypeDTO);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, messageResponse, null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return handleException(e);
         }
@@ -96,7 +111,6 @@ public class JobTypeController extends BaseController {
             return handleException(e);
         }
     }
-
 
 
 }

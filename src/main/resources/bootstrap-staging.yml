@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: job-service
+  cloud:
+    vault:
+      uri: http://192.168.1.73:8200
+      authentication: TOKEN
+      token: hvs.CAESIGl5GEePJKDg54GU-FPX0cEhjWbBhKD_EYohlLAYgzqxGh4KHGh2cy42V3ozSGdIYnpSVTlQbEZkVGdMTHVDVHA   # better to export this in env
+      generic:
+        enabled: true
+        backend: qa/fms
+        default-context: job-service
+        profile-separator: /

@@ -9,9 +9,11 @@ public class JobTaskDTO {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class Add {
         private String id;
         private String name;
+        private String jobTypeId;
         private Boolean isActive;
         private String description;
     }
