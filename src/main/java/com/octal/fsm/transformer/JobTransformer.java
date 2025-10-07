@@ -30,43 +30,44 @@ public class JobTransformer {
 
     public Job transformToEntity(JobDTO.Add addJobDTO) {
         Job job = new Job();
-        job.setJobSummary(addJobDTO.getJobSummary());
-        job.setPriority(addJobDTO.getPriority());
-        job.setEstimatedCost(addJobDTO.getEstimatedCost());
-        job.setJobTimeDuration(addJobDTO.getJobTimeDuration());
-        job.setJobStatus(addJobDTO.getJobStatus());
-        job.setActive(addJobDTO.getActive());
-        job.setAssignedDateTime(addJobDTO.getAssignedDateTime());
-
-        // Set relationships - Convert String IDs to appropriate types
-//        if (addJobDTO.getCustomerId() != null) {
-//            Customer customer = customerRepository.findById(Long.valueOf(addJobDTO.getCustomerId())).orElse(null);
-//            job.setCustomer(customer);
+//        job.setJobSummary(addJobDTO.getJobSummary());
+//        job.setPriority(addJobDTO.getPriority());
+//        job.setEstimatedCost(addJobDTO.getEstimatedCost());
+//        job.setJobTimeDuration(addJobDTO.getJobTimeDuration());
+//        job.setJobStatus(addJobDTO.getJobStatus());
+//        job.setActive(addJobDTO.getActive());
+//        job.setAssignedDateTime(addJobDTO.getAssignedDateTime());
+//
+//        // Set relationships - Convert String IDs to appropriate types
+////        if (addJobDTO.getCustomerId() != null) {
+////            Customer customer = customerRepository.findById(Long.valueOf(addJobDTO.getCustomerId())).orElse(null);
+////            job.setCustomer(customer);
+////        }
+//
+//        if (addJobDTO.getJobTypeId() != null) {
+//            JobType jobType = jobTypeRepository.findById(Long.valueOf(addJobDTO.getJobTypeId())).orElse(null);
+//            job.setJobType(jobType);
 //        }
-
-        if (addJobDTO.getJobTypeId() != null) {
-            JobType jobType = jobTypeRepository.findById(Long.valueOf(addJobDTO.getJobTypeId())).orElse(null);
-            job.setJobType(jobType);
-        }
-
-//        if (addJobDTO.getAssignedTechnicianId() != null) {
-//            Technician technician = technicianRepository.findById(Long.valueOf(addJobDTO.getAssignedTechnicianId())).orElse(null);
-//            job.setAssignedTechnician(technician);
+//
+////        if (addJobDTO.getAssignedTechnicianId() != null) {
+////            Technician technician = technicianRepository.findById(Long.valueOf(addJobDTO.getAssignedTechnicianId())).orElse(null);
+////            job.setAssignedTechnician(technician);
+////        }
+//
+//        if (addJobDTO.getTagIds() != null && !addJobDTO.getTagIds().isEmpty()) {
+//            Set<JobTag> tags = addJobDTO.getTagIds().stream()
+//                    .map(tagId -> jobTagRepository.findById(Long.valueOf(tagId)).orElse(null))
+//                    .filter(Objects::nonNull)
+//                    .collect(Collectors.toSet());
+//            job.setTags(tags);
 //        }
-
-        if (addJobDTO.getTagIds() != null && !addJobDTO.getTagIds().isEmpty()) {
-            Set<JobTag> tags = addJobDTO.getTagIds().stream()
-                    .map(tagId -> jobTagRepository.findById(Long.valueOf(tagId)).orElse(null))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
-            job.setTags(tags);
-        }
-
-        // Set audit fields - Removed setCreatedBy and setUpdatedBy since they don't exist in AbstractPersistable
-        job.setCreatedAt(LocalDateTime.now());
-        job.setUpdatedAt(LocalDateTime.now());
-        job.setDeleted(false);
-
+//
+//        // Set audit fields - Removed setCreatedBy and setUpdatedBy since they don't exist in AbstractPersistable
+//        job.setCreatedAt(LocalDateTime.now());
+//        job.setUpdatedAt(LocalDateTime.now());
+//        job.setDeleted(false);
+//
+//        return job;
         return job;
     }
 

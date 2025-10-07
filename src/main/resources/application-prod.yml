@@ -18,12 +18,11 @@ spring:
         dialect: org.hibernate.dialect.MySQL5InnoDBDialect
 
   datasource:
-    url: jdbc:mysql://localhost:3306/fsm-job
-    username: root
-    password: root
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
     driver-class-name: com.mysql.cj.jdbc.Driver
     initialize: true
-
 
 
 eureka:
@@ -61,8 +60,9 @@ feign:
         connectTimeout: 10000     # 10 seconds
         readTimeout: 30000        # 30 seconds
 
-randomPassword : Octal@123
 
+randomPassword : Octal@123
 springdoc:
   api-docs.path : /api-docs
   swagger-ui.path : /swagger-ui.html
+
