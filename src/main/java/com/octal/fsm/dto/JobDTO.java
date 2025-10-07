@@ -9,6 +9,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 public class JobDTO {
@@ -17,36 +18,37 @@ public class JobDTO {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class Add {
-        // Job Information
-        @NotBlank(message = "Job summary is required")
-        private String jobSummary;
 
-        @NotNull(message = "Job type is required")
+        private CustomerDetails customerDetails;
+
         private String jobTypeId;
+        private String serviceLocation;
+        private Long serviceLocationLat;
+        private Long serviceLocationLng;
+        private String jobStatus;
+        private String customerType;
+        private String jobDescription;
+        private java.util.List<String> jobTaskId;
+        private String leadReceivedDate;
+        private String jobStartDate;
+        private String jobEndDate;
+        private String leadSourceId;
+        private Double budget;
+        private java.util.List<String> jobTags;
+        private String technicianId;
+        private String additionalNotes; // Optional
+        private java.util.List<String> documents; //Optional
+    }
 
-        @NotBlank(message = "Priority is required")
-        private String priority;
-
-        private Double estimatedCost;
-
-        private Set<String> tagIds;
-
-        // Customer Information
-        @NotNull(message = "Customer is required")
-        private String customerId;
-
-        // Technician & Scheduling
-        private String assignedTechnicianId;
-
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        private LocalDateTime assignedDateTime;
-
-        private String jobTimeDuration;
-
-        // Additional fields
-        private String jobStatus = "SCHEDULED"; // Default status
-
-        private Boolean active = true;
+    @Data
+    public static class CustomerDetails{
+        private String customerId; // If existing customer
+        private String customerName;
+        private String email;
+        private String mobileNumber;
+        private String address;
+        private Long lat;
+        private Long lng;
     }
 
     @Data

@@ -4,6 +4,7 @@ import com.octal.fsm.common.CommonConstants;
 import com.octal.fsm.dto.JobTaskDTO;
 import com.octal.fsm.dto.JobTypeDTO;
 import com.octal.fsm.dto.PageItem;
+import com.octal.fsm.entities.JobTask;
 import com.octal.fsm.entities.JobType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
@@ -45,7 +46,7 @@ public class JobTypeServiceImpl implements JobTypeService {
             newJobTypeRecord = new JobType();
             newJobTypeRecord.setCreatedAt(LocalDateTime.now());
             newJobTypeRecord.setUpdatedAt(LocalDateTime.now());
-            if(add.getJobTasks()!=null){
+            if (add.getJobTasks() != null) {
                 newJobTypeRecord.getJobTasks().addAll(add.getJobTasks().stream()
                         .map(dto -> {
                             com.octal.fsm.entities.JobTask entity = new com.octal.fsm.entities.JobTask();
@@ -61,7 +62,7 @@ public class JobTypeServiceImpl implements JobTypeService {
                 newJobTypeRecord = jobType.get();
                 newJobTypeRecord.setUpdatedAt(LocalDateTime.now());
                 newJobTypeRecord.getJobTasks().clear();
-                if(add.getJobTasks()!=null){
+                if (add.getJobTasks() != null) {
                     newJobTypeRecord.getJobTasks().addAll(add.getJobTasks().stream()
                             .map(dto -> {
                                 com.octal.fsm.entities.JobTask entity = new com.octal.fsm.entities.JobTask();
@@ -82,6 +83,37 @@ public class JobTypeServiceImpl implements JobTypeService {
         JobType jobType = jobTypeRepository.save
                 (newJobTypeRecord);
         return jobType.getUuid();
+    }
+
+    @Override
+    public void addJobTaskByJobTypeId(JobTaskDTO.Add add) throws CodeException {
+        if (TextUtils.isEmpty(add.getJobTypeId()))
+            throw new CodeException("jobTypeId is required", ErrorCode.COMMON);
+        if (TextUtils.isEmpty(add.getName()))
+            throw new CodeException("task name is required", ErrorCode.COMMON);
+        if (TextUtils.isEmpty(add.getDescription()))
+            throw new CodeException("task description is required", ErrorCode.COMMON);
+        Optional<JobType> jobTypeOptional = jobTypeRepository.findByUuid(add.getJobTypeId());
+        if (jobTypeOptional.isEmpty())
+            throw new CodeException("Job Type Not Found.", ErrorCode.COMMON);
+        if(!TextUtils.isEmpty(add.getId())){
+            Optional<JobTask> jobTaskOptional = jobTypeOptional.get().getJobTasks().stream().filter(t -> t.getUuid().equals(add.getId())).findFirst();
+            if(jobTaskOptional.isPresent()){
+                jobTaskOptional.get().setName(add.getName());
+                jobTaskOptional.get().setDescription(add.getDescription());
+                jobTypeRepository.save(jobTypeOptional.get());
+            } else {
+                throw new CodeException("Job Task Not Found.", ErrorCode.COMMON);
+            }
+        }else{
+            List<JobTask> jobTasks = jobTypeOptional.get().getJobTasks();
+            com.octal.fsm.entities.JobTask entity = new com.octal.fsm.entities.JobTask();
+            entity.setName(add.getName());
+            entity.setDescription(add.getDescription());
+            jobTasks.add(entity);
+            jobTypeOptional.get().setJobTasks(jobTasks);
+            jobTypeRepository.save(jobTypeOptional.get());
+        }
     }
 
     @Override
@@ -143,8 +175,8 @@ public class JobTypeServiceImpl implements JobTypeService {
         prepareJobTypeSearchFilter(listRequest, builder);
         Page<JobType> pagedResult = jobTypeRepository.findAll(builder.build(), pageable);
         List<JobTypeDTO.Detail> responseList = new ArrayList<>();
-        for(JobType jobType:pagedResult.getContent()){
-            JobTypeDTO.Detail dto=new JobTypeDTO.Detail();
+        for (JobType jobType : pagedResult.getContent()) {
+            JobTypeDTO.Detail dto = new JobTypeDTO.Detail();
             dto.setId(jobType.getUuid());
             dto.setName(jobType.getName());
             dto.setIsActive(jobType.getActive());
@@ -171,10 +203,10 @@ public class JobTypeServiceImpl implements JobTypeService {
 
     @Override
     public List<JobTypeDTO.Detail> getAllJobs() {
-        List<JobType> jobTypes= jobTypeRepository.findAll();
-        List<JobTypeDTO.Detail>jobTypeDTOS=new ArrayList<>();
-        for(JobType jobType:jobTypes){
-            JobTypeDTO.Detail dto=new JobTypeDTO.Detail();
+        List<JobType> jobTypes = jobTypeRepository.findAll();
+        List<JobTypeDTO.Detail> jobTypeDTOS = new ArrayList<>();
+        for (JobType jobType : jobTypes) {
+            JobTypeDTO.Detail dto = new JobTypeDTO.Detail();
             dto.setId(jobType.getUuid());
             dto.setName(jobType.getName());
             dto.setIsActive(jobType.getActive());
@@ -187,13 +219,11 @@ public class JobTypeServiceImpl implements JobTypeService {
     }
 
     private void prepareJobTypeSearchFilter(PageRequest.List listRequest, GenericSpecificationsBuilder<JobType> builder) {
-
-
         builder.with(jobTypeSpecificationFactory.isEqual("deleted", false));
         if (org.apache.commons.lang.StringUtils.isNotBlank(listRequest.getSearchText())) {
             builder.with(jobTypeSpecificationFactory.like("name", listRequest.getSearchText()));
         }
-        if(listRequest.getIsActive()!=null){
+        if (listRequest.getIsActive() != null) {
             builder.with(jobTypeSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
         }
         if (listRequest.getStartDate() != null) {
@@ -201,7 +231,7 @@ public class JobTypeServiceImpl implements JobTypeService {
         }
 
         if (listRequest.getEndDate() != null) {
-            builder.with(jobTypeSpecificationFactory.isLessThanOrEquals("createdAt", listRequest.getEndDate().atTime(23,59,59)));
+            builder.with(jobTypeSpecificationFactory.isLessThanOrEquals("createdAt", listRequest.getEndDate().atTime(23, 59, 59)));
         }
 
     }

@@ -11,6 +11,7 @@ import com.octal.fsm.service.JobService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
 import com.octal.fsm.transformer.JobTransformer;
+import com.octal.fsm.utils.TextUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -39,6 +40,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public String addJob(JobDTO.Add addJobDTO) throws CodeException {
         try {
+            validatedJobDTO(addJobDTO);
             Job job = jobTransformer.transformToEntity(addJobDTO);
             Job savedJob = jobRepository.save(job);
             return String.valueOf(savedJob.getRecordId()); // Using getRecordId() instead of getId()
@@ -198,7 +200,7 @@ public class JobServiceImpl implements JobService {
             }
 
             Job job = jobOpt.get();
-           // job.setAssignedTechnician(jobTransformer.getTechnicianById(technicianId));
+            // job.setAssignedTechnician(jobTransformer.getTechnicianById(technicianId));
             job.setAssignedDateTime(LocalDateTime.now());
             job.setJobStatus("ASSIGNED");
             // Removed setUpdatedBy since it doesn't exist in AbstractPersistable
@@ -272,5 +274,54 @@ public class JobServiceImpl implements JobService {
             builder.with(jobSpecificationFactory.isLessThanOrEquals("createdAt",
                     listRequest.getEndDate().plusDays(1).atStartOfDay()));
         }
+    }
+
+    public void validatedJobDTO(JobDTO.Add addJobDTO) throws CodeException {
+        if (addJobDTO.getCustomerDetails() == null)
+            throw new CodeException("Customer Details are required", ErrorCode.COMMON);
+        if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getCustomerId())) {
+            if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getCustomerName())) {
+                throw new CodeException("Customer Name is required", ErrorCode.COMMON);
+            }
+            if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getEmail())) {
+                throw new CodeException("Customer Email is required", ErrorCode.COMMON);
+            }
+            if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getMobileNumber())) {
+                throw new CodeException("Customer Mobile Number is required", ErrorCode.COMMON);
+            }
+            if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getAddress())) {
+                throw new CodeException("Customer Address is required", ErrorCode.COMMON);
+            }
+        }
+        if (TextUtils.isEmpty(addJobDTO.getJobTypeId()))
+            throw new CodeException("Job Type is required", ErrorCode.COMMON);
+        if (TextUtils.isEmpty(addJobDTO.getServiceLocation()))
+            throw new CodeException("Service Location is required", ErrorCode.COMMON);
+        if (addJobDTO.getServiceLocationLat() == null)
+            throw new CodeException("Service Location Latitude is required", ErrorCode.COMMON);
+        if (addJobDTO.getServiceLocationLng() == null)
+            throw new CodeException("Service Location Longitude is required", ErrorCode.COMMON);
+        if (TextUtils.isEmpty(addJobDTO.getJobStatus()))
+            throw new CodeException("Job Status is required", ErrorCode.COMMON);
+        if (TextUtils.isEmpty(addJobDTO.getCustomerType()))
+            throw new CodeException("Customer Type is required", ErrorCode.COMMON);
+        if (TextUtils.isEmpty(addJobDTO.getJobDescription()))
+            throw new CodeException("Job Description is required", ErrorCode.COMMON);
+        if (addJobDTO.getJobTaskId() == null || addJobDTO.getJobTaskId().isEmpty())
+            throw new CodeException("Job Tasks are required.", ErrorCode.COMMON);
+        if(TextUtils.isEmpty(addJobDTO.getLeadReceivedDate()))
+            throw new CodeException("Lead Received Date is required", ErrorCode.COMMON);
+        if(TextUtils.isEmpty(addJobDTO.getJobStartDate()))
+            throw new CodeException("Job Start Date is required", ErrorCode.COMMON);
+        if(TextUtils.isEmpty(addJobDTO.getJobEndDate()))
+            throw new CodeException("Job End Date is required", ErrorCode.COMMON);
+        if(TextUtils.isEmpty(addJobDTO.getLeadSourceId()))
+            throw new CodeException("Lead Source is required", ErrorCode.COMMON);
+        if(TextUtils.isEmpty(addJobDTO.getBudget()))
+            throw new CodeException("Budget is required", ErrorCode.COMMON);
+        if(addJobDTO.getJobTags() == null || addJobDTO.getJobTags().isEmpty())
+            throw new CodeException("At least one Job Tag is required", ErrorCode.COMMON);
+        if(TextUtils.isEmpty(addJobDTO.getTechnicianId()))
+            throw new CodeException("Technician is required", ErrorCode.COMMON);
     }
 }
