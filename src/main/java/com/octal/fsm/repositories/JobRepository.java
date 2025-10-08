@@ -17,5 +17,10 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
 
     Page<Job> findAllByDeletedFalse(Pageable pageable);
 
+    Boolean existsByJobId(String jobId);
+
+    Boolean existsByUuidAndDeletedFalse(String uuid);
+
+
     //List<Job> findByCustomerIdAndDeletedFalse(Long customerId);
 }

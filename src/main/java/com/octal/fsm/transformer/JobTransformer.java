@@ -1,16 +1,23 @@
 package com.octal.fsm.transformer;
 
 
+import com.octal.fsm.clients.AdminClient;
+import com.octal.fsm.dto.ApiResponse;
+import com.octal.fsm.dto.CustomerDTO;
 import com.octal.fsm.dto.JobDTO;
-import com.octal.fsm.entities.Job;
-import com.octal.fsm.entities.JobType;
-import com.octal.fsm.entities.JobTag;
-import com.octal.fsm.repositories.JobTypeRepository;
-import com.octal.fsm.repositories.JobTagRepository;
+import com.octal.fsm.entities.*;
+import com.octal.fsm.entities.enums.Gender;
+import com.octal.fsm.exceptions.CodeException;
+import com.octal.fsm.exceptions.ErrorCode;
+import com.octal.fsm.helper.CodeGenerator;
+import com.octal.fsm.repositories.*;
+import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -20,198 +27,99 @@ import java.util.Objects;
 @Component
 public class JobTransformer {
 
-
     @Autowired
     private JobTypeRepository jobTypeRepository;
 
+    @Autowired
+    private AdminClient adminClient;
+
+    @Autowired
+    private JobRepository jobRepository;
+
+    @Autowired
+    private JobTaskRepository jobTaskRepository;
 
     @Autowired
     private JobTagRepository jobTagRepository;
 
-    public Job transformToEntity(JobDTO.Add addJobDTO) {
+    @Autowired
+    private DocumentsRepository documentsRepository;
+    @Autowired
+    private CodeGenerator codeGenerator;
+
+    public String transformToEntity(JobDTO.Add addJobDTO) throws CodeException {
         Job job = new Job();
-//        job.setJobSummary(addJobDTO.getJobSummary());
-//        job.setPriority(addJobDTO.getPriority());
-//        job.setEstimatedCost(addJobDTO.getEstimatedCost());
-//        job.setJobTimeDuration(addJobDTO.getJobTimeDuration());
-//        job.setJobStatus(addJobDTO.getJobStatus());
-//        job.setActive(addJobDTO.getActive());
-//        job.setAssignedDateTime(addJobDTO.getAssignedDateTime());
-//
-//        // Set relationships - Convert String IDs to appropriate types
-////        if (addJobDTO.getCustomerId() != null) {
-////            Customer customer = customerRepository.findById(Long.valueOf(addJobDTO.getCustomerId())).orElse(null);
-////            job.setCustomer(customer);
-////        }
-//
-//        if (addJobDTO.getJobTypeId() != null) {
-//            JobType jobType = jobTypeRepository.findById(Long.valueOf(addJobDTO.getJobTypeId())).orElse(null);
-//            job.setJobType(jobType);
-//        }
-//
-////        if (addJobDTO.getAssignedTechnicianId() != null) {
-////            Technician technician = technicianRepository.findById(Long.valueOf(addJobDTO.getAssignedTechnicianId())).orElse(null);
-////            job.setAssignedTechnician(technician);
-////        }
-//
-//        if (addJobDTO.getTagIds() != null && !addJobDTO.getTagIds().isEmpty()) {
-//            Set<JobTag> tags = addJobDTO.getTagIds().stream()
-//                    .map(tagId -> jobTagRepository.findById(Long.valueOf(tagId)).orElse(null))
-//                    .filter(Objects::nonNull)
-//                    .collect(Collectors.toSet());
-//            job.setTags(tags);
-//        }
-//
-//        // Set audit fields - Removed setCreatedBy and setUpdatedBy since they don't exist in AbstractPersistable
-//        job.setCreatedAt(LocalDateTime.now());
-//        job.setUpdatedAt(LocalDateTime.now());
-//        job.setDeleted(false);
-//
-//        return job;
-        return job;
+        job.setCustomerId(addJobDTO.getCustomerDetails().getCustomerId());
+        job.setJobTypeId(addJobDTO.getJobTypeId()); // Check Required
+        job.setCustomerTypeId(addJobDTO.getCustomerTypeId());
+        job.setServiceLocation(addJobDTO.getServiceLocation());
+        job.setServiceLocationLat(addJobDTO.getServiceLocationLat());
+        job.setServiceLocationLng(addJobDTO.getServiceLocationLng());
+        job.setJobStatus(addJobDTO.getJobStatus());
+        job.setJobDescription(addJobDTO.getJobDescription());
+        List<JobMappingTask> jobMappingTask = new ArrayList<>();
+        for (String jobTaskId : addJobDTO.getJobTaskId()) {
+            Boolean jobTaskExist = jobTaskRepository.existsByUuid(jobTaskId);
+            if (jobTaskExist) {
+                JobMappingTask task = new JobMappingTask();
+                task.setTaskId(jobTaskId);
+                task.setJob(job);
+                jobMappingTask.add(task);
+            }
+        }
+        job.setJobMappingTasks(jobMappingTask);
+        try {
+            if (!TextUtils.isEmpty(addJobDTO.getLeadReceivedDate())) {
+                LocalDate leadReceivedDate = LocalDate.parse(addJobDTO.getLeadReceivedDate());
+                job.setLeadReceivedDate(leadReceivedDate);
+            }
+            if (!TextUtils.isEmpty(addJobDTO.getJobStartDate())) {
+                LocalDate jobStartDate = LocalDate.parse(addJobDTO.getJobStartDate());
+                job.setJobStartDate(jobStartDate);
+            }
+            if (!TextUtils.isEmpty(addJobDTO.getJobEndDate())) {
+                LocalDate jobEndDate = LocalDate.parse(addJobDTO.getJobEndDate());
+                job.setJobEndDate(jobEndDate);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        job.setLeadSourceId(addJobDTO.getLeadSourceId());
+        job.setBudget(addJobDTO.getBudget());
+        // Tags
+        List<JobMappingTags> jobMappingTags = new ArrayList<>();
+        for (String jobTagId : addJobDTO.getJobTags()) {
+            Boolean jobTagExist = jobTagRepository.existsByUuid(jobTagId);
+            if (jobTagExist) {
+                JobMappingTags tag = new JobMappingTags();
+                tag.setTagId(jobTagId);
+                tag.setJob(job);
+                jobMappingTags.add(tag);
+            }
+        }
+        job.setJobMappingTags(jobMappingTags);
+        job.setAdditionalNotes(addJobDTO.getAdditionalNotes());
+        // Documents
+        List<Documents> documentsList = new ArrayList<>();
+        List<JobMappingDocuments> documents = new ArrayList<>();
+        if (addJobDTO.getDocuments() != null && !addJobDTO.getDocuments().isEmpty()) {
+            for (String documentUrl : addJobDTO.getDocuments()) {
+                Documents document = new Documents();
+                document.setFileName(TextUtils.getFileNameFromFileUrl(documentUrl));
+                document.setFileType(TextUtils.getFileTypeFromFileUrl(documentUrl));
+                document.setDocumentUrl(documentUrl);
+                documentsList.add(document);
+
+                JobMappingDocuments jobMappingDocuments = new JobMappingDocuments();
+                jobMappingDocuments.setJob(job);
+                jobMappingDocuments.setDocumentId(document.getUuid());
+                documents.add(jobMappingDocuments);
+            }
+            documentsRepository.saveAll(documentsList);
+            job.setJobMappingDocuments(documents);
+        }
+        job.setJobId(codeGenerator.getJobId());
+        jobRepository.save(job);
+        return job.getUuid();
     }
-
-    public Job updateEntityFromDTO(JobDTO.Update updateJobDTO, Job existingJob) {
-        if (updateJobDTO.getJobSummary() != null) {
-            existingJob.setJobSummary(updateJobDTO.getJobSummary());
-        }
-        if (updateJobDTO.getPriority() != null) {
-            existingJob.setPriority(updateJobDTO.getPriority());
-        }
-        if (updateJobDTO.getEstimatedCost() != null) {
-            existingJob.setEstimatedCost(updateJobDTO.getEstimatedCost());
-        }
-        if (updateJobDTO.getJobTimeDuration() != null) {
-            existingJob.setJobTimeDuration(updateJobDTO.getJobTimeDuration());
-        }
-        if (updateJobDTO.getJobStatus() != null) {
-            existingJob.setJobStatus(updateJobDTO.getJobStatus());
-        }
-        if (updateJobDTO.getActive() != null) {
-            existingJob.setActive(updateJobDTO.getActive());
-        }
-        if (updateJobDTO.getAssignedDateTime() != null) {
-            existingJob.setAssignedDateTime(updateJobDTO.getAssignedDateTime());
-        }
-        if (updateJobDTO.getInvoiceSharedDate() != null) {
-            existingJob.setInvoiceSharedDate(updateJobDTO.getInvoiceSharedDate());
-        }
-        if (updateJobDTO.getInvoiceStatus() != null) {
-            existingJob.setInvoiceStatus(updateJobDTO.getInvoiceStatus());
-        }
-        if (updateJobDTO.getPaymentStatus() != null) {
-            existingJob.setPaymentStatus(updateJobDTO.getPaymentStatus());
-        }
-        if (updateJobDTO.getPaymentReceiveDate() != null) {
-            existingJob.setPaymentReceiveDate(updateJobDTO.getPaymentReceiveDate());
-        }
-
-        // Update relationships - Convert String IDs to appropriate types
-//        if (updateJobDTO.getCustomerId() != null) {
-//            Customer customer = customerRepository.findById(Long.valueOf(updateJobDTO.getCustomerId())).orElse(null);
-//            existingJob.setCustomer(customer);
-//        }
-
-        if (updateJobDTO.getJobTypeId() != null) {
-            JobType jobType = jobTypeRepository.findById(Long.valueOf(updateJobDTO.getJobTypeId())).orElse(null);
-            existingJob.setJobType(jobType);
-        }
-
-//        if (updateJobDTO.getAssignedTechnicianId() != null) {
-//            Technician technician = technicianRepository.findById(Long.valueOf(updateJobDTO.getAssignedTechnicianId())).orElse(null);
-//            existingJob.setAssignedTechnician(technician);
-//        }
-
-        if (updateJobDTO.getTagIds() != null) {
-            Set<JobTag> tags = updateJobDTO.getTagIds().stream()
-                    .map(tagId -> jobTagRepository.findById(Long.valueOf(tagId)).orElse(null))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
-            existingJob.setTags(tags);
-        }
-
-        // Update audit fields - Removed setUpdatedBy since it doesn't exist in AbstractPersistable
-        existingJob.setUpdatedAt(LocalDateTime.now());
-
-        return existingJob;
-    }
-
-    public static final Function<Job, JobDTO.List> jobToListDTO = job -> {
-        JobDTO.List listDTO = new JobDTO.List();
-        listDTO.setId(String.valueOf(job.getRecordId())); // Convert Long to String
-        listDTO.setJobSummary(job.getJobSummary());
-        listDTO.setJobStatus(job.getJobStatus());
-        listDTO.setPriority(job.getPriority());
-        listDTO.setEstimatedCost(job.getEstimatedCost());
-        listDTO.setAssignedDateTime(job.getAssignedDateTime());
-        listDTO.setInvoiceSharedDate(job.getInvoiceSharedDate());
-        listDTO.setPaymentReceiveDate(job.getPaymentReceiveDate());
-        listDTO.setInvoiceStatus(job.getInvoiceStatus());
-        listDTO.setPaymentStatus(job.getPaymentStatus());
-        listDTO.setActive(job.getActive());
-        listDTO.setCreatedAt(job.getCreatedAt());
-        listDTO.setUpdatedAt(job.getUpdatedAt());
-
-        // Set customer info
-//        if (job.getCustomer() != null) {
-//            listDTO.setCustomerId(String.valueOf(job.getCustomer().getRecordId())); // Convert Long to String
-//            listDTO.setCustomerName(job.getCustomer().getName());
-//        }
-
-        // Set job type info
-        if (job.getJobType() != null) {
-            listDTO.setJobTypeId(String.valueOf(job.getJobType().getRecordId())); // Convert Long to String
-            listDTO.setJobTypeName(job.getJobType().getName());
-        }
-
-        // Set technician info
-//        if (job.getAssignedTechnician() != null) {
-//            listDTO.setAssignedTechnicianId(String.valueOf(job.getAssignedTechnician().getRecordId())); // Convert Long to String
-//            listDTO.setAssignedTechnicianName(job.getAssignedTechnician().getName());
-//        }
-
-        // Set tags
-        if (job.getTags() != null) {
-            Set<String> tagNames = job.getTags().stream()
-                    .map(JobTag::getName)
-                    .collect(Collectors.toSet());
-            listDTO.setTags(tagNames);
-        }
-
-        return listDTO;
-    };
-
-    public JobDTO.Detail transformToDetailDTO(Job job) {
-        JobDTO.Detail detailDTO = new JobDTO.Detail();
-        detailDTO.setId(String.valueOf(job.getRecordId())); // Convert Long to String
-        detailDTO.setJobSummary(job.getJobSummary());
-        detailDTO.setJobStatus(job.getJobStatus());
-        detailDTO.setPriority(job.getPriority());
-        detailDTO.setEstimatedCost(job.getEstimatedCost());
-        detailDTO.setJobTimeDuration(job.getJobTimeDuration());
-        detailDTO.setAssignedDateTime(job.getAssignedDateTime());
-        detailDTO.setInvoiceSharedDate(job.getInvoiceSharedDate());
-        detailDTO.setPaymentReceiveDate(job.getPaymentReceiveDate());
-        detailDTO.setInvoiceStatus(job.getInvoiceStatus());
-        detailDTO.setPaymentStatus(job.getPaymentStatus());
-        detailDTO.setActive(job.getActive());
-        detailDTO.setCreatedAt(job.getCreatedAt());
-        detailDTO.setUpdatedAt(job.getUpdatedAt());
-
-        // Note: For related entities (customer, jobType, assignedTechnician, tags),
-        // you would need to transform them using their respective transformers
-        // This is a simplified version - you may need to adjust based on your actual DTO structures
-
-        return detailDTO;
-    }
-
-    public List<JobDTO.List> transformToListDTO(List<Job> jobs) {
-        return jobs.stream()
-                .map(jobToListDTO)
-                .collect(Collectors.toList());
-    }
-
-//    public Technician getTechnicianById(String technicianId) {
-//        return technicianRepository.findById(Long.valueOf(technicianId)).orElse(null);
-//    }
 }

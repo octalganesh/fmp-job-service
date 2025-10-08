@@ -7,7 +7,9 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -15,64 +17,62 @@ import java.util.Set;
 @AllArgsConstructor
 @Table(name = "jobs")
 @Data
-public class Job extends AbstractPersistable{
+public class Job extends AbstractPersistable {
 
-    //@ManyToOne
-    //@JoinColumn(name = "customer_id", nullable = false)
-    //private Customer customer;
+    @Column(name = "customer_id", nullable = false)
+    private String customerId;
 
-    @ManyToOne
-    private JobType jobType;
+    @Column(name = "job_type_id")
+    private String jobTypeId;
 
-    @ManyToMany
-    @JoinTable(
-            name = "job_jobtag",
-            joinColumns = @JoinColumn(name = "job_id"),
-            inverseJoinColumns = @JoinColumn(name = "job_tag_id")
-    )
-    private Set<JobTag> tags = new HashSet<>();
+    @Column(name = "customer_type_id")
+    private String customerTypeId;
 
+    @Column(name = "service_location")
+    private String serviceLocation;
 
-    //@ManyToOne(fetch = FetchType.LAZY)
-    //@JoinColumn(name = "assigned_technician_id")
-    //private Technician assignedTechnician;
+    @Column(name = "service_location_lat")
+    private Double serviceLocationLat;
 
-    @Column(name = "job_status")
+    @Column(name = "service_location_lng")
+    private Double serviceLocationLng;
+
+    @Column(name = "jobStatus", nullable = false)
     private String jobStatus;
 
-    @Column(name = "job_time_duration")
-    private String jobTimeDuration;
+    @Column(name = "job_description")
+    private String jobDescription;
 
-    @Column(name = "job_summary")
-    private String jobSummary;
+    // ✅ One-to-Many relationship with JobMappingTask
+    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<JobMappingTask> jobMappingTasks = new ArrayList<>();
 
-    @Column(name="assigned_date_time")
-    private LocalDateTime assignedDateTime;
+    @Column(name = "lead_received_date")
+    private LocalDate leadReceivedDate;
 
-    @Column(name="completed_date_time")
-    private Boolean active;
+    @Column(name = "job_start_date")
+    private LocalDate jobStartDate;
 
-    @Column(name="invoice_share_date")
-    private LocalDate invoiceSharedDate;
+    @Column(name = "job_end_date")
+    private LocalDate jobEndDate;
 
-    @Column(name="invoice_status")
-    private String invoiceStatus;
+    @Column(name = "lead_source_id")
+    private String leadSourceId;
 
+    @Column(name = "budget")
+    private Double budget;
 
-    @Column(name="payment_status")
-    private String paymentStatus;
+    // ✅ One-to-Many relationship with JobMappingTask
+    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<JobMappingTags> jobMappingTags = new ArrayList<>();
 
-    @Column(name = "payment_receive_date")
-    private LocalDate paymentReceiveDate;
+    @Column(name = "additional_notes")
+    private String additionalNotes; // Optional
 
-    @Column(name = "priority")
-    private String priority;
+    @Column(name = "job_id",unique = true,nullable = false)
+    private String jobId;
 
-    @Column(name = "estimated_cost")
-    private Double estimatedCost;
-
-    //todo start date and end date of job
-    //todo start time and end time of job
-
+    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<JobMappingDocuments> jobMappingDocuments = new ArrayList<>();
 }
 

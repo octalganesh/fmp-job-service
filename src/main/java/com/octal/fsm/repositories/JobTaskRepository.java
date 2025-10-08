@@ -1,7 +1,8 @@
 package com.octal.fsm.repositories;
 
+
 import com.octal.fsm.entities.JobTag;
-import com.octal.fsm.entities.JobType;
+import com.octal.fsm.entities.JobTask;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -9,13 +10,9 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface JobTagRepository extends JpaRepository<JobTag, Long>, JpaSpecificationExecutor<JobTag> {
-
-    Optional<JobTag> findByUuid(String id);
-
-    Boolean existsByName(String name);
+public interface JobTaskRepository extends JpaRepository<JobTask, Long>, JpaSpecificationExecutor<JobTask> {
 
     Boolean existsByUuid(String uuid);
 
-    Boolean existsByNameAndUuidNot(String name, String id);
+    Optional<JobTask> findByUuid(String id);
 }

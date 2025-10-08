@@ -1,18 +1,25 @@
 package com.octal.fsm.service.impl;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.octal.fsm.clients.AdminClient;
+import com.octal.fsm.clients.TechnicianClient;
+import com.octal.fsm.dto.ApiResponse;
 import com.octal.fsm.dto.JobDTO;
+import com.octal.fsm.dto.JobTagDTO;
 import com.octal.fsm.dto.PageItem;
-import com.octal.fsm.entities.Job;
+import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
-import com.octal.fsm.repositories.JobRepository;
+import com.octal.fsm.repositories.*;
 import com.octal.fsm.service.JobService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
 import com.octal.fsm.transformer.JobTransformer;
 import com.octal.fsm.utils.TextUtils;
 import org.apache.commons.lang.StringUtils;
+import org.checkerframework.checker.nullness.Opt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,8 +27,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.Type;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -32,249 +43,485 @@ public class JobServiceImpl implements JobService {
     private JobRepository jobRepository;
 
     @Autowired
+    private TechnicianClient technicianClient;
+
+    @Autowired
+    private JobTypeRepository jobTypeRepository;
+
+    @Autowired
     private JobTransformer jobTransformer;
 
     @Autowired
     private SpecificationFactory<Job> jobSpecificationFactory;
+    @Autowired
+    private SpecificationFactory<JobTaskMappingTechnician> jobTaskMappingTechnicianSpecificationFactory;
+
+    @Autowired
+    private SpecificationFactory<JobMappingTask> jobMappingTaskSpecificationFactory;
+
+    @Autowired
+    private JobMappingTaskRepository jobMappingTaskRepository;
+
+    @Autowired
+    private JobTaskRepository jobTaskRepository;
+
+    @Autowired
+    private JobTaskMappingTechnicianRepository jobTaskMappingTechnicianRepository;
+
+    @Autowired
+    private AdminClient adminClient;
+
+    @Autowired
+    private JobTagRepository jobTagRepository;
 
     @Override
     public String addJob(JobDTO.Add addJobDTO) throws CodeException {
         try {
             validatedJobDTO(addJobDTO);
-            Job job = jobTransformer.transformToEntity(addJobDTO);
-            Job savedJob = jobRepository.save(job);
-            return String.valueOf(savedJob.getRecordId()); // Using getRecordId() instead of getId()
+            return jobTransformer.transformToEntity(addJobDTO); // Using getRecordId() instead of getId()
         } catch (Exception e) {
             throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
         }
     }
 
     @Override
-    public JobDTO.Detail updateJob(JobDTO.Update updateJobDTO) throws CodeException {
-        try {
-            Optional<Job> existingJobOpt = jobRepository.findByUuidAndDeletedFalse(updateJobDTO.getId());
-            if (existingJobOpt.isEmpty()) {
-                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
-            }
-
-            Job existingJob = existingJobOpt.get();
-            Job updatedJob = jobTransformer.updateEntityFromDTO(updateJobDTO, existingJob);
-            Job savedJob = jobRepository.save(updatedJob);
-
-            return jobTransformer.transformToDetailDTO(savedJob);
-        } catch (Exception e) {
-            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
-        }
-    }
-
-    @Override
-    public Boolean deleteJob(String id) throws CodeException {
-        try {
-            Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(id);
-            if (jobOpt.isEmpty()) {
-                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
-            }
-
-            Job job = jobOpt.get();
-            job.setDeleted(true);
-            // Removed setUpdatedBy since it doesn't exist in AbstractPersistable
-            job.setUpdatedAt(LocalDateTime.now());
-            jobRepository.save(job);
-
-            return true;
-        } catch (Exception e) {
-            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
-        }
-    }
-
-    @Override
-    public JobDTO.Detail getJobById(String id) throws CodeException {
-        try {
-            Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(id);
-            if (jobOpt.isEmpty()) {
-                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
-            }
-
-            return jobTransformer.transformToDetailDTO(jobOpt.get());
-        } catch (Exception e) {
-            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
-        }
-    }
-
-    @Override
-    public Boolean changeJobStatus(String id, String status) throws CodeException {
-        try {
-            Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(id);
-            if (jobOpt.isEmpty()) {
-                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
-            }
-
-            Job job = jobOpt.get();
-            job.setJobStatus(status);
-            // Removed setUpdatedBy since it doesn't exist in AbstractPersistable
-            job.setUpdatedAt(LocalDateTime.now());
-            jobRepository.save(job);
-
-            return true;
-        } catch (Exception e) {
-            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
-        }
-    }
-
-    @Override
-    public PageItem<JobDTO.List> getAllJobs(PageRequest.List listRequest) {
+    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail) throws CodeException {
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
-        prepareJobSearchFilter(listRequest, builder);
-
-        String sortDirection = listRequest.getAsc() ? "ASC" : "DESC";
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), listRequest.getShortingField());
-        Pageable pageRequest = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), sort);
-
-        Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageRequest);
-        List<JobDTO.List> responseList = jobTransformer.transformToListDTO(pagedResult.getContent());
-
-        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList,
-                listRequest.getPageNumber(), listRequest.getPageSize());
-    }
-
-    @Override
-    public PageItem<JobDTO.List> searchJobs(String searchTerm, PageRequest.List listRequest) {
-        GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
-        prepareJobSearchFilter(listRequest, builder);
-
-        if (StringUtils.isNotBlank(searchTerm)) {
-            builder.with(jobSpecificationFactory.like("jobSummary", searchTerm));
+        Pageable pageable = null;
+        if (Boolean.TRUE.equals(order)) {
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).ascending());
+        } else {
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).descending());
         }
-
-        String sortDirection = listRequest.getAsc() ? "ASC" : "DESC";
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), listRequest.getShortingField());
-        Pageable pageRequest = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), sort);
-
-        Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageRequest);
-        List<JobDTO.List> responseList = jobTransformer.transformToListDTO(pagedResult.getContent());
-
-        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList,
-                listRequest.getPageNumber(), listRequest.getPageSize());
-    }
-
-    @Override
-    public PageItem<JobDTO.List> getJobsByStatus(String status, PageRequest.List listRequest) {
-        GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
-        prepareJobSearchFilter(listRequest, builder);
-        builder.with(jobSpecificationFactory.isEqual("jobStatus", status));
-
-        String sortDirection = listRequest.getAsc() ? "ASC" : "DESC";
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), listRequest.getShortingField());
-        Pageable pageRequest = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), sort);
-
-        Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageRequest);
-        List<JobDTO.List> responseList = jobTransformer.transformToListDTO(pagedResult.getContent());
-
-        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList,
-                listRequest.getPageNumber(), listRequest.getPageSize());
-    }
-
-    @Override
-    public PageItem<JobDTO.List> getJobsByPriority(String priority, PageRequest.List listRequest) {
-        GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
-        prepareJobSearchFilter(listRequest, builder);
-        builder.with(jobSpecificationFactory.isEqual("priority", priority));
-
-        String sortDirection = listRequest.getAsc() ? "ASC" : "DESC";
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), listRequest.getShortingField());
-        Pageable pageRequest = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), sort);
-
-        Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageRequest);
-        List<JobDTO.List> responseList = jobTransformer.transformToListDTO(pagedResult.getContent());
-
-        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList,
-                listRequest.getPageNumber(), listRequest.getPageSize());
-    }
-
-    @Override
-    public JobDTO.Detail assignTechnician(String jobId, String technicianId) throws CodeException {
-        try {
-            Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(jobId);
-            if (jobOpt.isEmpty()) {
-                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
-            }
-
-            Job job = jobOpt.get();
-            // job.setAssignedTechnician(jobTransformer.getTechnicianById(technicianId));
-            job.setAssignedDateTime(LocalDateTime.now());
-            job.setJobStatus("ASSIGNED");
-            // Removed setUpdatedBy since it doesn't exist in AbstractPersistable
-            job.setUpdatedAt(LocalDateTime.now());
-
-            Job savedJob = jobRepository.save(job);
-            return jobTransformer.transformToDetailDTO(savedJob);
-        } catch (Exception e) {
-            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
-        }
-    }
-
-    @Override
-    public JobDTO.Detail updateJobProgress(String jobId, String summary, String status) throws CodeException {
-        try {
-            Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(jobId);
-            if (jobOpt.isEmpty()) {
-                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
-            }
-
-            Job job = jobOpt.get();
-            job.setJobSummary(summary);
-            job.setJobStatus(status);
-            // Removed setUpdatedBy since it doesn't exist in AbstractPersistable
-            job.setUpdatedAt(LocalDateTime.now());
-
-            Job savedJob = jobRepository.save(job);
-            return jobTransformer.transformToDetailDTO(savedJob);
-        } catch (Exception e) {
-            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
-        }
-    }
-
-    @Override
-    public JobDTO.Detail completeJob(String jobId, String summary) throws CodeException {
-        try {
-            Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(jobId);
-            if (jobOpt.isEmpty()) {
-                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
-            }
-
-            Job job = jobOpt.get();
-            job.setJobSummary(summary);
-            job.setJobStatus("COMPLETED");
-            // Removed setUpdatedBy since it doesn't exist in AbstractPersistable
-            job.setUpdatedAt(LocalDateTime.now());
-
-            Job savedJob = jobRepository.save(job);
-            return jobTransformer.transformToDetailDTO(savedJob);
-        } catch (Exception e) {
-            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
-        }
-    }
-
-    private void prepareJobSearchFilter(PageRequest.List listRequest, GenericSpecificationsBuilder<Job> builder) {
-        // Always filter out deleted records
         builder.with(jobSpecificationFactory.isEqual("deleted", false));
-
-        // Search by text if provided
-        if (StringUtils.isNotBlank(listRequest.getSearchText())) {
-            builder.with(jobSpecificationFactory.like("jobSummary", listRequest.getSearchText()));
+//        if (org.apache.commons.lang.StringUtils.isNotBlank(listRequest.getSearchText())) {
+//            builder.with(jobTagSpecificationFactory.like("name", listRequest.getSearchText()));
+//        }
+//        if(listRequest.getIsActive()!=null){
+//            builder.with(jobTagSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
+//        }
+        if (!TextUtils.isEmpty(jobType)) {
+            builder.with(jobSpecificationFactory.isEqual("jobTypeId", jobType));
+        }
+        if (!TextUtils.isEmpty(jobStatus)) {
+            builder.with(jobSpecificationFactory.isEqual("jobStatus", jobStatus));
+        }
+        if (!TextUtils.isEmpty(jobTag)) {
+            builder.with(jobSpecificationFactory.join("jobMappingTags", "tagId", jobTag));
+        }
+//        Double serviceLocationLat, Double serviceLocationLng, String customerType,
+        if (!TextUtils.isEmpty(serviceLocationLat)) {
+            builder.with(jobSpecificationFactory.isEqual("serviceLocationLat", serviceLocationLat));
+        }
+        if (!TextUtils.isEmpty(serviceLocationLng)) {
+            builder.with(jobSpecificationFactory.isEqual("serviceLocationLng", serviceLocationLng));
+        }
+        if (!TextUtils.isEmpty(customerType)) {
+            builder.with(jobSpecificationFactory.isEqual("customerTypeId", customerType));
+        }
+        if (!TextUtils.isEmpty(fromStartDate)) {
+            builder.with(jobSpecificationFactory.isGreaterThanOrEquals("jobStartDate", LocalDate.parse(fromStartDate).atStartOfDay()));
+        }
+        if (!TextUtils.isEmpty(toStartDate)) {
+            builder.with(jobSpecificationFactory.isLessThanOrEquals("jobEndDate", LocalDate.parse(toStartDate).atTime(23, 59, 59)));
+        }
+        Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageable);
+        List<JobDTO.JobListResponse> responseList = new ArrayList<>();
+        for (Job job : pagedResult.getContent()) {
+            JobDTO.JobListResponse dto = new JobDTO.JobListResponse();
+            dto.setId(job.getUuid());
+            dto.setJobId(job.getJobId());
+            dto.setServiceLocation(job.getServiceLocation());
+            Optional<JobType> jobTypeOpt = jobTypeRepository.findByUuid(job.getJobTypeId());
+            jobTypeOpt.ifPresent(type -> dto.setJobType(type.getName()));
+            dto.setJobStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
+            dto.setJobEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
+            try {
+                ApiResponse apiResponse = adminClient.getJobDetailsWithLeadAndCustomerDetails(job.getCustomerId(), job.getLeadSourceId(), loggedInUserEmail).getBody();
+                if (apiResponse != null && apiResponse.getData() != null) {
+                    Gson gson = new Gson();
+                    Type customerDetailsStr = new TypeToken<Map<String, String>>() {
+                    }.getType();
+                    Map<String, String> customerDetails = gson.fromJson(gson.toJson(apiResponse.getData()), customerDetailsStr);
+                    if (customerDetails != null) {
+                        dto.setCustomerName(customerDetails.get("customerName"));
+                        dto.setLeadSource(customerDetails.get("leadSourceName"));
+                    } else {
+                        dto.setCustomerName("");
+                        dto.setLeadSource("");
+                    }
+                } else {
+                    dto.setCustomerName("");
+                    dto.setLeadSource("");
+                }
+            } catch (Exception e) {
+                dto.setCustomerName("");
+            }
+            dto.setJobStatus(job.getJobStatus());
+            responseList.add(dto);
         }
 
-        // Filter by date range if provided
-        if (listRequest.getStartDate() != null) {
-            builder.with(jobSpecificationFactory.isGreaterThanOrEquals("createdAt",
-                    listRequest.getStartDate().atStartOfDay()));
-        }
+        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, page,
+                size);
+    }
 
-        if (listRequest.getEndDate() != null) {
-            builder.with(jobSpecificationFactory.isLessThanOrEquals("createdAt",
-                    listRequest.getEndDate().plusDays(1).atStartOfDay()));
+    @Override
+    public JobDTO.Detail getJobById(String id, String loggedInUserEmail) throws CodeException {
+        Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(id);
+        if (jobOpt.isEmpty())
+            throw new CodeException("Job Not Found", ErrorCode.COMMON);
+        Job job = jobOpt.get();
+        JobDTO.Detail response = new JobDTO.Detail();
+        response.setId(id);
+        response.setJobId(job.getJobId());
+        Optional<JobType> jobType = jobTypeRepository.findByUuid(job.getJobTypeId());
+        if (jobType.isPresent()) {
+            response.setJobTypeId(jobType.get().getUuid());
+            response.setJobType(jobType.get().getName());
+        }
+        if (!TextUtils.isEmpty(job.getLeadSourceId()) || !TextUtils.isEmpty(job.getCustomerTypeId()) || !TextUtils.isEmpty(job.getCustomerId())) {
+            try {
+                ApiResponse apiResponse = adminClient.getJobDetailsForCustomerInfo(job.getCustomerId(), job.getLeadSourceId(), job.getCustomerTypeId(), loggedInUserEmail).getBody();
+                if (apiResponse != null && apiResponse.getData() != null) {
+                    Gson gson = new Gson();
+                    Type customerDetailsStr = new TypeToken<Map<String, String>>() {
+                    }.getType();
+                    Map<String, String> customerDetails = gson.fromJson(gson.toJson(apiResponse.getData()), customerDetailsStr);
+                    if (customerDetails != null) {
+                        response.setLeadSourceId(job.getLeadSourceId());
+                        response.setLeadSource(customerDetails.get("leadSourceName"));
+                        response.setCustomerTypeId(job.getCustomerTypeId());
+                        response.setCustomerType(customerDetails.get("customerTypeName"));
+                        JobDTO.CustomerDetails customerDetailsObject = new JobDTO.CustomerDetails();
+                        customerDetailsObject.setCustomerId(job.getCustomerId());
+                        customerDetailsObject.setCustomerName(customerDetails.get("customerName"));
+                        customerDetailsObject.setEmail(customerDetails.get("customerEmail"));
+                        customerDetailsObject.setMobileNumber(customerDetails.get("customerMobile"));
+                        customerDetailsObject.setAddress(customerDetails.get("customerAddress"));
+                        customerDetailsObject.setLat(!TextUtils.isEmpty(customerDetails.get("customerAddressLat")) ? Double.parseDouble(customerDetails.get("customerAddressLat")) : 0.0);
+                        customerDetailsObject.setLng(!TextUtils.isEmpty(customerDetails.get("customerAddressLng")) ? Double.parseDouble(customerDetails.get("customerAddressLng")) : 0.0);
+                        response.setCustomerDetails(customerDetailsObject);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        response.setLeadReceivedDate(job.getLeadReceivedDate() != null ? job.getLeadReceivedDate().toString() : null);
+        List<JobMappingTags> jobTags = job.getJobMappingTags();
+        List<JobTagDTO.Detail> jobTagList = new ArrayList<>();
+        for (JobMappingTags tag : jobTags) {
+            Optional<JobTag> jobTagOptional = jobTagRepository.findByUuid(tag.getTagId());
+            if (jobTagOptional.isPresent()) {
+                JobTagDTO.Detail jobTagDTO = new JobTagDTO.Detail();
+                jobTagDTO.setId(tag.getTagId());
+                jobTagDTO.setName(jobTagOptional.get().getName());
+                jobTagList.add(jobTagDTO);
+            }
+        }
+        response.setJobTags(jobTagList);
+        response.setJobDescription(job.getJobDescription());
+        response.setAdditionalNotes(job.getAdditionalNotes());
+        response.setJobStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
+        response.setJobEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
+        response.setServiceLocation(job.getServiceLocation());
+        response.setServiceLocationLat(job.getServiceLocationLat());
+        response.setServiceLocationLng(job.getServiceLocationLng());
+        response.setJobStatus(job.getJobStatus());
+        return response;
+    }
+
+    @Override
+    public PageItem<JobDTO.JobTaskListResponse> getJobTask(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException {
+        Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(jobId);
+        if (!jobExist)
+            throw new CodeException("Job Not Found", ErrorCode.COMMON);
+        GenericSpecificationsBuilder<JobMappingTask> builder = new GenericSpecificationsBuilder<>();
+        Pageable pageable = null;
+        if (Boolean.TRUE.equals(order)) {
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).ascending());
+        } else {
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).descending());
+        }
+        builder.with(jobMappingTaskSpecificationFactory.isEqual("deleted", false));
+        if (!TextUtils.isEmpty(jobId)) {
+            builder.with(jobMappingTaskSpecificationFactory.join("job", "uuid", jobId));
+        }
+        List<JobDTO.JobTaskListResponse> responseList = new ArrayList<>();
+        Page<JobMappingTask> pagedResult = jobMappingTaskRepository.findAll(builder.build(), pageable);
+        for (JobMappingTask jobMappingTask : pagedResult) {
+            JobDTO.JobTaskListResponse dto = new JobDTO.JobTaskListResponse();
+            Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.getTaskId());
+            if (jobTask.isPresent()) {
+                dto.setId(jobMappingTask.getUuid());
+                dto.setTaskId(jobTask.get().getUuid());
+                dto.setTaskName(jobTask.get().getName());
+                dto.setTaskDescription(jobTask.get().getDescription());
+                Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.getUuid());
+                if (jobTaskMappingTechnician.isPresent()) {
+                    dto.setCreatedAt(jobTaskMappingTechnician.get().getCreatedAt() != null ? jobTaskMappingTechnician.get().getCreatedAt().toString() : null);
+                    dto.setTaskStatus(jobTaskMappingTechnician.get().getTaskStatus());
+                    dto.setTechnicianName("SAMPLE TECHNICIAN");
+                } else {
+                    dto.setTaskStatus("NOT ASSIGNED");
+                }
+                responseList.add(dto);
+            }
+        }
+        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, page,
+                size);
+    }
+
+    @Override
+    public void assignJobToTechnician(JobDTO.AssignJobToTechnician assignJobToTechnician, String loggedInUserEmail) throws CodeException {
+        Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(assignJobToTechnician.getJobId());
+        if (!jobExist)
+            throw new CodeException("Job Not Found", ErrorCode.COMMON);
+        Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(assignJobToTechnician.getJobTaskMappingId());
+        if (jobMappingTask.isEmpty())
+            throw new CodeException("Job Task Mapping Not Found", ErrorCode.COMMON);
+        Boolean taskExist = jobTaskRepository.existsByUuid(jobMappingTask.get().getTaskId());
+        if (!taskExist)
+            throw new CodeException("Job Task Not Found", ErrorCode.COMMON);
+        ApiResponse technicianResponse = technicianClient.getTechnicianById(assignJobToTechnician.getTechnicianId(), loggedInUserEmail).getBody();
+        if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200")) {
+            JobTaskMappingTechnician jobTaskMappingTechnician = new JobTaskMappingTechnician();
+            Boolean jobTaskMappingToTechnician = jobTaskMappingTechnicianRepository.existsByJobTaskMappingId(assignJobToTechnician.getJobTaskMappingId());
+            if(jobTaskMappingToTechnician)
+                throw new CodeException("Job Task Already Assigned to Technician", ErrorCode.COMMON);
+            jobTaskMappingTechnician.setJobTaskMappingId(jobMappingTask.get().getUuid());
+            jobTaskMappingTechnician.setTechnicianId(assignJobToTechnician.getTechnicianId());
+            jobTaskMappingTechnician.setTaskStatus("ASSIGNED");
+            jobTaskMappingTechnician.setNote(assignJobToTechnician.getNote());
         }
     }
+
+//    @Override
+//    public JobDTO.Detail updateJob(JobDTO.Update updateJobDTO) throws CodeException {
+//        try {
+//            Optional<Job> existingJobOpt = jobRepository.findByUuidAndDeletedFalse(updateJobDTO.getId());
+//            if (existingJobOpt.isEmpty()) {
+//                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
+//            }
+//
+//            Job existingJob = existingJobOpt.get();
+//            Job updatedJob = jobTransformer.updateEntityFromDTO(updateJobDTO, existingJob);
+//            Job savedJob = jobRepository.save(updatedJob);
+//
+//            return jobTransformer.transformToDetailDTO(savedJob);
+//        } catch (Exception e) {
+//            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
+//        }
+//    }
+//
+//    @Override
+//    public Boolean deleteJob(String id) throws CodeException {
+//        try {
+//            Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(id);
+//            if (jobOpt.isEmpty()) {
+//                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
+//            }
+//
+//            Job job = jobOpt.get();
+//            job.setDeleted(true);
+//            // Removed setUpdatedBy since it doesn't exist in AbstractPersistable
+//            job.setUpdatedAt(LocalDateTime.now());
+//            jobRepository.save(job);
+//
+//            return true;
+//        } catch (Exception e) {
+//            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
+//        }
+//    }
+//
+//    @Override
+//    public JobDTO.Detail getJobById(String id) throws CodeException {
+//        try {
+//            Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(id);
+//            if (jobOpt.isEmpty()) {
+//                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
+//            }
+//
+//            return jobTransformer.transformToDetailDTO(jobOpt.get());
+//        } catch (Exception e) {
+//            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
+//        }
+//    }
+//
+//    @Override
+//    public Boolean changeJobStatus(String id, String status) throws CodeException {
+//        try {
+//            Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(id);
+//            if (jobOpt.isEmpty()) {
+//                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
+//            }
+//
+//            Job job = jobOpt.get();
+//            job.setJobStatus(status);
+//            // Removed setUpdatedBy since it doesn't exist in AbstractPersistable
+//            job.setUpdatedAt(LocalDateTime.now());
+//            jobRepository.save(job);
+//
+//            return true;
+//        } catch (Exception e) {
+//            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
+//        }
+//    }
+//
+//    @Override
+//    public PageItem<JobDTO.List> getAllJobs(PageRequest.List listRequest) {
+//        GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
+//        prepareJobSearchFilter(listRequest, builder);
+//
+//        String sortDirection = listRequest.getAsc() ? "ASC" : "DESC";
+//        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), listRequest.getShortingField());
+//        Pageable pageRequest = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), sort);
+//
+//        Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageRequest);
+//        List<JobDTO.List> responseList = jobTransformer.transformToListDTO(pagedResult.getContent());
+//
+//        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList,
+//                listRequest.getPageNumber(), listRequest.getPageSize());
+//    }
+//
+//    @Override
+//    public PageItem<JobDTO.List> searchJobs(String searchTerm, PageRequest.List listRequest) {
+//        GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
+//        prepareJobSearchFilter(listRequest, builder);
+//
+//        if (StringUtils.isNotBlank(searchTerm)) {
+//            builder.with(jobSpecificationFactory.like("jobSummary", searchTerm));
+//        }
+//
+//        String sortDirection = listRequest.getAsc() ? "ASC" : "DESC";
+//        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), listRequest.getShortingField());
+//        Pageable pageRequest = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), sort);
+//
+//        Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageRequest);
+//        List<JobDTO.List> responseList = jobTransformer.transformToListDTO(pagedResult.getContent());
+//
+//        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList,
+//                listRequest.getPageNumber(), listRequest.getPageSize());
+//    }
+//
+//    @Override
+//    public PageItem<JobDTO.List> getJobsByStatus(String status, PageRequest.List listRequest) {
+//        GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
+//        prepareJobSearchFilter(listRequest, builder);
+//        builder.with(jobSpecificationFactory.isEqual("jobStatus", status));
+//
+//        String sortDirection = listRequest.getAsc() ? "ASC" : "DESC";
+//        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), listRequest.getShortingField());
+//        Pageable pageRequest = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), sort);
+//
+//        Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageRequest);
+//        List<JobDTO.List> responseList = jobTransformer.transformToListDTO(pagedResult.getContent());
+//
+//        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList,
+//                listRequest.getPageNumber(), listRequest.getPageSize());
+//    }
+//
+//    @Override
+//    public PageItem<JobDTO.List> getJobsByPriority(String priority, PageRequest.List listRequest) {
+//        GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
+//        prepareJobSearchFilter(listRequest, builder);
+//        builder.with(jobSpecificationFactory.isEqual("priority", priority));
+//
+//        String sortDirection = listRequest.getAsc() ? "ASC" : "DESC";
+//        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), listRequest.getShortingField());
+//        Pageable pageRequest = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), sort);
+//
+//        Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageRequest);
+//        List<JobDTO.List> responseList = jobTransformer.transformToListDTO(pagedResult.getContent());
+//
+//        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList,
+//                listRequest.getPageNumber(), listRequest.getPageSize());
+//    }
+//
+//    @Override
+//    public JobDTO.Detail assignTechnician(String jobId, String technicianId) throws CodeException {
+//        try {
+//            Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(jobId);
+//            if (jobOpt.isEmpty()) {
+//                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
+//            }
+//
+//            Job job = jobOpt.get();
+//            // job.setAssignedTechnician(jobTransformer.getTechnicianById(technicianId));
+//            job.setAssignedDateTime(LocalDateTime.now());
+//            job.setJobStatus("ASSIGNED");
+//            // Removed setUpdatedBy since it doesn't exist in AbstractPersistable
+//            job.setUpdatedAt(LocalDateTime.now());
+//
+//            Job savedJob = jobRepository.save(job);
+//            return jobTransformer.transformToDetailDTO(savedJob);
+//        } catch (Exception e) {
+//            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
+//        }
+//    }
+//
+//    @Override
+//    public JobDTO.Detail updateJobProgress(String jobId, String summary, String status) throws CodeException {
+//        try {
+//            Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(jobId);
+//            if (jobOpt.isEmpty()) {
+//                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
+//            }
+//
+//            Job job = jobOpt.get();
+//            job.setJobSummary(summary);
+//            job.setJobStatus(status);
+//            // Removed setUpdatedBy since it doesn't exist in AbstractPersistable
+//            job.setUpdatedAt(LocalDateTime.now());
+//
+//            Job savedJob = jobRepository.save(job);
+//            return jobTransformer.transformToDetailDTO(savedJob);
+//        } catch (Exception e) {
+//            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
+//        }
+//    }
+//
+//    @Override
+//    public JobDTO.Detail completeJob(String jobId, String summary) throws CodeException {
+//        try {
+//            Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(jobId);
+//            if (jobOpt.isEmpty()) {
+//                throw new CodeException(ErrorCode.RECORD_NOT_FOUND);
+//            }
+//
+//            Job job = jobOpt.get();
+//            job.setJobSummary(summary);
+//            job.setJobStatus("COMPLETED");
+//            // Removed setUpdatedBy since it doesn't exist in AbstractPersistable
+//            job.setUpdatedAt(LocalDateTime.now());
+//
+//            Job savedJob = jobRepository.save(job);
+//            return jobTransformer.transformToDetailDTO(savedJob);
+//        } catch (Exception e) {
+//            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
+//        }
+//    }
+//
+//    private void prepareJobSearchFilter(PageRequest.List listRequest, GenericSpecificationsBuilder<Job> builder) {
+//        // Always filter out deleted records
+//        builder.with(jobSpecificationFactory.isEqual("deleted", false));
+//
+//        // Search by text if provided
+//        if (StringUtils.isNotBlank(listRequest.getSearchText())) {
+//            builder.with(jobSpecificationFactory.like("jobSummary", listRequest.getSearchText()));
+//        }
+//
+//        // Filter by date range if provided
+//        if (listRequest.getStartDate() != null) {
+//            builder.with(jobSpecificationFactory.isGreaterThanOrEquals("createdAt",
+//                    listRequest.getStartDate().atStartOfDay()));
+//        }
+//
+//        if (listRequest.getEndDate() != null) {
+//            builder.with(jobSpecificationFactory.isLessThanOrEquals("createdAt",
+//                    listRequest.getEndDate().plusDays(1).atStartOfDay()));
+//        }
+//    }
 
     public void validatedJobDTO(JobDTO.Add addJobDTO) throws CodeException {
         if (addJobDTO.getCustomerDetails() == null)
@@ -303,25 +550,25 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Service Location Longitude is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getJobStatus()))
             throw new CodeException("Job Status is required", ErrorCode.COMMON);
-        if (TextUtils.isEmpty(addJobDTO.getCustomerType()))
+        if (TextUtils.isEmpty(addJobDTO.getCustomerTypeId()))
             throw new CodeException("Customer Type is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getJobDescription()))
             throw new CodeException("Job Description is required", ErrorCode.COMMON);
         if (addJobDTO.getJobTaskId() == null || addJobDTO.getJobTaskId().isEmpty())
             throw new CodeException("Job Tasks are required.", ErrorCode.COMMON);
-        if(TextUtils.isEmpty(addJobDTO.getLeadReceivedDate()))
+        if (TextUtils.isEmpty(addJobDTO.getLeadReceivedDate()))
             throw new CodeException("Lead Received Date is required", ErrorCode.COMMON);
-        if(TextUtils.isEmpty(addJobDTO.getJobStartDate()))
+        if (TextUtils.isEmpty(addJobDTO.getJobStartDate()))
             throw new CodeException("Job Start Date is required", ErrorCode.COMMON);
-        if(TextUtils.isEmpty(addJobDTO.getJobEndDate()))
+        if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
             throw new CodeException("Job End Date is required", ErrorCode.COMMON);
-        if(TextUtils.isEmpty(addJobDTO.getLeadSourceId()))
+        if (TextUtils.isEmpty(addJobDTO.getLeadSourceId()))
             throw new CodeException("Lead Source is required", ErrorCode.COMMON);
-        if(TextUtils.isEmpty(addJobDTO.getBudget()))
+        if (TextUtils.isEmpty(addJobDTO.getBudget()))
             throw new CodeException("Budget is required", ErrorCode.COMMON);
-        if(addJobDTO.getJobTags() == null || addJobDTO.getJobTags().isEmpty())
+        if (addJobDTO.getJobTags() == null || addJobDTO.getJobTags().isEmpty())
             throw new CodeException("At least one Job Tag is required", ErrorCode.COMMON);
-        if(TextUtils.isEmpty(addJobDTO.getTechnicianId()))
-            throw new CodeException("Technician is required", ErrorCode.COMMON);
+//        if(TextUtils.isEmpty(addJobDTO.getTechnicianId()))
+//            throw new CodeException("Technician is required", ErrorCode.COMMON);
     }
 }
