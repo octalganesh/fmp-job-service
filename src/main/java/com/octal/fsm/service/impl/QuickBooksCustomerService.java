@@ -2,6 +2,7 @@ package com.octal.fsm.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import com.octal.fsm.client.QuickBooksClient;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.entities.QuickBooksToken;
@@ -88,24 +89,20 @@ public class QuickBooksCustomerService {
         }
     }
 
-    public JsonNode createInvoice(InvoiceRequest invoiceRequest) throws Exception {
+    public CreateInvoiceDTO createInvoice(InvoiceRequest invoiceRequest) throws Exception {
         QuickBooksToken tokenInfo = tokenStore.getToken(realmId);
-
         if (tokenInfo == null) {
             throw new Exception("No token found. Please connect to QuickBooks first.");
         }
-
         String bearerToken = "Bearer " + tokenInfo.getAccessToken();
         ObjectMapper objectMapper = new ObjectMapper();
         String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(invoiceRequest);
 
         try {
             String jsonResponse = quickBooksClient.createInvoice(bearerToken, minorVersion, json, realmId);
-
-            ObjectMapper objectMapper1 = new ObjectMapper();
-            JsonNode node = objectMapper1.readTree(jsonResponse);
-            return node;
-
+            Gson gson = new Gson();
+            CreateInvoiceDTO createInvoiceDTO = gson.fromJson(jsonResponse, CreateInvoiceDTO.class);
+            return createInvoiceDTO;
         } catch (FeignException.BadRequest e) {
             String responseBody = e.contentUTF8();
             ObjectMapper mapper = new ObjectMapper();
@@ -275,18 +272,18 @@ public class QuickBooksCustomerService {
         return new QuickBooksErrorInfo(null, "Unknown QuickBooks error", null, responseBody);
     }
 
-    public String addNewCustomer(@Valid AuthRegisterRequest authRegisterRequest) throws Exception {
+    public String addNewCustomer(@Valid QuickBookDTO.CreateCustomer quickBookDTO) throws Exception {
         CustomerRequest customerRequest = new CustomerRequest();
-        customerRequest.setDisplayName(authRegisterRequest.getName() + "-" + authRegisterRequest.getEmail());
+        customerRequest.setDisplayName(quickBookDTO.getName() + "-" + quickBookDTO.getEmail());
         CustomerRequest.PrimaryEmailAddr primaryEmailAddr = new CustomerRequest.PrimaryEmailAddr();
-        primaryEmailAddr.setAddress(authRegisterRequest.getEmail());
+        primaryEmailAddr.setAddress(quickBookDTO.getEmail());
         customerRequest.setPrimaryEmailAddr(primaryEmailAddr);
         CustomerRequest.PrimaryPhone primaryPhone = new CustomerRequest.PrimaryPhone();
-        primaryPhone.setFreeFormNumber(authRegisterRequest.getMobileNumber());
+        primaryPhone.setFreeFormNumber(quickBookDTO.getMobileNumber());
         customerRequest.setPrimaryPhone(primaryPhone);
         CustomerRequest.BillAddr billAddr = new CustomerRequest.BillAddr();
-        billAddr.setCountry(authRegisterRequest.getPrimaryLocation());
-        billAddr.setLine1(authRegisterRequest.getAddress());
+        billAddr.setCountry(quickBookDTO.getPrimaryLocation());
+        billAddr.setLine1(quickBookDTO.getAddress());
         customerRequest.setBillAddr(billAddr);
         JsonNode node = createCustomer(customerRequest);
 

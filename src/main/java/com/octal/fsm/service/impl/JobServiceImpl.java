@@ -1,5 +1,6 @@
 package com.octal.fsm.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.octal.fsm.clients.AdminClient;
@@ -40,6 +41,9 @@ public class JobServiceImpl implements JobService {
     private JobRepository jobRepository;
 
     @Autowired
+    private QuickBooksCustomerService quickBooksCustomerService;
+
+    @Autowired
     private TechnicianClient technicianClient;
 
     @Autowired
@@ -78,6 +82,42 @@ public class JobServiceImpl implements JobService {
             return jobTransformer.transformToEntity(addJobDTO); // Using getRecordId() instead of getId()
         } catch (Exception e) {
             throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
+        }
+    }
+
+    @Override
+    public Object createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice) throws CodeException {
+        Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(createUpFrontInvoice.getJobId());
+        if (job.isEmpty())
+            throw new CodeException("Job Not Found", ErrorCode.COMMON);
+        String customerRefId = job.get().getCustomerQuickBookId();
+        if (TextUtils.isEmpty(customerRefId))
+            throw new CodeException("Customer QuickBook Id Not Found", ErrorCode.COMMON);
+        InvoiceRequest invoiceRequest = new InvoiceRequest();
+        InvoiceRequest.CustomerRef customerRef = new InvoiceRequest.CustomerRef();
+        customerRef.setValue(customerRefId);
+        invoiceRequest.setCustomerRef(customerRef);
+        List<InvoiceRequest.LineItem> lineItems = new ArrayList<>();
+        InvoiceRequest.LineItem lineItem = new InvoiceRequest.LineItem();
+        lineItem.setAmount(createUpFrontInvoice.getAmount());
+        lineItem.setDetailType("SalesItemLineDetail");
+        InvoiceRequest.LineItem.SalesItemLineDetail salesItemLineDetail = new InvoiceRequest.LineItem.SalesItemLineDetail();
+        InvoiceRequest.LineItem.SalesItemLineDetail.ItemRef itemRef = new InvoiceRequest.LineItem.SalesItemLineDetail.ItemRef();
+        itemRef.setName("Project Upfront");
+        itemRef.setValue("30");
+        salesItemLineDetail.setItemRef(itemRef);
+        lineItem.setSalesItemLineDetail(salesItemLineDetail);
+        lineItems.add(lineItem);
+        invoiceRequest.setLine(lineItems);
+        CreateInvoiceDTO invoiceResponse = null;
+        try {
+            invoiceResponse = quickBooksCustomerService.createInvoice(invoiceRequest);
+            //Send Mail
+            JsonNode sendMailResponse = quickBooksCustomerService.sendInvoice(invoiceResponse.getInvoice().getId(), createUpFrontInvoice.getEmail());
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            return invoiceResponse;
         }
     }
 
@@ -195,8 +235,8 @@ public class JobServiceImpl implements JobService {
                         customerDetailsObject.setEmail(customerDetails.get("customerEmail"));
                         customerDetailsObject.setMobileNumber(customerDetails.get("customerMobile"));
                         customerDetailsObject.setAddress(customerDetails.get("customerAddress"));
-                        customerDetailsObject.setLat(!TextUtils.isEmpty(customerDetails.get("customerAddressLat")) ? Double.parseDouble(customerDetails.get("customerAddressLat")) : 0.0);
-                        customerDetailsObject.setLng(!TextUtils.isEmpty(customerDetails.get("customerAddressLng")) ? Double.parseDouble(customerDetails.get("customerAddressLng")) : 0.0);
+                        customerDetailsObject.setLat(!TextUtils.isEmpty(customerDetails.get("customerAddressLat")) && !customerDetails.get("customerAddressLat").equalsIgnoreCase("null") ? Double.parseDouble(customerDetails.get("customerAddressLat")) : 0.0);
+                        customerDetailsObject.setLng(!TextUtils.isEmpty(customerDetails.get("customerAddressLng")) && !customerDetails.get("customerAddressLng").equalsIgnoreCase("null") ? Double.parseDouble(customerDetails.get("customerAddressLng")) : 0.0);
                         response.setCustomerDetails(customerDetailsObject);
                     }
                 }
@@ -259,12 +299,12 @@ public class JobServiceImpl implements JobService {
                     dto.setCreatedAt(jobTaskMappingTechnician.get().getCreatedAt() != null ? jobTaskMappingTechnician.get().getCreatedAt().toString() : null);
                     dto.setTaskStatus(jobTaskMappingTechnician.get().getTaskStatus());
                     ApiResponse technicianResponse = technicianClient.getTechnicianById(jobTaskMappingTechnician.get().getTechnicianId(), loggedInUserEmail).getBody();
-                    if(technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null){
+                    if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
                         try {
                             Gson gson = new Gson();
                             TechnicianDTO.GetDetails technicianDetails = gson.fromJson(gson.toJson(technicianResponse.getData()), TechnicianDTO.GetDetails.class);
                             dto.setTechnicianName(technicianDetails.getName());
-                        }catch (Exception e){
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
@@ -293,8 +333,8 @@ public class JobServiceImpl implements JobService {
         if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200")) {
             JobTaskMappingTechnician jobTaskMappingTechnician = new JobTaskMappingTechnician();
             Optional<JobTaskMappingTechnician> jobTaskMappingToTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(assignJobToTechnician.getJobTaskMappingId());
-            if (jobTaskMappingToTechnician.isPresent()){
-                    //Todo need to create log for all assignment and reassignment of technician
+            if (jobTaskMappingToTechnician.isPresent()) {
+                //Todo need to create log for all assignment and reassignment of technician
                 jobTaskMappingToTechnician.get().setTechnicianId(assignJobToTechnician.getTechnicianId());
                 jobTaskMappingToTechnician.get().setNote(assignJobToTechnician.getNote());
                 if (!TextUtils.isEmpty(assignJobToTechnician.getStartDate())) {
@@ -318,7 +358,7 @@ public class JobServiceImpl implements JobService {
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 }
                 jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
-            }else{
+            } else {
                 jobTaskMappingTechnician.setJobTaskMappingId(jobMappingTask.get().getUuid());
                 jobTaskMappingTechnician.setTechnicianId(assignJobToTechnician.getTechnicianId());
                 jobTaskMappingTechnician.setTaskStatus("ASSIGNED");

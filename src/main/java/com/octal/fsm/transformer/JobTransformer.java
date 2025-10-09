@@ -50,6 +50,7 @@ public class JobTransformer {
     public String transformToEntity(JobDTO.Add addJobDTO) throws CodeException {
         Job job = new Job();
         job.setCustomerId(addJobDTO.getCustomerDetails().getCustomerId());
+        job.setCustomerQuickBookId(addJobDTO.getCustomerDetails().getCustomerQuickBookId());
         job.setJobTypeId(addJobDTO.getJobTypeId()); // Check Required
         job.setCustomerTypeId(addJobDTO.getCustomerTypeId());
         job.setServiceLocation(addJobDTO.getServiceLocation());

@@ -1,11 +1,7 @@
 package com.octal.fsm.controller;
 
-import com.intuit.oauth2.exception.OAuthException;
 import com.octal.fsm.common.ApiResponse;
-import com.octal.fsm.common.CommonConstants;
 import com.octal.fsm.dto.*;
-import com.octal.fsm.exceptions.QuickBooksClientException;
-import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.service.impl.QuickBooksCustomerService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,10 +25,10 @@ public class QuickBooksController extends BaseController {
 
 
     @PostMapping("/create-customer")
-    public ResponseEntity<ApiResponse> createJob(@Valid @RequestBody AuthRegisterRequest authRegisterRequest, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse> createJob(@Valid @RequestBody QuickBookDTO.CreateCustomer quickBookDTO, HttpServletRequest request) {
         try {
 
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Customer created in Quick books", customerService.addNewCustomer(authRegisterRequest), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Customer created in Quick books", customerService.addNewCustomer(quickBookDTO), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);
