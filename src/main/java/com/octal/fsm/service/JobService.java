@@ -21,19 +21,9 @@ public interface JobService {
 
     void assignJobToTechnician(JobDTO.AssignJobToTechnician assignJobToTechnician, String loggedInUserEmail) throws CodeException;
 
-//    Boolean changeJobStatus(String id, String status) throws CodeException;
-//
-//    PageItem<JobDTO.List> getAllJobs(PageRequest.List listRequest);
-//
-//    PageItem<JobDTO.List> searchJobs(String searchTerm, PageRequest.List listRequest);
-//
-//    PageItem<JobDTO.List> getJobsByStatus(String status, PageRequest.List listRequest);
-//
-//    PageItem<JobDTO.List> getJobsByPriority(String priority, PageRequest.List listRequest);
-//
-//    JobDTO.Detail assignTechnician(String jobId, String technicianId) throws CodeException;
-//
-//    JobDTO.Detail updateJobProgress(String jobId, String summary, String status) throws CodeException;
-//
-//    JobDTO.Detail completeJob(String jobId, String summary) throws CodeException;
+
+    PageItem<JobDTO.DetailsForTechnician> getJobTasksForTechnician(JobDTO.JobFilterRequest filterRequest, String technicianId, String loggedInUserEmail) throws CodeException;
+
+
+    JobDTO.DetailsForTechnician getJobTaskDetailsForTechnician(String technicianId, String taskId, String userName) throws CodeException;
 }

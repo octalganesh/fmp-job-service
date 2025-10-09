@@ -9,7 +9,6 @@ import java.time.LocalDate;
 
 public class CustomerDTO {
 
-
     @Data
     public static class AddCustomer{
         private String id;
@@ -29,5 +28,22 @@ public class CustomerDTO {
         private boolean isActive;
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         private LocalDate joinedDate;
+    }
+
+    @Data
+    public static class GetDetails {
+        private String id;
+        private String name;
+        private String email;
+        private String mobileNumber;
+        private String address;
+        private String primaryLocation;
+        private Double lat;
+        private Double lng;
+        private Gender gender;
+        private String customerTypeId;
+        private String leadSourceId;
+        private boolean isActive;
+        private String joinedDate;
     }
 }
