@@ -292,34 +292,60 @@ public class JobServiceImpl implements JobService {
         ApiResponse technicianResponse = technicianClient.getTechnicianById(assignJobToTechnician.getTechnicianId(), loggedInUserEmail).getBody();
         if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200")) {
             JobTaskMappingTechnician jobTaskMappingTechnician = new JobTaskMappingTechnician();
-            Boolean jobTaskMappingToTechnician = jobTaskMappingTechnicianRepository.existsByJobTaskMappingId(assignJobToTechnician.getJobTaskMappingId());
-            if (jobTaskMappingToTechnician)
-                throw new CodeException("Job Task Already Assigned to Technician", ErrorCode.COMMON);
-            jobTaskMappingTechnician.setJobTaskMappingId(jobMappingTask.get().getUuid());
-            jobTaskMappingTechnician.setTechnicianId(assignJobToTechnician.getTechnicianId());
-            jobTaskMappingTechnician.setTaskStatus("ASSIGNED");
-            jobTaskMappingTechnician.setNote(assignJobToTechnician.getNote());
-            if (!TextUtils.isEmpty(assignJobToTechnician.getStartDate())) {
-                try {
-                    LocalDate startDate = LocalDate.parse(assignJobToTechnician.getStartDate());
-                    jobTaskMappingTechnician.setStartDate(startDate);
-                } catch (Exception e) {
-                    e.printStackTrace();
+            Optional<JobTaskMappingTechnician> jobTaskMappingToTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(assignJobToTechnician.getJobTaskMappingId());
+            if (jobTaskMappingToTechnician.isPresent()){
+                    //Todo need to create log for all assignment and reassignment of technician
+                jobTaskMappingToTechnician.get().setTechnicianId(assignJobToTechnician.getTechnicianId());
+                jobTaskMappingToTechnician.get().setNote(assignJobToTechnician.getNote());
+                if (!TextUtils.isEmpty(assignJobToTechnician.getStartDate())) {
+                    try {
+                        LocalDate startDate = LocalDate.parse(assignJobToTechnician.getStartDate());
+                        jobTaskMappingToTechnician.get().setStartDate(startDate);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-            if (!TextUtils.isEmpty(assignJobToTechnician.getEndDate())) {
-                try {
-                    LocalDate endDate = LocalDate.parse(assignJobToTechnician.getEndDate());
-                    jobTaskMappingTechnician.setEndDate(endDate);
-                } catch (Exception e) {
-                    e.printStackTrace();
+                if (!TextUtils.isEmpty(assignJobToTechnician.getEndDate())) {
+                    try {
+                        LocalDate endDate = LocalDate.parse(assignJobToTechnician.getEndDate());
+                        jobTaskMappingToTechnician.get().setEndDate(endDate);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
+                if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
+                    Gson gson = new Gson();
+                    jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
+                }
+                jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
+            }else{
+                jobTaskMappingTechnician.setJobTaskMappingId(jobMappingTask.get().getUuid());
+                jobTaskMappingTechnician.setTechnicianId(assignJobToTechnician.getTechnicianId());
+                jobTaskMappingTechnician.setTaskStatus("ASSIGNED");
+                jobTaskMappingTechnician.setNote(assignJobToTechnician.getNote());
+                if (!TextUtils.isEmpty(assignJobToTechnician.getStartDate())) {
+                    try {
+                        LocalDate startDate = LocalDate.parse(assignJobToTechnician.getStartDate());
+                        jobTaskMappingTechnician.setStartDate(startDate);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                if (!TextUtils.isEmpty(assignJobToTechnician.getEndDate())) {
+                    try {
+                        LocalDate endDate = LocalDate.parse(assignJobToTechnician.getEndDate());
+                        jobTaskMappingTechnician.setEndDate(endDate);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
+                    Gson gson = new Gson();
+                    jobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
+                }
+                jobTaskMappingTechnicianRepository.save(jobTaskMappingTechnician);
             }
-            if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
-                Gson gson = new Gson();
-                jobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
-            }
-            jobTaskMappingTechnicianRepository.save(jobTaskMappingTechnician);
+//                throw new CodeException("Job Task Already Assigned to Technician", ErrorCode.COMMON);
         }
     }
 
