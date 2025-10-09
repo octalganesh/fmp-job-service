@@ -4,10 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.octal.fsm.clients.AdminClient;
 import com.octal.fsm.clients.TechnicianClient;
-import com.octal.fsm.dto.ApiResponse;
-import com.octal.fsm.dto.JobDTO;
-import com.octal.fsm.dto.JobTagDTO;
-import com.octal.fsm.dto.PageItem;
+import com.octal.fsm.dto.*;
 import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
@@ -261,7 +258,16 @@ public class JobServiceImpl implements JobService {
                 if (jobTaskMappingTechnician.isPresent()) {
                     dto.setCreatedAt(jobTaskMappingTechnician.get().getCreatedAt() != null ? jobTaskMappingTechnician.get().getCreatedAt().toString() : null);
                     dto.setTaskStatus(jobTaskMappingTechnician.get().getTaskStatus());
-                    dto.setTechnicianName("SAMPLE TECHNICIAN");
+                    ApiResponse technicianResponse = technicianClient.getTechnicianById(jobTaskMappingTechnician.get().getTechnicianId(), loggedInUserEmail).getBody();
+                    if(technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null){
+                        try {
+                            Gson gson = new Gson();
+                            TechnicianDTO.GetDetails technicianDetails = gson.fromJson(gson.toJson(technicianResponse.getData()), TechnicianDTO.GetDetails.class);
+                            dto.setTechnicianName(technicianDetails.getName());
+                        }catch (Exception e){
+                            e.printStackTrace();
+                        }
+                    }
                 } else {
                     dto.setTaskStatus("NOT ASSIGNED");
                 }
@@ -287,12 +293,33 @@ public class JobServiceImpl implements JobService {
         if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200")) {
             JobTaskMappingTechnician jobTaskMappingTechnician = new JobTaskMappingTechnician();
             Boolean jobTaskMappingToTechnician = jobTaskMappingTechnicianRepository.existsByJobTaskMappingId(assignJobToTechnician.getJobTaskMappingId());
-            if(jobTaskMappingToTechnician)
+            if (jobTaskMappingToTechnician)
                 throw new CodeException("Job Task Already Assigned to Technician", ErrorCode.COMMON);
             jobTaskMappingTechnician.setJobTaskMappingId(jobMappingTask.get().getUuid());
             jobTaskMappingTechnician.setTechnicianId(assignJobToTechnician.getTechnicianId());
             jobTaskMappingTechnician.setTaskStatus("ASSIGNED");
             jobTaskMappingTechnician.setNote(assignJobToTechnician.getNote());
+            if (!TextUtils.isEmpty(assignJobToTechnician.getStartDate())) {
+                try {
+                    LocalDate startDate = LocalDate.parse(assignJobToTechnician.getStartDate());
+                    jobTaskMappingTechnician.setStartDate(startDate);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (!TextUtils.isEmpty(assignJobToTechnician.getEndDate())) {
+                try {
+                    LocalDate endDate = LocalDate.parse(assignJobToTechnician.getEndDate());
+                    jobTaskMappingTechnician.setEndDate(endDate);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
+                Gson gson = new Gson();
+                jobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
+            }
+            jobTaskMappingTechnicianRepository.save(jobTaskMappingTechnician);
         }
     }
 

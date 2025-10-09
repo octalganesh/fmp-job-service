@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @NoArgsConstructor
@@ -24,6 +26,16 @@ public class JobTaskMappingTechnician extends AbstractPersistable {
 
     @Column(name = "note")
     private String note;
+
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
+    @Column(name = "end_date")
+    private LocalDate endDate;
+
+    @Lob
+    @Column(name = "documents")
+    private String documents;
 
 }
 

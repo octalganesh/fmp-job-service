@@ -108,6 +108,9 @@ public class JobDTO {
         private String jobTaskMappingId;
         private String technicianId;
         private String note;
+        private List<String> documents; // Optional
+        private String startDate;
+        private String endDate;
     }
 
     @Data
