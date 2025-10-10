@@ -638,6 +638,22 @@ public class JobServiceImpl implements JobService {
         return detailsList.isEmpty() ? null : detailsList.get(0);
     }
 
+    @Override
+    public void updateJobTaskStatus(String technicianId, String taskId, String status, String userName) throws CodeException {
+        Optional<JobTaskMappingTechnician>jobTaskMappingTechnician=jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+        if(jobTaskMappingTechnician.isPresent()){
+            JobTaskMappingTechnician taskMappingTechnician=jobTaskMappingTechnician.get();
+            if(taskMappingTechnician.getTaskStatus().equalsIgnoreCase("COMPLETED")){
+                throw new CodeException("Task Already Completed", ErrorCode.BAD_REQUEST);
+            }
+            taskMappingTechnician.setTaskStatus(status);
+            jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
+        }else{
+            throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
+        }
+
+    }
+
     private List<JobDTO.DetailsForTechnician> buildTechnicianJobTaskDetails(List<JobTaskMappingTechnician> taskMappings, String loggedInUserEmail) {
         List<JobDTO.DetailsForTechnician> responseList = new ArrayList<>();
 
@@ -655,12 +671,17 @@ public class JobServiceImpl implements JobService {
                     details.setJobDescription(job.get().getJobDescription());
                     details.setStartDate(taskMapping.getStartDate() != null ? taskMapping.getStartDate().toString() : null);
                     details.setEndDate(taskMapping.getEndDate() != null ? taskMapping.getEndDate().toString() : null);
+                    details.setServiceLocationLat(job.get().getServiceLocationLat());
+                    details.setServiceLocationLng(job.get().getServiceLocationLng());
+                    if(taskMapping.getTaskStatus().equalsIgnoreCase("ASSIGNED")){
+                        details.setStatus("NEW");
+                    }else{
+                        details.setStatus(taskMapping.getTaskStatus());
+                    }
 
                     // Get job type
                     Optional<JobType> jobType = jobTypeRepository.findByUuid(job.get().getJobTypeId());
-                    if (jobType.isPresent()) {
-                        details.setJobType(jobType.get().getName());
-                    }
+                    jobType.ifPresent(type -> details.setJobType(type.getName()));
 
                     // Get customer details
                     try {
@@ -671,7 +692,7 @@ public class JobServiceImpl implements JobService {
                             details.setCustomerName(customerDetails.getName());
                             details.setEmail(customerDetails.getEmail());
                             details.setMobileNumber(customerDetails.getMobileNumber());
-                            details.setAddress(customerDetails.getAddress());
+                            details.setLocation(customerDetails.getAddress());
                         }
                     } catch (Exception e) {
                         logger.error("Error fetching customer details: {}", e.getMessage());
@@ -682,9 +703,7 @@ public class JobServiceImpl implements JobService {
                     List<JobMappingTags> jobMappingTags = job.get().getJobMappingTags();
                     for (JobMappingTags mappingTag : jobMappingTags) {
                         Optional<JobTag> tag = jobTagRepository.findByUuid(mappingTag.getTagId());
-                        if (tag.isPresent()) {
-                            jobTags.add(tag.get().getName());
-                        }
+                        tag.ifPresent(jobTag -> jobTags.add(jobTag.getName()));
                     }
                     details.setJobTags(jobTags);
 

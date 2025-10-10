@@ -189,19 +189,20 @@ public class JobDTO {
         private String customerName;
         private String email;
         private String mobileNumber;
-        private String address;
+        private String location;
         // Job Info
         private String jobTitle;
         private String jobId;
         private String jobType;
         private String startDate;
         private String endDate;
-        private String startTime;
-        private String endTime;
         // Tags, Documents, Description
         private List<String> jobTags;
         private List<Document> uploadedDocuments;
         private String jobDescription;
+        private String status;
+        private Double serviceLocationLat;
+        private Double serviceLocationLng;
     }
 
     @Data

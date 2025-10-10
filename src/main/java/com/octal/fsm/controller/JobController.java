@@ -139,7 +139,7 @@ public class JobController extends BaseController {
         }
     }
 
-    @GetMapping("/tasks-for-technician/{technicianId}/{taskId}")
+    @GetMapping("/task-for-technician/{technicianId}/{taskId}")
     public ResponseEntity<ApiResponse> getJobTaskDetailsForTechnician(@PathVariable("technicianId") String technicianId, @PathVariable("taskId") String taskId, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
@@ -147,6 +147,21 @@ public class JobController extends BaseController {
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job task details for technician retrieved successfully", jobTaskDetails, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving job task details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PutMapping("/update-job-task-status/{technicianId}/{taskId}")
+    public ResponseEntity<ApiResponse>updateJobTaskStatus(@PathVariable("technicianId") String technicianId,
+                                                    @PathVariable("taskId") String taskId,
+                                                    @RequestParam("status") String status,
+                                                    HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            jobService.updateJobTaskStatus(technicianId, taskId, status, userName);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job task status updated successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error updating job task status: {}", e.getMessage(), e);
             return handleException(e);
         }
     }

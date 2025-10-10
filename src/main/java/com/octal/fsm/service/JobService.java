@@ -26,4 +26,6 @@ public interface JobService {
 
 
     JobDTO.DetailsForTechnician getJobTaskDetailsForTechnician(String technicianId, String taskId, String userName) throws CodeException;
+
+    void updateJobTaskStatus(String technicianId, String taskId, String status, String userName) throws CodeException;
 }
