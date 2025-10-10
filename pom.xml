@@ -97,6 +97,12 @@
             <version>0.15.4</version>
         </dependency>
 
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.26.5</version>
+        </dependency>
+
 
         <dependency>
             <groupId>org.projectlombok</groupId>
