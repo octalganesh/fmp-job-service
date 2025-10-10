@@ -21,6 +21,7 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
     private EmailService emailService;
 
     @Override
+    @Async("sendMailToTechnicianEvent")
     public void onApplicationEvent(SendMailToTechnicianEvent event) {
         TechnicianDTO.TechnicianData technicianDTO = event.getTechnicianDTO();
         JobDTO.Detail jobDetails = event.getJobDetails(); // Assuming your event has job details
