@@ -705,15 +705,15 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public void updateJobTaskStatus(String technicianId, String taskId, String status, String userName) throws CodeException {
-        Optional<JobTaskMappingTechnician>jobTaskMappingTechnician=jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
-        if(jobTaskMappingTechnician.isPresent()){
-            JobTaskMappingTechnician taskMappingTechnician=jobTaskMappingTechnician.get();
-            if(taskMappingTechnician.getTaskStatus().equalsIgnoreCase("COMPLETED")){
+        Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+        if (jobTaskMappingTechnician.isPresent()) {
+            JobTaskMappingTechnician taskMappingTechnician = jobTaskMappingTechnician.get();
+            if (taskMappingTechnician.getTaskStatus().equalsIgnoreCase("COMPLETED")) {
                 throw new CodeException("Task Already Completed", ErrorCode.BAD_REQUEST);
             }
             taskMappingTechnician.setTaskStatus(status);
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
-        }else{
+        } else {
             throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
         }
 
@@ -738,9 +738,9 @@ public class JobServiceImpl implements JobService {
                     details.setEndDate(taskMapping.getEndDate() != null ? taskMapping.getEndDate().toString() : null);
                     details.setServiceLocationLat(job.get().getServiceLocationLat());
                     details.setServiceLocationLng(job.get().getServiceLocationLng());
-                    if(taskMapping.getTaskStatus().equalsIgnoreCase("ASSIGNED")){
+                    if (taskMapping.getTaskStatus().equalsIgnoreCase("ASSIGNED")) {
                         details.setStatus("NEW");
-                    }else{
+                    } else {
                         details.setStatus(taskMapping.getTaskStatus());
                     }
 
@@ -750,7 +750,7 @@ public class JobServiceImpl implements JobService {
 
                     // Get customer details
                     try {
-                        ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId(),loggedInUserEmail).getBody();
+                        ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId(), loggedInUserEmail).getBody();
                         if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
                             Gson gson = new Gson();
                             CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
@@ -763,7 +763,6 @@ public class JobServiceImpl implements JobService {
                         logger.error("Error fetching customer details: {}", e.getMessage());
                     }
 
-                    // Get job tags
                     List<String> jobTags = new ArrayList<>();
                     List<JobMappingTags> jobMappingTags = job.get().getJobMappingTags();
                     for (JobMappingTags mappingTag : jobMappingTags) {
