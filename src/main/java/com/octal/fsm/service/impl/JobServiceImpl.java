@@ -9,6 +9,7 @@ import com.octal.fsm.dto.*;
 import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
+import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.*;
 import com.octal.fsm.service.JobService;
@@ -19,6 +20,7 @@ import com.octal.fsm.utils.TextUtils;
 import org.apache.commons.lang.StringUtils;
 import org.checkerframework.checker.nullness.Opt;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -74,6 +76,12 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private JobTagRepository jobTagRepository;
+
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+
+    @Autowired
+    private JobService jobService;
 
     @Override
     public String addJob(JobDTO.Add addJobDTO) throws CodeException {
@@ -358,6 +366,23 @@ public class JobServiceImpl implements JobService {
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 }
                 jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
+
+
+                Gson gson = new Gson();
+                // Save attached documents in DB
+                jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
+                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail);
+
+                // Convert response data to TechnicianDTO.GetDetails
+                if (jobDetails != null) {
+                    String jsonResponse = gson.toJson(technicianResponse.getData());
+                    TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
+
+                    if (getDetails != null && getDetails.getEmail() != null) {
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail));
+                    }
+                }
+
             } else {
                 jobTaskMappingTechnician.setJobTaskMappingId(jobMappingTask.get().getUuid());
                 jobTaskMappingTechnician.setTechnicianId(assignJobToTechnician.getTechnicianId());
