@@ -33,6 +33,33 @@ public class TextUtils {
         return value < 0;
     }
 
+    public static String getFileNameFromFileUrl(String documentUrl){
+        // Extract file name with extension
+        String fileNameWithExtension = documentUrl.substring(documentUrl.lastIndexOf('/') + 1);
+
+        // Extract file type/extension
+        String fileType = "";
+        String fileName = fileNameWithExtension;
+        int dotIndex = fileNameWithExtension.lastIndexOf('.');
+        if (dotIndex > 0) {
+            fileName = fileNameWithExtension.substring(0, dotIndex);
+        }
+        return fileName;
+    }
+    public static String getFileTypeFromFileUrl(String documentUrl){
+        // Extract file name with extension
+        String fileNameWithExtension = documentUrl.substring(documentUrl.lastIndexOf('/') + 1);
+
+        // Extract file type/extension
+        String fileType = "";
+        String fileName = fileNameWithExtension;
+        int dotIndex = fileNameWithExtension.lastIndexOf('.');
+        if (dotIndex > 0) {
+            fileType = fileNameWithExtension.substring(dotIndex + 1);
+        }
+        return fileType;
+    }
+
 
 
 }
