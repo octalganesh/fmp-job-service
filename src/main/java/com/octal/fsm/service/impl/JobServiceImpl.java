@@ -10,7 +10,6 @@ import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
-import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.*;
 import com.octal.fsm.service.JobService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
