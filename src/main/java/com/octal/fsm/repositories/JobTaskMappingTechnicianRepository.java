@@ -14,4 +14,6 @@ public interface JobTaskMappingTechnicianRepository extends JpaRepository<JobTas
     Optional<JobTaskMappingTechnician> findByJobTaskMappingId(String taskId);
 
     Boolean existsByJobTaskMappingId(String taskId);
+
+    Optional<JobTaskMappingTechnician> findByUuidAndDeletedFalse(String taskId);
 }

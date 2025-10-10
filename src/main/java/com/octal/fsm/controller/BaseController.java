@@ -20,7 +20,7 @@ public class BaseController {
         if (e instanceof CodeException) {
             return new ResponseEntity<>(new ApiResponse(Boolean.FALSE, e.getMessage(), null, String.valueOf(((CodeException) e).getCode().getCode()), HttpStatus.OK), HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(new ApiResponse(Boolean.FALSE, e.getMessage(), null, "101", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.FALSE, e.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
         }
     }
 

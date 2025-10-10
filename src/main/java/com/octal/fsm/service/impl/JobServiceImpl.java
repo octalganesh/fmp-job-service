@@ -9,17 +9,17 @@ import com.octal.fsm.dto.*;
 import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
-import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.*;
 import com.octal.fsm.service.JobService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
 import com.octal.fsm.transformer.JobTransformer;
 import com.octal.fsm.utils.TextUtils;
-import org.apache.commons.lang.StringUtils;
-import org.checkerframework.checker.nullness.Opt;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -27,15 +27,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Type;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class JobServiceImpl implements JobService {
+
+    private static final Logger logger = LogManager.getLogger(JobServiceImpl.class);
 
     @Autowired
     private JobRepository jobRepository;
@@ -664,4 +666,190 @@ public class JobServiceImpl implements JobService {
 //        if(TextUtils.isEmpty(addJobDTO.getTechnicianId()))
 //            throw new CodeException("Technician is required", ErrorCode.COMMON);
     }
+
+    @Override
+    public JobDTO.DetailsForTechnician getJobTaskDetailsForTechnician(String technicianId, String taskId, String userName) throws CodeException {
+        Optional<JobTaskMappingTechnician> taskMappingOpt = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+//        if (taskMappingOpt.isEmpty()) {
+//            return new PageItem<>()
+//        }
+        JobTaskMappingTechnician taskMapping = taskMappingOpt.get();
+        List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping), userName);
+        return detailsList.isEmpty() ? null : detailsList.get(0);
+    }
+
+    @Override
+    public void updateJobTaskStatus(String technicianId, String taskId, String status, String userName) throws CodeException {
+        Optional<JobTaskMappingTechnician>jobTaskMappingTechnician=jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+        if(jobTaskMappingTechnician.isPresent()){
+            JobTaskMappingTechnician taskMappingTechnician=jobTaskMappingTechnician.get();
+            if(taskMappingTechnician.getTaskStatus().equalsIgnoreCase("COMPLETED")){
+                throw new CodeException("Task Already Completed", ErrorCode.BAD_REQUEST);
+            }
+            taskMappingTechnician.setTaskStatus(status);
+            jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
+        }else{
+            throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
+        }
+
+    }
+
+    private List<JobDTO.DetailsForTechnician> buildTechnicianJobTaskDetails(List<JobTaskMappingTechnician> taskMappings, String loggedInUserEmail) {
+        List<JobDTO.DetailsForTechnician> responseList = new ArrayList<>();
+
+        for (JobTaskMappingTechnician taskMapping : taskMappings) {
+            Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(taskMapping.getJobTaskMappingId());
+            if (jobMappingTask.isPresent()) {
+                Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobMappingTask.get().getJob().getUuid());
+                Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.get().getTaskId());
+
+                if (job.isPresent() && jobTask.isPresent()) {
+                    JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
+                    details.setId(taskMapping.getUuid());
+                    details.setJobId(job.get().getJobId());
+                    details.setJobTitle(jobTask.get().getName());
+                    details.setJobDescription(job.get().getJobDescription());
+                    details.setStartDate(taskMapping.getStartDate() != null ? taskMapping.getStartDate().toString() : null);
+                    details.setEndDate(taskMapping.getEndDate() != null ? taskMapping.getEndDate().toString() : null);
+                    details.setServiceLocationLat(job.get().getServiceLocationLat());
+                    details.setServiceLocationLng(job.get().getServiceLocationLng());
+                    if(taskMapping.getTaskStatus().equalsIgnoreCase("ASSIGNED")){
+                        details.setStatus("NEW");
+                    }else{
+                        details.setStatus(taskMapping.getTaskStatus());
+                    }
+
+                    // Get job type
+                    Optional<JobType> jobType = jobTypeRepository.findByUuid(job.get().getJobTypeId());
+                    jobType.ifPresent(type -> details.setJobType(type.getName()));
+
+                    // Get customer details
+                    try {
+                        ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId(),loggedInUserEmail).getBody();
+                        if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
+                            Gson gson = new Gson();
+                            CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
+                            details.setCustomerName(customerDetails.getName());
+                            details.setEmail(customerDetails.getEmail());
+                            details.setMobileNumber(customerDetails.getMobileNumber());
+                            details.setLocation(customerDetails.getAddress());
+                        }
+                    } catch (Exception e) {
+                        logger.error("Error fetching customer details: {}", e.getMessage());
+                    }
+
+                    // Get job tags
+                    List<String> jobTags = new ArrayList<>();
+                    List<JobMappingTags> jobMappingTags = job.get().getJobMappingTags();
+                    for (JobMappingTags mappingTag : jobMappingTags) {
+                        Optional<JobTag> tag = jobTagRepository.findByUuid(mappingTag.getTagId());
+                        tag.ifPresent(jobTag -> jobTags.add(jobTag.getName()));
+                    }
+                    details.setJobTags(jobTags);
+
+                    // Get uploaded documents
+                    List<JobDTO.Document> documents = new ArrayList<>();
+                    if (!TextUtils.isEmpty(taskMapping.getDocuments())) {
+                        try {
+                            Gson gson = new Gson();
+                            Type listType = new TypeToken<List<String>>() {
+                            }.getType();
+                            List<String> documentList = gson.fromJson(taskMapping.getDocuments(), listType);
+                            for (String doc : documentList) {
+                                JobDTO.Document document = new JobDTO.Document();
+                                document.setFile(doc);
+                                document.setFileType("application/pdf"); // Default type, could be enhanced
+                                documents.add(document);
+                            }
+                        } catch (Exception e) {
+                            logger.error("Error parsing documents: {}", e.getMessage());
+                        }
+                    }
+                    details.setUploadedDocuments(documents);
+
+                    responseList.add(details);
+                }
+            }
+        }
+
+        return responseList;
+    }
+
+    @Override
+    public PageItem<JobDTO.DetailsForTechnician> getJobTasksForTechnician(
+            JobDTO.JobFilterRequest filterRequest,
+            String technicianId,
+            String loggedInUserEmail) throws CodeException {
+        try {
+            GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
+            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("deleted", false));
+            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("technicianId", technicianId));
+
+            int page = filterRequest.getPage() != null ? filterRequest.getPage() : 0;
+            int limit = filterRequest.getLimit() != null ? filterRequest.getLimit() : 10;
+            Pageable pageable = PageRequest.of(page, limit, Sort.by("createdAt").descending());
+
+            // ✅ Filter by task status
+            if (!TextUtils.isEmpty(filterRequest.getStatus())) {
+                builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", filterRequest.getStatus()));
+            }
+
+            // ✅ Date filters
+            if (!TextUtils.isEmpty(filterRequest.getStartDate())) {
+                LocalDate startDate = LocalDate.parse(filterRequest.getStartDate());
+                builder.with(jobTaskMappingTechnicianSpecificationFactory.isGreaterThanOrEquals("startDate", startDate));
+            }
+
+            if (!TextUtils.isEmpty(filterRequest.getEndDate())) {
+                LocalDate endDate = LocalDate.parse(filterRequest.getEndDate());
+                builder.with(jobTaskMappingTechnicianSpecificationFactory.isLessThanOrEquals("endDate", endDate));
+            }
+
+            // ✅ Execute base query
+            Page<JobTaskMappingTechnician> pagedResult = jobTaskMappingTechnicianRepository.findAll(builder.build(), pageable);
+
+
+            // ✅ Filter by job type or job tag (after fetching)
+            List<JobTaskMappingTechnician> filteredList = pagedResult.getContent().stream()
+                    .filter(taskMapping -> {
+                        Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(taskMapping.getJobTaskMappingId());
+                        if (jobMappingTask.isEmpty()) return false;
+
+                        Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobMappingTask.get().getJob().getUuid());
+                        if (job.isEmpty()) return false;
+
+                        boolean match = true;
+
+                        // ✅ Filter by Job Type array
+                        if (filterRequest.getJobType() != null && !filterRequest.getJobType().isEmpty()) {
+                            match = match && filterRequest.getJobType().contains(job.get().getJobTypeId());
+                        }
+
+                        // ✅ Filter by Job Tag array
+                        if (filterRequest.getJobTag() != null && !filterRequest.getJobTag().isEmpty()) {
+                            List<String> jobTagIds = job.get().getJobMappingTags()
+                                    .stream()
+                                    .map(JobMappingTags::getTagId)
+                                    .collect(Collectors.toList());
+
+                            boolean hasCommonTag = jobTagIds.stream()
+                                    .anyMatch(tagId -> filterRequest.getJobTag().contains(tagId));
+
+                            match = match && hasCommonTag;
+                        }
+
+                        return match;
+                    })
+                    .collect(Collectors.toList());
+
+            List<JobDTO.DetailsForTechnician> responseList = buildTechnicianJobTaskDetails(filteredList, loggedInUserEmail);
+
+            return new PageItem<>(pagedResult.getTotalPages(), responseList.size(), responseList, page, limit);
+
+        } catch (Exception e) {
+            logger.error("Error getting job tasks for technician: {}", e.getMessage(), e);
+            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
+        }
+    }
+
 }
