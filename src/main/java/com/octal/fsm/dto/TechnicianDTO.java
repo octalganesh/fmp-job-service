@@ -27,4 +27,27 @@ public class TechnicianDTO {
         private Gender gender;
         private String joinedDate;
     }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TechnicianData {
+        private String id;
+        private String name;
+        private String email;
+        private String mobileNumber;
+        private String employeeId;
+        private String profilePicture;
+        private String address;
+        private String createdAt;
+        private String updatedAt;
+        private Boolean isActive;
+        private Integer assignedLeads;
+        private Integer completedJobs;
+        private Integer rating;
+        private Gender gender;
+        private String joinedDate;
+    }
+
+
 }
