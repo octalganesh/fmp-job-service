@@ -22,6 +22,9 @@ public class Job extends AbstractPersistable {
     @Column(name = "customer_id", nullable = false)
     private String customerId;
 
+    @Column(name = "customer_quick_book_id", nullable = false)
+    private String customerQuickBookId;
+
     @Column(name = "job_type_id")
     private String jobTypeId;
 

@@ -338,4 +338,15 @@ public class JobController extends BaseController {
 //            return handleException(e);
 //        }
 //    }
+
+    @PostMapping("/upfront-invoice")
+    public ResponseEntity<ApiResponse> generateUpFrontInvoice(@RequestBody JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoiceRequest, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice Generate Successfully.", jobService.createUpFrontInvoice(createUpFrontInvoiceRequest), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error creating job: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
 }

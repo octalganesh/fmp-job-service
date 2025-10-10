@@ -9,6 +9,8 @@ public interface JobService {
 
     String addJob(JobDTO.Add addJobDTO) throws CodeException;
 
+    Object createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice) throws CodeException;
+
     PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail) throws CodeException;
 
     //    JobDTO.Detail updateJob(JobDTO.Update updateJobDTO) throws CodeException;

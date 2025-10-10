@@ -48,6 +48,14 @@ public class JobDTO {
         private String address;
         private Double lat;
         private Double lng;
+        private String customerQuickBookId;
+    }
+
+    @Data
+    public static class CreateUpFrontInvoiceRequest{
+        private String jobId;
+        private Double amount;
+        private String email;
     }
 
     @Data
@@ -108,6 +116,9 @@ public class JobDTO {
         private String jobTaskMappingId;
         private String technicianId;
         private String note;
+        private List<String> documents; // Optional
+        private String startDate;
+        private String endDate;
     }
 
     @Data
