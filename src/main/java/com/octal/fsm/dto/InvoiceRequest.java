@@ -17,6 +17,12 @@ public class InvoiceRequest {
     @JsonProperty("CustomerRef")
     private CustomerRef customerRef;
 
+    @JsonProperty("DueDate")
+    private String dueDate;
+
+    @JsonProperty("PrivateNote")
+    private String privateNote;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

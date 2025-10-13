@@ -54,6 +54,9 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private SpecificationFactory<Job> jobSpecificationFactory;
+
+    @Autowired
+    private SpecificationFactory<JobInvoice> jobInvoiceSpecificationFactory;
     @Autowired
     private SpecificationFactory<JobTaskMappingTechnician> jobTaskMappingTechnicianSpecificationFactory;
 
@@ -75,6 +78,9 @@ public class JobServiceImpl implements JobService {
     @Autowired
     private JobTagRepository jobTagRepository;
 
+    @Autowired
+    private JobInvoiceRepository jobInvoiceRepository;
+
     @Override
     public String addJob(JobDTO.Add addJobDTO) throws CodeException {
         try {
@@ -86,7 +92,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public Object createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice) throws CodeException {
+    public void createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice) throws CodeException {
         Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(createUpFrontInvoice.getJobId());
         if (job.isEmpty())
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
@@ -110,16 +116,97 @@ public class JobServiceImpl implements JobService {
         lineItems.add(lineItem);
         invoiceRequest.setLine(lineItems);
         CreateInvoiceDTO invoiceResponse = null;
+        if (!TextUtils.isEmpty(createUpFrontInvoice.getDueDate())) {
+            invoiceRequest.setDueDate(createUpFrontInvoice.getDueDate());
+        }
+        if (!TextUtils.isEmpty(createUpFrontInvoice.getNote())) {
+            invoiceRequest.setPrivateNote(createUpFrontInvoice.getNote());
+        }
         try {
             invoiceResponse = quickBooksCustomerService.createInvoice(invoiceRequest);
             //Send Mail
             JsonNode sendMailResponse = quickBooksCustomerService.sendInvoice(invoiceResponse.getInvoice().getId(), createUpFrontInvoice.getEmail());
+            JobInvoice jobInvoice = new JobInvoice();
+            jobInvoice.setJobId(createUpFrontInvoice.getJobId());
+            jobInvoice.setInvoiceId(invoiceResponse.getInvoice().getId());
+            jobInvoice.setAmount(createUpFrontInvoice.getAmount());
+            jobInvoice.setSendOnEmail(createUpFrontInvoice.getEmail());
+            if (!TextUtils.isEmpty(createUpFrontInvoice.getDueDate())) {
+                try {
+                    LocalDate dueDate = LocalDate.parse(createUpFrontInvoice.getDueDate());
+                    jobInvoice.setDueDate(dueDate);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            Gson gson = new Gson();
+            jobInvoice.setNote(createUpFrontInvoice.getNote());
+            jobInvoice.setRequestDTO(gson.toJson(invoiceRequest));
+            jobInvoice.setResponseDTO(gson.toJson(invoiceResponse));
+            jobInvoice.setPaid(false);
+            jobInvoice.setInvoiceType(createUpFrontInvoice.getInvoiceType());
+            jobInvoiceRepository.save(jobInvoice);
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            return invoiceResponse;
         }
     }
+
+    @Override
+    public PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException {
+        Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(jobId);
+        if (!jobExist)
+            throw new CodeException("Job Not Found", ErrorCode.COMMON);
+        GenericSpecificationsBuilder<JobInvoice> builder = new GenericSpecificationsBuilder<>();
+        Pageable pageable = null;
+        if (Boolean.TRUE.equals(order)) {
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).ascending());
+        } else {
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).descending());
+        }
+        builder.with(jobInvoiceSpecificationFactory.isEqual("deleted", false));
+        builder.with(jobInvoiceSpecificationFactory.isEqual("jobId", jobId));
+        Page<JobInvoice> pagedResult = jobInvoiceRepository.findAll(builder.build(), pageable);
+        List<JobDTO.InvoiceListResponse> responseList = new ArrayList<>();
+        for (JobInvoice jobInvoice : pagedResult.getContent()) {
+            JobDTO.InvoiceListResponse dto = new JobDTO.InvoiceListResponse();
+            dto.setId(jobInvoice.getUuid());
+            dto.setInvoiceId(jobInvoice.getInvoiceId());
+            dto.setInvoiceType(jobInvoice.getInvoiceType());
+            dto.setAmount(jobInvoice.getAmount());
+            dto.setSendOnEmail(jobInvoice.getSendOnEmail());
+            dto.setDueDate(jobInvoice.getDueDate() != null ? jobInvoice.getDueDate().toString() : null);
+            dto.setNote(jobInvoice.getNote());
+            dto.setCreatedAt(jobInvoice.getCreatedAt() != null ? jobInvoice.getCreatedAt().toString() : null);
+            dto.setPaid(jobInvoice.getPaid());
+            dto.setJobId(jobId);
+            responseList.add(dto);
+        }
+        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, page,
+                size);
+    }
+
+    @Override
+    public void updateJobTags(String jobId, JobDTO.UpdateJobTags updateJobTags, String loggedInUserEmail) throws CodeException {
+        Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobId);
+        if(job.isEmpty())
+            throw new CodeException("Job Not Found", ErrorCode.COMMON);
+        if(updateJobTags.getJobTags() == null || updateJobTags.getJobTags().isEmpty())
+            throw new CodeException("Job Tags are required", ErrorCode.COMMON);
+        List<JobMappingTags> jobMappingTags = job.get().getJobMappingTags();
+        for (String jobTagId : updateJobTags.getJobTags()) {
+            Boolean jobTagExist = jobTagRepository.existsByUuid(jobTagId);
+            if (jobTagExist) {
+                JobMappingTags tag = new JobMappingTags();
+                tag.setTagId(jobTagId);
+                tag.setJob(job.get());
+                jobMappingTags.add(tag);
+            }
+        }
+        job.get().setJobMappingTags(jobMappingTags);
+        jobRepository.save(job.get());
+
+    }
+
 
     @Override
     public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail) throws CodeException {
@@ -387,6 +474,15 @@ public class JobServiceImpl implements JobService {
             }
 //                throw new CodeException("Job Task Already Assigned to Technician", ErrorCode.COMMON);
         }
+    }
+
+    @Override
+    public void updateAssignedTaskWithDocumentType(String jobTaskMappingId, JobDTO.UpdateAssignedTaskWithDocumentType updateAssignedTaskWithDocumentType, String loggedInUserEmail) throws CodeException {
+        Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(jobTaskMappingId);
+        if(jobMappingTask.isEmpty())
+            throw new CodeException("Job Task Mapping Not Found", ErrorCode.COMMON);
+        jobMappingTask.get().setDocumentTypeId(new Gson().toJson(updateAssignedTaskWithDocumentType.getDocumentTypeId()));
+        jobMappingTaskRepository.save(jobMappingTask.get());
     }
 
 //    @Override

@@ -9,7 +9,11 @@ public interface JobService {
 
     String addJob(JobDTO.Add addJobDTO) throws CodeException;
 
-    Object createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice) throws CodeException;
+    void createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice) throws CodeException;
+
+    PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException;
+
+    void updateJobTags(String jobId, JobDTO.UpdateJobTags updateJobTags, String loggedInUserEmail) throws CodeException;
 
     PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail) throws CodeException;
 
@@ -23,6 +27,7 @@ public interface JobService {
 
     void assignJobToTechnician(JobDTO.AssignJobToTechnician assignJobToTechnician, String loggedInUserEmail) throws CodeException;
 
+    void updateAssignedTaskWithDocumentType(String jobTaskMappingId, JobDTO.UpdateAssignedTaskWithDocumentType updateAssignedTaskWithDocumentType, String loggedInUserEmail) throws CodeException;
 //    Boolean changeJobStatus(String id, String status) throws CodeException;
 //
 //    PageItem<JobDTO.List> getAllJobs(PageRequest.List listRequest);

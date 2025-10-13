@@ -56,6 +56,32 @@ public class JobDTO {
         private String jobId;
         private Double amount;
         private String email;
+        private String dueDate;
+        private String note;
+        private String invoiceType;
+    }
+
+    @Data
+    public static class UpdateJobTags{
+        private List<String> jobTags;
+    }
+    @Data
+    public static class UpdateAssignedTaskWithDocumentType{
+        private List<String> documentTypeId;
+    }
+
+    @Data
+    public static class InvoiceListResponse{
+        private String id;
+        private String invoiceId;
+        private String invoiceType;
+        private Double amount;
+        private String sendOnEmail;
+        private String dueDate;
+        private String note;
+        private String createdAt;
+        private Boolean paid;
+        private String jobId;
     }
 
     @Data
