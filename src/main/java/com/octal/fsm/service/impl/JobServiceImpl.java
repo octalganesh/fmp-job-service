@@ -699,7 +699,7 @@ public class JobServiceImpl implements JobService {
 //            return new PageItem<>()
 //        }
         JobTaskMappingTechnician taskMapping = taskMappingOpt.get();
-        List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping), userName);
+        List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping),"", userName);
         return detailsList.isEmpty() ? null : detailsList.get(0);
     }
 
@@ -719,7 +719,7 @@ public class JobServiceImpl implements JobService {
 
     }
 
-    private List<JobDTO.DetailsForTechnician> buildTechnicianJobTaskDetails(List<JobTaskMappingTechnician> taskMappings, String loggedInUserEmail) {
+    private List<JobDTO.DetailsForTechnician> buildTechnicianJobTaskDetails(List<JobTaskMappingTechnician> taskMappings,String txt, String loggedInUserEmail) {
         List<JobDTO.DetailsForTechnician> responseList = new ArrayList<>();
 
         for (JobTaskMappingTechnician taskMapping : taskMappings) {
@@ -729,6 +729,10 @@ public class JobServiceImpl implements JobService {
                 Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.get().getTaskId());
 
                 if (job.isPresent() && jobTask.isPresent()) {
+                    // ✅ Apply search filter on jobId
+                    if (txt != null && !job.get().getJobId().toLowerCase().contains(txt)) {
+                        continue; // skip this record if jobId does not match
+                    }
                     JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
                     details.setId(taskMapping.getUuid());
                     details.setJobId(job.get().getJobId());
@@ -754,6 +758,7 @@ public class JobServiceImpl implements JobService {
                         if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
                             Gson gson = new Gson();
                             CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
+                            details.setCustomerId(customerDetails.getId());
                             details.setCustomerName(customerDetails.getName());
                             details.setEmail(customerDetails.getEmail());
                             details.setMobileNumber(customerDetails.getMobileNumber());
@@ -815,7 +820,10 @@ public class JobServiceImpl implements JobService {
 
             // ✅ Filter by task status
             if (!TextUtils.isEmpty(filterRequest.getStatus())) {
-                builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", filterRequest.getStatus()));
+                if(filterRequest.getStatus().equalsIgnoreCase("NEW"))
+                    builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", "ASSIGNED"));
+                else
+                    builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", filterRequest.getStatus()));
             }
 
             // ✅ Date filters
@@ -866,7 +874,7 @@ public class JobServiceImpl implements JobService {
                     })
                     .collect(Collectors.toList());
 
-            List<JobDTO.DetailsForTechnician> responseList = buildTechnicianJobTaskDetails(filteredList, loggedInUserEmail);
+            List<JobDTO.DetailsForTechnician> responseList = buildTechnicianJobTaskDetails(filteredList,filterRequest.getTxt(),loggedInUserEmail);
 
             return new PageItem<>(pagedResult.getTotalPages(), responseList.size(), responseList, page, limit);
 

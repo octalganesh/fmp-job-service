@@ -194,6 +194,7 @@ public class JobDTO {
     public static class DetailsForTechnician {
         private String id;
         // Customer Info
+        private String customerId;
         private String customerName;
         private String email;
         private String mobileNumber;
