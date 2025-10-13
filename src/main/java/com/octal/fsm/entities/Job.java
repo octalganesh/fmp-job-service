@@ -16,7 +16,6 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "jobs")
-@Data
 public class Job extends AbstractPersistable {
 
     @Column(name = "customer_id", nullable = false)
@@ -64,6 +63,183 @@ public class Job extends AbstractPersistable {
 
     @Column(name = "budget")
     private Double budget;
+
+    @Override
+    public String toString() {
+        return "Job{" +
+                "customerId='" + customerId + '\'' +
+                ", customerQuickBookId='" + customerQuickBookId + '\'' +
+                ", jobTypeId='" + jobTypeId + '\'' +
+                ", customerTypeId='" + customerTypeId + '\'' +
+                ", serviceLocation='" + serviceLocation + '\'' +
+                ", serviceLocationLat=" + serviceLocationLat +
+                ", serviceLocationLng=" + serviceLocationLng +
+                ", jobStatus='" + jobStatus + '\'' +
+                ", jobDescription='" + jobDescription + '\'' +
+                ", jobMappingTasks=" + jobMappingTasks +
+                ", leadReceivedDate=" + leadReceivedDate +
+                ", jobStartDate=" + jobStartDate +
+                ", jobEndDate=" + jobEndDate +
+                ", leadSourceId='" + leadSourceId + '\'' +
+                ", budget=" + budget +
+                ", jobMappingTags=" + jobMappingTags +
+                ", additionalNotes='" + additionalNotes + '\'' +
+                ", jobId='" + jobId + '\'' +
+                ", jobMappingDocuments=" + jobMappingDocuments +
+                '}';
+    }
+
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
+    }
+
+    public String getCustomerQuickBookId() {
+        return customerQuickBookId;
+    }
+
+    public void setCustomerQuickBookId(String customerQuickBookId) {
+        this.customerQuickBookId = customerQuickBookId;
+    }
+
+    public String getJobTypeId() {
+        return jobTypeId;
+    }
+
+    public void setJobTypeId(String jobTypeId) {
+        this.jobTypeId = jobTypeId;
+    }
+
+    public String getCustomerTypeId() {
+        return customerTypeId;
+    }
+
+    public void setCustomerTypeId(String customerTypeId) {
+        this.customerTypeId = customerTypeId;
+    }
+
+    public String getServiceLocation() {
+        return serviceLocation;
+    }
+
+    public void setServiceLocation(String serviceLocation) {
+        this.serviceLocation = serviceLocation;
+    }
+
+    public Double getServiceLocationLat() {
+        return serviceLocationLat;
+    }
+
+    public void setServiceLocationLat(Double serviceLocationLat) {
+        this.serviceLocationLat = serviceLocationLat;
+    }
+
+    public Double getServiceLocationLng() {
+        return serviceLocationLng;
+    }
+
+    public void setServiceLocationLng(Double serviceLocationLng) {
+        this.serviceLocationLng = serviceLocationLng;
+    }
+
+    public String getJobStatus() {
+        return jobStatus;
+    }
+
+    public void setJobStatus(String jobStatus) {
+        this.jobStatus = jobStatus;
+    }
+
+    public String getJobDescription() {
+        return jobDescription;
+    }
+
+    public void setJobDescription(String jobDescription) {
+        this.jobDescription = jobDescription;
+    }
+
+    public List<JobMappingTask> getJobMappingTasks() {
+        return jobMappingTasks;
+    }
+
+    public void setJobMappingTasks(List<JobMappingTask> jobMappingTasks) {
+        this.jobMappingTasks = jobMappingTasks;
+    }
+
+    public LocalDate getLeadReceivedDate() {
+        return leadReceivedDate;
+    }
+
+    public void setLeadReceivedDate(LocalDate leadReceivedDate) {
+        this.leadReceivedDate = leadReceivedDate;
+    }
+
+    public LocalDate getJobStartDate() {
+        return jobStartDate;
+    }
+
+    public void setJobStartDate(LocalDate jobStartDate) {
+        this.jobStartDate = jobStartDate;
+    }
+
+    public LocalDate getJobEndDate() {
+        return jobEndDate;
+    }
+
+    public void setJobEndDate(LocalDate jobEndDate) {
+        this.jobEndDate = jobEndDate;
+    }
+
+    public String getLeadSourceId() {
+        return leadSourceId;
+    }
+
+    public void setLeadSourceId(String leadSourceId) {
+        this.leadSourceId = leadSourceId;
+    }
+
+    public Double getBudget() {
+        return budget;
+    }
+
+    public void setBudget(Double budget) {
+        this.budget = budget;
+    }
+
+    public List<JobMappingTags> getJobMappingTags() {
+        return jobMappingTags;
+    }
+
+    public void setJobMappingTags(List<JobMappingTags> jobMappingTags) {
+        this.jobMappingTags = jobMappingTags;
+    }
+
+    public String getAdditionalNotes() {
+        return additionalNotes;
+    }
+
+    public void setAdditionalNotes(String additionalNotes) {
+        this.additionalNotes = additionalNotes;
+    }
+
+    public String getJobId() {
+        return jobId;
+    }
+
+    public void setJobId(String jobId) {
+        this.jobId = jobId;
+    }
+
+    public List<JobMappingDocuments> getJobMappingDocuments() {
+        return jobMappingDocuments;
+    }
+
+    public void setJobMappingDocuments(List<JobMappingDocuments> jobMappingDocuments) {
+        this.jobMappingDocuments = jobMappingDocuments;
+    }
 
     // ✅ One-to-Many relationship with JobMappingTask
     @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)

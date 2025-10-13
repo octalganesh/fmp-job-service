@@ -730,7 +730,7 @@ public class JobServiceImpl implements JobService {
 
                 if (job.isPresent() && jobTask.isPresent()) {
                     // ✅ Apply search filter on jobId
-                    if (txt != null && !job.get().getJobId().toLowerCase().contains(txt)) {
+                    if (txt != null && !job.get().getJobId().contains(txt)) {
                         continue; // skip this record if jobId does not match
                     }
                     JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
