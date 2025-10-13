@@ -9,11 +9,13 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface JobTagRepository extends JpaRepository<JobTag,Long>, JpaSpecificationExecutor<JobTag> {
+public interface JobTagRepository extends JpaRepository<JobTag, Long>, JpaSpecificationExecutor<JobTag> {
 
     Optional<JobTag> findByUuid(String id);
 
     Boolean existsByName(String name);
+
+    Boolean existsByUuid(String uuid);
 
     Boolean existsByNameAndUuidNot(String name, String id);
 }

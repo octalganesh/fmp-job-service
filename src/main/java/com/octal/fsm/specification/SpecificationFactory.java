@@ -61,4 +61,27 @@ public class SpecificationFactory<T> {
         GenericSpecificationsBuilder<T> builder = new GenericSpecificationsBuilder<>();
         return builder.with(alias, key, SearchOperation.INNER_JOIN, Collections.singletonList(arg)).build();
     }
+
+
+    public Specification<T> joinIn(String joinPath, String fieldName, java.util.Collection<?> values) {
+        return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) -> {
+            String[] pathParts = joinPath.split("\\.");
+            javax.persistence.criteria.Path<?> path = root;
+            for (String part : pathParts) {
+                path = path.get(part);
+            }
+            return path.get(fieldName).in(values);
+        };
+    }
+
+    public Specification<T> joinLike(String joinPath, String fieldName, String value) {
+        return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) -> {
+            String[] pathParts = joinPath.split("\\.");
+            javax.persistence.criteria.Path<?> path = root;
+            for (String part : pathParts) {
+                path = path.get(part);
+            }
+            return criteriaBuilder.like(path.get(fieldName).as(String.class), "%" + value + "%");
+        };
+    }
 }

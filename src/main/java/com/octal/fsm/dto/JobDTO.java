@@ -23,10 +23,10 @@ public class JobDTO {
 
         private String jobTypeId;
         private String serviceLocation;
-        private Long serviceLocationLat;
-        private Long serviceLocationLng;
+        private Double serviceLocationLat;
+        private Double serviceLocationLng;
         private String jobStatus;
-        private String customerType;
+        private String customerTypeId;
         private String jobDescription;
         private java.util.List<String> jobTaskId;
         private String leadReceivedDate;
@@ -35,20 +35,27 @@ public class JobDTO {
         private String leadSourceId;
         private Double budget;
         private java.util.List<String> jobTags;
-        private String technicianId;
         private String additionalNotes; // Optional
         private java.util.List<String> documents; //Optional
     }
 
     @Data
-    public static class CustomerDetails{
+    public static class CustomerDetails {
         private String customerId; // If existing customer
         private String customerName;
         private String email;
         private String mobileNumber;
         private String address;
-        private Long lat;
-        private Long lng;
+        private Double lat;
+        private Double lng;
+        private String customerQuickBookId;
+    }
+
+    @Data
+    public static class CreateUpFrontInvoiceRequest{
+        private String jobId;
+        private Double amount;
+        private String email;
     }
 
     @Data
@@ -91,94 +98,127 @@ public class JobDTO {
     }
 
     @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class List {
+    public static class JobListResponse {
         private String id;
-        private String jobSummary;
-        private String jobStatus;
-        private String priority;
-        private Double estimatedCost;
-
-        // Customer Information
-        private String customerId;
+        private String jobId;
+        private String serviceLocation;
+        private String jobType;
         private String customerName;
+        private String jobStartDate;
+        private String jobEndDate;
+        private String leadSource;
+        private String jobStatus;
+    }
 
-        // Job Type
-        private String jobTypeId;
-        private String jobTypeName;
+    @Data
+    public static class AssignJobToTechnician {
+        private String jobId;
+        private String jobTaskMappingId;
+        private String technicianId;
+        private String note;
+        private List<String> documents; // Optional
+        private String startDate;
+        private String endDate;
+    }
 
-        // Technician Information
-        private String assignedTechnicianId;
-        private String assignedTechnicianName;
-
-        // Dates
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        private LocalDateTime assignedDateTime;
-
-        @JsonFormat(pattern = "yyyy-MM-dd")
-        private LocalDate invoiceSharedDate;
-
-        @JsonFormat(pattern = "yyyy-MM-dd")
-        private LocalDate paymentReceiveDate;
-
-        // Status information
-        private String invoiceStatus;
-        private String paymentStatus;
-        private Boolean active;
-
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        private LocalDateTime createdAt;
-
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        private LocalDateTime updatedAt;
-
-        // Tags
-        private Set<String> tags;
+    @Data
+    public static class JobTaskListResponse {
+        private String id;
+        private String taskId;
+        private String taskName;
+        private String taskDescription;
+        private String createdAt;
+        private String taskStatus;
+        private String technicianName;
     }
 
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
     public static class Detail {
+        private CustomerDetails customerDetails;
         private String id;
-        private String jobSummary;
+        private String jobId;
+        private String jobTypeId;
+        private String jobType;
+        private String leadSourceId;
+        private String leadSource;
+        private String leadReceivedDate;
+        private List<JobTagDTO.Detail> jobTags;
+        private String jobDescription;
+        private String additionalNotes;
+        private String jobStartDate;
+        private String jobEndDate;
+        private String serviceLocation;
+        private Double serviceLocationLat;
+        private Double serviceLocationLng;
         private String jobStatus;
-        private String priority;
-        private Double estimatedCost;
-        private String jobTimeDuration;
-
-        // Customer Information
-        //private CustomerDTO.list customer;
-
-        // Job Type
-        private JobTypeDTO.Detail jobType;
-
-        // Technician Information
-        //private TechnicianDto.list assignedTechnician;
-
-        // Dates
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        private LocalDateTime assignedDateTime;
-
-        @JsonFormat(pattern = "yyyy-MM-dd")
-        private LocalDate invoiceSharedDate;
-
-        @JsonFormat(pattern = "yyyy-MM-dd")
-        private LocalDate paymentReceiveDate;
-
-        // Status information
-        private String invoiceStatus;
-        private String paymentStatus;
-        private Boolean active;
-
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        private LocalDateTime createdAt;
-
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        private LocalDateTime updatedAt;
-
-        // Tags
-        private Set<JobTagDTO.Detail> tags;
+        private String customerType;
+        private String customerTypeId;
     }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ResponseForTechnician {
+        String id;
+        String jobId;
+        String title;
+        String status;
+        String startDate;
+        String endDate;
+        String startTime;
+        String endTime;
+        String customerName;
+        String location;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class JobFilterRequest {
+        private Integer page;
+        private Integer limit;
+        private String jobDate;
+        private String txt;
+        private String status;
+        private List<String> jobType;
+        private List<String> jobTag;
+        private String startDate;
+        private String endDate;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class DetailsForTechnician {
+        private String id;
+        // Customer Info
+        private String customerName;
+        private String email;
+        private String mobileNumber;
+        private String location;
+        // Job Info
+        private String jobTitle;
+        private String jobId;
+        private String jobType;
+        private String startDate;
+        private String endDate;
+        // Tags, Documents, Description
+        private List<String> jobTags;
+        private List<Document> uploadedDocuments;
+        private String jobDescription;
+        private String status;
+        private Double serviceLocationLat;
+        private Double serviceLocationLng;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Document {
+        private String file;
+        private String fileType;
+    }
+
 }
