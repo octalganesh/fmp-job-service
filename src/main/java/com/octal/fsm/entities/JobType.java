@@ -23,7 +23,7 @@ public class JobType extends AbstractPersistable{
     @Column(name = "description",length = 512)
     private String description;
 
-    @OneToMany(cascade = CascadeType.ALL,orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL,orphanRemoval = false)
     private List<JobTask> jobTasks=new ArrayList<>();
 
 }

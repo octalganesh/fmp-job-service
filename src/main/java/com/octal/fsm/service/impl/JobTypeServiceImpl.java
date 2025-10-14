@@ -23,7 +23,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class JobTypeServiceImpl implements JobTypeService {
@@ -35,54 +37,117 @@ public class JobTypeServiceImpl implements JobTypeService {
 
     @Override
     public String addJobType(JobTypeDTO.Add add) throws CodeException {
-        if (TextUtils.isEmpty(add.getName()))
-            throw new CodeException("type name is required", ErrorCode.COMMON);
-        Optional<JobType> optionalJobType = jobTypeRepository.findByUuid(add.getId());
-        if (optionalJobType.isPresent() && !optionalJobType.get().getUuid().equals(add.getId())) {
-            throw new CodeException("jobType is already present!", ErrorCode.RECORD_NOT_FOUND);
+//        if (TextUtils.isEmpty(add.getName()))
+//            throw new CodeException("type name is required", ErrorCode.COMMON);
+//        Optional<JobType> optionalJobType = jobTypeRepository.findByUuid(add.getId());
+//        if (optionalJobType.isPresent() && !optionalJobType.get().getUuid().equals(add.getId())) {
+//            throw new CodeException("jobType is already present!", ErrorCode.RECORD_NOT_FOUND);
+//        }
+//        JobType newJobTypeRecord = null;
+//        if (TextUtils.isEmpty(add.getId())) {
+//            newJobTypeRecord = new JobType();
+//            newJobTypeRecord.setCreatedAt(LocalDateTime.now());
+//            newJobTypeRecord.setUpdatedAt(LocalDateTime.now());
+//            if (add.getJobTasks() != null) {
+//                newJobTypeRecord.getJobTasks().addAll(add.getJobTasks().stream()
+//                        .map(dto -> {
+//                            com.octal.fsm.entities.JobTask entity = new com.octal.fsm.entities.JobTask();
+//                            entity.setName(dto.getName());
+//                            entity.setDescription(dto.getDescription());
+//                            return entity;
+//                        })
+//                        .collect(java.util.stream.Collectors.toList()));
+//            }
+//        } else {
+//            Optional<JobType> jobType = jobTypeRepository.findByUuid(add.getId());
+//            if (jobType.isPresent()) {
+//                newJobTypeRecord = jobType.get();
+//                newJobTypeRecord.setUpdatedAt(LocalDateTime.now());
+//                newJobTypeRecord.getJobTasks().clear();
+//                if (add.getJobTasks() != null) {
+//                    newJobTypeRecord.getJobTasks().addAll(add.getJobTasks().stream()
+//                            .map(dto -> {
+//                                com.octal.fsm.entities.JobTask entity = new com.octal.fsm.entities.JobTask();
+//                                entity.setName(dto.getName());
+//                                entity.setDescription(dto.getDescription());
+//                                return entity;
+//                            })
+//                            .collect(java.util.stream.Collectors.toList()));
+//                }
+//            } else {
+//                throw new CodeException("jobType not Found!", ErrorCode.COMMON);
+//            }
+//        }
+//        newJobTypeRecord.setActive(add.getIsActive());
+//        newJobTypeRecord.setDeleted(false);
+//        newJobTypeRecord.setName(add.getName());
+//        newJobTypeRecord.setDescription(add.getDescription());
+//        JobType jobType = jobTypeRepository.save
+//                (newJobTypeRecord);
+//        return jobType.getUuid();
+        if (TextUtils.isEmpty(add.getName())) {
+            throw new CodeException("Type name is required", ErrorCode.COMMON);
         }
-        JobType newJobTypeRecord = null;
+
+        JobType jobTypeRecord;
+
+//  CREATE case
         if (TextUtils.isEmpty(add.getId())) {
-            newJobTypeRecord = new JobType();
-            newJobTypeRecord.setCreatedAt(LocalDateTime.now());
-            newJobTypeRecord.setUpdatedAt(LocalDateTime.now());
-            if (add.getJobTasks() != null) {
-                newJobTypeRecord.getJobTasks().addAll(add.getJobTasks().stream()
-                        .map(dto -> {
-                            com.octal.fsm.entities.JobTask entity = new com.octal.fsm.entities.JobTask();
-                            entity.setName(dto.getName());
-                            entity.setDescription(dto.getDescription());
-                            return entity;
-                        })
-                        .collect(java.util.stream.Collectors.toList()));
-            }
-        } else {
-            Optional<JobType> jobType = jobTypeRepository.findByUuid(add.getId());
-            if (jobType.isPresent()) {
-                newJobTypeRecord = jobType.get();
-                newJobTypeRecord.setUpdatedAt(LocalDateTime.now());
-                newJobTypeRecord.getJobTasks().clear();
-                if (add.getJobTasks() != null) {
-                    newJobTypeRecord.getJobTasks().addAll(add.getJobTasks().stream()
-                            .map(dto -> {
-                                com.octal.fsm.entities.JobTask entity = new com.octal.fsm.entities.JobTask();
-                                entity.setName(dto.getName());
-                                entity.setDescription(dto.getDescription());
-                                return entity;
-                            })
-                            .collect(java.util.stream.Collectors.toList()));
-                }
-            } else {
-                throw new CodeException("jobType not Found!", ErrorCode.COMMON);
-            }
+            jobTypeRecord = new JobType();
+            jobTypeRecord.setCreatedAt(LocalDateTime.now());
+            jobTypeRecord.setDeleted(false);
         }
-        newJobTypeRecord.setActive(add.getIsActive());
-        newJobTypeRecord.setDeleted(false);
-        newJobTypeRecord.setName(add.getName());
-        newJobTypeRecord.setDescription(add.getDescription());
-        JobType jobType = jobTypeRepository.save
-                (newJobTypeRecord);
-        return jobType.getUuid();
+//  UPDATE case
+        else {
+            jobTypeRecord = jobTypeRepository.findByUuid(add.getId())
+                    .orElseThrow(() -> new CodeException("JobType not found!", ErrorCode.COMMON));
+            jobTypeRecord.setUpdatedAt(LocalDateTime.now());
+        }
+
+//  Update common fields
+        jobTypeRecord.setName(add.getName());
+        jobTypeRecord.setDescription(add.getDescription());
+        jobTypeRecord.setActive(add.getIsActive());
+        jobTypeRecord.setUpdatedAt(LocalDateTime.now());
+
+//  Handle job tasks update (preserve existing IDs)
+        if (add.getJobTasks() != null) {
+            // Map existing tasks by UUID for easy lookup
+            Map<String, JobTask> existingTasks = jobTypeRecord.getJobTasks().stream()
+                    .collect(Collectors.toMap(JobTask::getUuid, t -> t));
+
+            List<JobTask> updatedTasks = new ArrayList<>();
+
+            for (JobTaskDTO.Add dto : add.getJobTasks()) {
+                JobTask taskEntity;
+
+                // Update existing task if ID matches
+                if (!TextUtils.isEmpty(dto.getId()) && existingTasks.containsKey(dto.getId())) {
+                    taskEntity = existingTasks.get(dto.getId());
+                    taskEntity.setName(dto.getName());
+                    taskEntity.setDescription(dto.getDescription());
+                    taskEntity.setUpdatedAt(LocalDateTime.now());
+                }
+                // Otherwise, create new
+                else {
+                    taskEntity = new JobTask();
+                    taskEntity.setName(dto.getName());
+                    taskEntity.setDescription(dto.getDescription());
+                    taskEntity.setCreatedAt(LocalDateTime.now());
+                    taskEntity.setUpdatedAt(LocalDateTime.now());
+                }
+
+                updatedTasks.add(taskEntity);
+            }
+
+            // Replace with updated list
+            jobTypeRecord.getJobTasks().clear();
+            jobTypeRecord.getJobTasks().addAll(updatedTasks);
+        }
+
+        JobType savedJobType = jobTypeRepository.save(jobTypeRecord);
+        return savedJobType.getUuid();
+
     }
 
     @Override
