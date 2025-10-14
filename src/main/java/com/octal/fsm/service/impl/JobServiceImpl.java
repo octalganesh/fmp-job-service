@@ -729,9 +729,25 @@ public class JobServiceImpl implements JobService {
                 Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.get().getTaskId());
 
                 if (job.isPresent() && jobTask.isPresent()) {
-                    // ✅ Apply search filter on jobId
-                    if (txt != null && !job.get().getJobId().toLowerCase().contains(txt.toLowerCase())) {
-                        continue; // skip this record if jobId does not match
+//                    // ✅ Apply search filter on jobId
+//                    if (txt != null && !job.get().getJobId().toLowerCase().contains(txt.toLowerCase())) {
+//                        continue; // skip this record if jobId does not match
+//                    }
+                    String jobId = job.get().getJobId() != null ? job.get().getJobId().toLowerCase() : "";
+                    String taskShowId = jobMappingTask.get().getTaskShowId() != null ? jobMappingTask.get().getTaskShowId().toLowerCase() : "";
+
+                    // ✅ Unified and safer search filter
+                    if (txt != null && !txt.trim().isEmpty()) {
+                        String searchTxt = txt.trim().toLowerCase();
+
+                        // Check if the search text matches either Job ID or Task ID
+                        boolean matchesJobId = jobId.contains(searchTxt);
+                        boolean matchesTaskId = taskShowId.contains(searchTxt);
+
+                        // Skip this record if neither field matches
+                        if (!matchesJobId && !matchesTaskId) {
+                            continue;
+                        }
                     }
                     JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
                     details.setId(taskMapping.getUuid());
