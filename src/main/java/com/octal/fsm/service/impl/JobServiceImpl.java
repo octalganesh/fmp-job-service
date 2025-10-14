@@ -158,8 +158,6 @@ public class JobServiceImpl implements JobService {
             jobInvoiceRepository.save(jobInvoice);
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            return invoiceResponse;
         }
     }
 
