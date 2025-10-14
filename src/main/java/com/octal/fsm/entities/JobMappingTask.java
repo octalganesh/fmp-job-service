@@ -21,5 +21,8 @@ public class JobMappingTask extends AbstractPersistable {
     @Column(name = "task_id", nullable = false)
     private String taskId;
 
+    @Column(name= "task_show_id", nullable = false)
+    private String taskShowId;
+
 }
 

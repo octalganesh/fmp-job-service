@@ -193,6 +193,8 @@ public class JobDTO {
     @NoArgsConstructor
     public static class DetailsForTechnician {
         private String id;
+        private String taskId;
+        private String taskName;
         // Customer Info
         private String customerId;
         private String customerName;

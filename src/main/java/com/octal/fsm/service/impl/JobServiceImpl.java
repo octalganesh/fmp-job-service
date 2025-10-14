@@ -735,6 +735,8 @@ public class JobServiceImpl implements JobService {
                     }
                     JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
                     details.setId(taskMapping.getUuid());
+                    details.setTaskName(jobTask.get().getName());
+                    details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
                     details.setJobTitle(jobTask.get().getName());
                     details.setJobDescription(job.get().getJobDescription());

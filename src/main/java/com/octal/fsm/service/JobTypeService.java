@@ -7,6 +7,7 @@ import com.octal.fsm.dto.PageItem;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.models.request.PageRequest;
 
+import javax.validation.Valid;
 import java.util.List;
 
 public interface JobTypeService {
@@ -25,4 +26,6 @@ public interface JobTypeService {
 
 
     List<JobTypeDTO.Detail> getAllJobs();
+
+    PageItem<JobTypeDTO.DetailWithoutJobTasks> getAllJobTypesForTechnician(PageRequest.@Valid List listRequest);
 }

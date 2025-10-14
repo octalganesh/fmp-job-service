@@ -218,6 +218,35 @@ public class JobTypeServiceImpl implements JobTypeService {
         return jobTypeDTOS;
     }
 
+    @Override
+    public PageItem<JobTypeDTO.DetailWithoutJobTasks> getAllJobTypesForTechnician(PageRequest.List listRequest) {
+        String trimmedText = listRequest.getSearchText().trim();
+        listRequest.setSearchText(trimmedText);
+        GenericSpecificationsBuilder<JobType> builder = new GenericSpecificationsBuilder<>();
+        Pageable pageable = null;
+        if (Boolean.TRUE.equals(listRequest.getAsc())) {
+            pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
+        } else {
+            pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
+        }
+        prepareJobTypeSearchFilter(listRequest, builder);
+        Page<JobType> pagedResult = jobTypeRepository.findAll(builder.build(), pageable);
+        List<JobTypeDTO.DetailWithoutJobTasks> responseList = new ArrayList<>();
+        for (JobType jobType : pagedResult.getContent()) {
+            JobTypeDTO.DetailWithoutJobTasks dto = new JobTypeDTO.DetailWithoutJobTasks();
+            dto.setId(jobType.getUuid());
+            dto.setName(jobType.getName());
+            dto.setIsActive(jobType.getActive());
+            dto.setCreatedAt(String.valueOf(jobType.getCreatedAt()));
+            dto.setUpdatedAt(String.valueOf(jobType.getUpdatedAt()));
+            dto.setDescription(jobType.getDescription());
+            responseList.add(dto);
+        }
+
+        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, listRequest.getPageNumber(),
+                listRequest.getPageSize());
+    }
+
     private void prepareJobTypeSearchFilter(PageRequest.List listRequest, GenericSpecificationsBuilder<JobType> builder) {
         builder.with(jobTypeSpecificationFactory.isEqual("deleted", false));
         if (org.apache.commons.lang.StringUtils.isNotBlank(listRequest.getSearchText())) {

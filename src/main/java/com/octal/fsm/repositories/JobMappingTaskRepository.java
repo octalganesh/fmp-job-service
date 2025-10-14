@@ -11,4 +11,6 @@ import java.util.Optional;
 @Repository
 public interface JobMappingTaskRepository extends JpaRepository<JobMappingTask, Long>, JpaSpecificationExecutor<JobMappingTask> {
     Optional<JobMappingTask> findByUuid(String uuid);
+
+    Boolean existsByTaskShowId(String newCode);
 }
