@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     tools {
-        jdk 'jdk-11'
-        maven 'maven-3'
+        jdk 'jdk-11'        // Adjust to your Jenkins JDK name
+        maven 'maven-3'     // Adjust to your Jenkins Maven 
     }
 
     stages {
@@ -24,54 +24,49 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    if (env.BRANCH_NAME == 'staging') {
+                    if (env.BRANCH_NAME == 'development') {
                         echo "🚀 Deploying branch: ${env.BRANCH_NAME}"
 
-                        withCredentials([usernamePassword(credentialsId: '46957a41-b9d8-40ec-8b21-3b41ecca86b9', usernameVariable: 'DEPLOY_USER', passwordVariable: 'DEPLOY_PASS')]) {
-                            sh '''
-                                #!/bin/bash
-                                set -e
+                        sh '''
+                            #!/bin/bash
+                            set -e
 
-                                DEPLOY_HOST=192.168.1.38
-                                DEPLOY_DIR=/opt/apps/job-service
-                                REMOTE_JAR=$DEPLOY_DIR/job-service-0.0.1-SNAPSHOT.jar
+                            # Ensure deployment folder exists and writable
+                            mkdir -p /opt/apps/job-service
+                            chmod 775 /opt/apps/job-service
 
-                                echo "Finding latest JAR..."
-                                JAR_FILE=$(ls -t target/*.jar | head -n1)
+                            echo "Stopping old app..."
+                            pkill -f job-service-0.0.1-SNAPSHOT.jar || true
 
-                                if [ ! -f "$JAR_FILE" ]; then
-                                    echo "❌ ERROR: No JAR found in target/"
-                                    exit 1
-                                fi
+                            echo "Finding latest JAR..."
+                            JAR_FILE=$(ls -t target/*.jar | head -n1)
 
-                                echo "Transferring JAR to remote server..."
-                                sshpass -p "$DEPLOY_PASS" scp -o StrictHostKeyChecking=no "$JAR_FILE" $DEPLOY_USER@$DEPLOY_HOST:$REMOTE_JAR
+                            if [ -f "$JAR_FILE" ]; then
+                                echo "Deploying $JAR_FILE to /opt/apps/..."
+                                cp "$JAR_FILE" /opt/apps/job-service-0.0.1-SNAPSHOT.jar
+                            else
+                                echo "❌ ERROR: No JAR found in target/"
+                                exit 1
+                            fi
 
-                                echo "Running remote deployment commands..."
-                                sshpass -p "$DEPLOY_PASS" ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST "bash -s" << 'EOF'
-                                    set -e
-                                    mkdir -p /opt/apps/job-service
-                                    chmod 775 /opt/apps/job-service
+                            echo "Starting app with setsid to detach from Jenkins..."
+                             setsid  java -jar /opt/apps/job-service-0.0.1-SNAPSHOT.jar \
+                                > /opt/apps/job-service/job-service.log 2>&1 < /dev/null &
 
-                                    echo "Stopping old app..."
-                                    pkill -f job-service-0.0.1-SNAPSHOT.jar || true
+                            PID=$!
+                            echo "App started with PID $PID"
 
-                                    echo "Starting new app..."
-                                    nohup java -jar /opt/apps/job-service/job-service-0.0.1-SNAPSHOT.jar \
-                                        > /opt/apps/job-service/job-service.log 2>&1 &
+                            # Wait a few seconds to verify
+                            sleep 5
 
-                                    sleep 5
-                                    PID=$(pgrep -f job-service-0.0.1-SNAPSHOT.jar || true)
-
-                                    if [ -n "$PID" ]; then
-                                        echo "✅ Application started with PID $PID"
-                                    else
-                                        echo "❌ Application failed to start. Check logs at /opt/apps/job-service/job-service.log"
-                                        exit 1
-                                    fi
-EOF
-                            '''
-                        }
+                            if ps -p $PID > /dev/null; then
+                                echo "✅ Application is running"
+                            else
+                                echo "❌ Application failed to start. Logs:"
+                                head -n50 /opt/apps/job-service/job-service.log
+                                exit 1
+                            fi
+                        '''
                     } else {
                         echo "⏭ Skipping deploy for branch ${env.BRANCH_NAME}"
                     }

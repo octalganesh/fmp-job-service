@@ -182,4 +182,72 @@ public class JobDTO {
         private String customerType;
         private String customerTypeId;
     }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ResponseForTechnician {
+        String id;
+        String jobId;
+        String title;
+        String status;
+        String startDate;
+        String endDate;
+        String startTime;
+        String endTime;
+        String customerName;
+        String location;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class JobFilterRequest {
+        private Integer page;
+        private Integer limit;
+        private String jobDate;
+        private String txt;
+        private String status;
+        private List<String> jobType;
+        private List<String> jobTag;
+        private String startDate;
+        private String endDate;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class DetailsForTechnician {
+        private String id;
+        private String taskId;
+        private String taskName;
+        // Customer Info
+        private String customerId;
+        private String customerName;
+        private String email;
+        private String mobileNumber;
+        private String location;
+        // Job Info
+        private String jobTitle;
+        private String jobId;
+        private String jobType;
+        private String startDate;
+        private String endDate;
+        // Tags, Documents, Description
+        private List<String> jobTags;
+        private List<Document> uploadedDocuments;
+        private String jobDescription;
+        private String status;
+        private Double serviceLocationLat;
+        private Double serviceLocationLng;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Document {
+        private String file;
+        private String fileType;
+    }
+
 }

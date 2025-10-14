@@ -66,3 +66,20 @@ springdoc:
   api-docs.path : /api-docs
   swagger-ui.path : /swagger-ui.html
 
+quickbooks:
+  company-id: "9341455439020504"   # Replace with your QuickBooks sandbox or production company ID
+  oauth2:
+    client-id: AB2qEt6NUUOdcxFumczGwFmTCSV2A80LRhJTjvFMA3bGVBapYJ
+    client-secret: BC9kkI9BtsZNaC1doHLWlrLSTS8sRgnRxVs4CnhA
+    redirect-uri: http://localhost:9084/oauth2redirect
+
+  api:
+    host: https://sandbox-quickbooks.api.intuit.com
+    minorversion: 73
+
+aws:
+  access-key: ${AWS_ACCESS_KEY}
+  secret-key: ${AWS_SECRET_KEY}
+  region: ${AWS_S3_REGION}
+  s3-bucket: ${AWS_S3_BUCKET}
+  base-url: ${AWS_S3_BASE_URL}

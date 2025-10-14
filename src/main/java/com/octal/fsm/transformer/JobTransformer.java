@@ -64,6 +64,7 @@ public class JobTransformer {
             if (jobTaskExist) {
                 JobMappingTask task = new JobMappingTask();
                 task.setTaskId(jobTaskId);
+                task.setTaskShowId(codeGenerator.generateTaskId());
                 task.setJob(job);
                 jobMappingTask.add(task);
             }
