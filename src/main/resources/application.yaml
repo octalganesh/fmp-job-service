@@ -1,3 +1,16 @@
 spring:
   profiles:
     active: prod
+
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: hardik.khurana@octalsoftware.com
+    password: sjnh jrrq mzvt fgyl
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true

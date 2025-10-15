@@ -64,6 +64,17 @@ public class JobTypeController extends BaseController {
         }
     }
 
+    @PostMapping("/list-for-technician")
+    public ResponseEntity<ApiResponse> JobTypeListForTechnician(@Valid @RequestBody PageRequest.List listRequest, HttpServletRequest request) {
+        logger.info("JobTypeController./list-for-technician");
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, CommonConstants.DETAILS_FETCHED, jobTypeService.getAllJobTypesForTechnician(listRequest), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            return handleException(e);
+        }
+    }
+
 
     @DeleteMapping("/delete/by/id/{id}")
     public ResponseEntity<ApiResponse> deleteId(@PathVariable("id") String id, HttpServletRequest request) {

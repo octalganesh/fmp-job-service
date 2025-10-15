@@ -34,6 +34,18 @@ public class JobTypeDTO {
         private List<JobTaskDTO.Detail>jobTasks;
     }
 
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class DetailWithoutJobTasks {
+        private String id;
+        private String name;
+        private String createdAt;
+        private String updatedAt;
+        private Boolean isActive;
+        private String description;
+    }
+
 
 
 }
