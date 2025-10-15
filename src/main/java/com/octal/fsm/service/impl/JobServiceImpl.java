@@ -497,7 +497,21 @@ public class JobServiceImpl implements JobService {
                     Gson gson = new Gson();
                     jobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 }
-                jobTaskMappingTechnicianRepository.save(jobTaskMappingTechnician);
+                JobTaskMappingTechnician JobTaskMappingTechnician = jobTaskMappingTechnicianRepository.save(jobTaskMappingTechnician);
+                Gson gson = new Gson();
+                // Save attached documents in DB
+                JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
+                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail);
+
+                // Convert response data to TechnicianDTO.GetDetails
+                if (jobDetails != null) {
+                    String jsonResponse = gson.toJson(technicianResponse.getData());
+                    TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
+
+                    if (getDetails != null && getDetails.getEmail() != null) {
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail));
+                    }
+                }
             }
 //                throw new CodeException("Job Task Already Assigned to Technician", ErrorCode.COMMON);
         }
@@ -808,7 +822,7 @@ public class JobServiceImpl implements JobService {
                 throw new CodeException("Task Already Completed", ErrorCode.BAD_REQUEST);
             }
             taskMappingTechnician.setTaskStatus(status);
-            if(!TextUtils.isEmpty(note)){
+            if (!TextUtils.isEmpty(note)) {
                 taskMappingTechnician.setNote(note);
             }
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
