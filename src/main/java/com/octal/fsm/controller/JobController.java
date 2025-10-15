@@ -65,27 +65,6 @@ public class JobController extends BaseController {
     }
 
     /**
-     * Update an existing job
-     */
-//    @PutMapping("/{id}")
-//    public ResponseEntity<ApiResponse> updateJob(@PathVariable String id,
-//                                               @Valid @RequestBody JobDTO.Update updateJobDTO,
-//                                               HttpServletRequest request) {
-//        try {
-//            String userName = request.getHeader(CommonConstants.USER_NAME);
-//
-//            updateJobDTO.setId(id);
-//            JobDTO.Detail updatedJob = jobService.updateJob(updateJobDTO);
-//
-//            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job updated successfully", updatedJob, "200", HttpStatus.OK), HttpStatus.OK);
-//        } catch (Exception e) {
-//            logger.error("Error updating job: {}", e.getMessage(), e);
-//            return handleException(e);
-//        }
-//    }
-//
-
-    /**
      * Get job by ID
      */
     @GetMapping("/{id}")
@@ -107,6 +86,18 @@ public class JobController extends BaseController {
             String userName = request.getHeader(CommonConstants.USER_NAME);
             jobService.assignJobToTechnician(assignJobToTechnician, userName);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Assigned.", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving job: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PutMapping("/update-assigned-task-with-document-type/{jobTaskMappingId}")
+    public ResponseEntity<ApiResponse> updateAssignedTaskWithDocumentType(@PathVariable("jobTaskMappingId") String jobTaskMappingId, @RequestBody JobDTO.UpdateAssignedTaskWithDocumentType updateAssignedTaskWithDocumentType, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            jobService.updateAssignedTaskWithDocumentType(jobTaskMappingId, updateAssignedTaskWithDocumentType, userName);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Update Successfully.", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving job: {}", e.getMessage(), e);
             return handleException(e);
@@ -382,9 +373,36 @@ public class JobController extends BaseController {
     public ResponseEntity<ApiResponse> generateUpFrontInvoice(@RequestBody JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoiceRequest, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice Generate Successfully.", jobService.createUpFrontInvoice(createUpFrontInvoiceRequest), "200", HttpStatus.OK), HttpStatus.OK);
+            jobService.createUpFrontInvoice(createUpFrontInvoiceRequest);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice Generate Successfully.", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/invoice/list")
+    public ResponseEntity<ApiResponse> getInvoiceList(@RequestParam("jobId") String jobId, @RequestParam(defaultValue = "0") int page,
+                                                      @RequestParam(defaultValue = "10") int size,
+                                                      @RequestParam(defaultValue = "createdAt") String sortBy,
+                                                      @RequestParam(defaultValue = "true") Boolean order, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice List Successfully.", jobService.getAllJobInvoices(page, size, sortBy, order, jobId, userName), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error creating job: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PutMapping("/update-job-tags/{jobId}")
+    public ResponseEntity<ApiResponse> updateJobTags(@PathVariable("jobId") String jobId, @RequestBody JobDTO.UpdateJobTags updateJobTags, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            jobService.updateJobTags(jobId, updateJobTags, userName);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Tags Updated Successfully.", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error updating job tags: {}", e.getMessage(), e);
             return handleException(e);
         }
     }

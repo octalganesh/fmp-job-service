@@ -1,15 +1,8 @@
 package com.octal.fsm.service.impl;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import com.octal.fsm.clients.AdminClient;
-import com.octal.fsm.dto.ApiResponse;
 import com.octal.fsm.dto.JobCallDTO;
-import com.octal.fsm.dto.JobDTO;
 import com.octal.fsm.dto.PageItem;
-import com.octal.fsm.entities.Job;
 import com.octal.fsm.entities.JobCallHistory;
-import com.octal.fsm.entities.JobType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.repositories.JobCallHistoryRepository;
@@ -25,12 +18,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.swing.text.html.Option;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 @Service
 @Transactional

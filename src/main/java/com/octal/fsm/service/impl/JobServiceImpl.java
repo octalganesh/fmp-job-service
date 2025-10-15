@@ -58,6 +58,9 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private SpecificationFactory<Job> jobSpecificationFactory;
+
+    @Autowired
+    private SpecificationFactory<JobInvoice> jobInvoiceSpecificationFactory;
     @Autowired
     private SpecificationFactory<JobTaskMappingTechnician> jobTaskMappingTechnicianSpecificationFactory;
 
@@ -80,6 +83,9 @@ public class JobServiceImpl implements JobService {
     private JobTagRepository jobTagRepository;
 
     @Autowired
+    private JobInvoiceRepository jobInvoiceRepository;
+
+    @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
 
     @Autowired
@@ -96,7 +102,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public Object createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice) throws CodeException {
+    public void createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice) throws CodeException {
         Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(createUpFrontInvoice.getJobId());
         if (job.isEmpty())
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
@@ -120,16 +126,97 @@ public class JobServiceImpl implements JobService {
         lineItems.add(lineItem);
         invoiceRequest.setLine(lineItems);
         CreateInvoiceDTO invoiceResponse = null;
+        if (!TextUtils.isEmpty(createUpFrontInvoice.getDueDate())) {
+            invoiceRequest.setDueDate(createUpFrontInvoice.getDueDate());
+        }
+        if (!TextUtils.isEmpty(createUpFrontInvoice.getNote())) {
+            invoiceRequest.setPrivateNote(createUpFrontInvoice.getNote());
+        }
         try {
             invoiceResponse = quickBooksCustomerService.createInvoice(invoiceRequest);
             //Send Mail
             JsonNode sendMailResponse = quickBooksCustomerService.sendInvoice(invoiceResponse.getInvoice().getId(), createUpFrontInvoice.getEmail());
+            JobInvoice jobInvoice = new JobInvoice();
+            jobInvoice.setJobId(createUpFrontInvoice.getJobId());
+            jobInvoice.setInvoiceId(invoiceResponse.getInvoice().getId());
+            jobInvoice.setAmount(createUpFrontInvoice.getAmount());
+            jobInvoice.setSendOnEmail(createUpFrontInvoice.getEmail());
+            if (!TextUtils.isEmpty(createUpFrontInvoice.getDueDate())) {
+                try {
+                    LocalDate dueDate = LocalDate.parse(createUpFrontInvoice.getDueDate());
+                    jobInvoice.setDueDate(dueDate);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            Gson gson = new Gson();
+            jobInvoice.setNote(createUpFrontInvoice.getNote());
+            jobInvoice.setRequestDTO(gson.toJson(invoiceRequest));
+            jobInvoice.setResponseDTO(gson.toJson(invoiceResponse));
+            jobInvoice.setPaid(false);
+            jobInvoice.setInvoiceType(createUpFrontInvoice.getInvoiceType());
+            jobInvoiceRepository.save(jobInvoice);
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            return invoiceResponse;
         }
     }
+
+    @Override
+    public PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException {
+        Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(jobId);
+        if (!jobExist)
+            throw new CodeException("Job Not Found", ErrorCode.COMMON);
+        GenericSpecificationsBuilder<JobInvoice> builder = new GenericSpecificationsBuilder<>();
+        Pageable pageable = null;
+        if (Boolean.TRUE.equals(order)) {
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).ascending());
+        } else {
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).descending());
+        }
+        builder.with(jobInvoiceSpecificationFactory.isEqual("deleted", false));
+        builder.with(jobInvoiceSpecificationFactory.isEqual("jobId", jobId));
+        Page<JobInvoice> pagedResult = jobInvoiceRepository.findAll(builder.build(), pageable);
+        List<JobDTO.InvoiceListResponse> responseList = new ArrayList<>();
+        for (JobInvoice jobInvoice : pagedResult.getContent()) {
+            JobDTO.InvoiceListResponse dto = new JobDTO.InvoiceListResponse();
+            dto.setId(jobInvoice.getUuid());
+            dto.setInvoiceId(jobInvoice.getInvoiceId());
+            dto.setInvoiceType(jobInvoice.getInvoiceType());
+            dto.setAmount(jobInvoice.getAmount());
+            dto.setSendOnEmail(jobInvoice.getSendOnEmail());
+            dto.setDueDate(jobInvoice.getDueDate() != null ? jobInvoice.getDueDate().toString() : null);
+            dto.setNote(jobInvoice.getNote());
+            dto.setCreatedAt(jobInvoice.getCreatedAt() != null ? jobInvoice.getCreatedAt().toString() : null);
+            dto.setPaid(jobInvoice.getPaid());
+            dto.setJobId(jobId);
+            responseList.add(dto);
+        }
+        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, page,
+                size);
+    }
+
+    @Override
+    public void updateJobTags(String jobId, JobDTO.UpdateJobTags updateJobTags, String loggedInUserEmail) throws CodeException {
+        Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobId);
+        if(job.isEmpty())
+            throw new CodeException("Job Not Found", ErrorCode.COMMON);
+        if(updateJobTags.getJobTags() == null || updateJobTags.getJobTags().isEmpty())
+            throw new CodeException("Job Tags are required", ErrorCode.COMMON);
+        List<JobMappingTags> jobMappingTags = job.get().getJobMappingTags();
+        for (String jobTagId : updateJobTags.getJobTags()) {
+            Boolean jobTagExist = jobTagRepository.existsByUuid(jobTagId);
+            if (jobTagExist) {
+                JobMappingTags tag = new JobMappingTags();
+                tag.setTagId(jobTagId);
+                tag.setJob(job.get());
+                jobMappingTags.add(tag);
+            }
+        }
+        job.get().setJobMappingTags(jobMappingTags);
+        jobRepository.save(job.get());
+
+    }
+
 
     @Override
     public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail) throws CodeException {
@@ -416,6 +503,15 @@ public class JobServiceImpl implements JobService {
         }
     }
 
+    @Override
+    public void updateAssignedTaskWithDocumentType(String jobTaskMappingId, JobDTO.UpdateAssignedTaskWithDocumentType updateAssignedTaskWithDocumentType, String loggedInUserEmail) throws CodeException {
+        Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(jobTaskMappingId);
+        if(jobMappingTask.isEmpty())
+            throw new CodeException("Job Task Mapping Not Found", ErrorCode.COMMON);
+        jobMappingTask.get().setDocumentTypeId(new Gson().toJson(updateAssignedTaskWithDocumentType.getDocumentTypeId()));
+        jobMappingTaskRepository.save(jobMappingTask.get());
+    }
+
 //    @Override
 //    public JobDTO.Detail updateJob(JobDTO.Update updateJobDTO) throws CodeException {
 //        try {
@@ -699,7 +795,7 @@ public class JobServiceImpl implements JobService {
 //            return new PageItem<>()
 //        }
         JobTaskMappingTechnician taskMapping = taskMappingOpt.get();
-        List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping), userName);
+        List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping),"", userName);
         return detailsList.isEmpty() ? null : detailsList.get(0);
     }
 
@@ -719,7 +815,7 @@ public class JobServiceImpl implements JobService {
 
     }
 
-    private List<JobDTO.DetailsForTechnician> buildTechnicianJobTaskDetails(List<JobTaskMappingTechnician> taskMappings, String loggedInUserEmail) {
+    private List<JobDTO.DetailsForTechnician> buildTechnicianJobTaskDetails(List<JobTaskMappingTechnician> taskMappings,String txt, String loggedInUserEmail) {
         List<JobDTO.DetailsForTechnician> responseList = new ArrayList<>();
 
         for (JobTaskMappingTechnician taskMapping : taskMappings) {
@@ -729,8 +825,30 @@ public class JobServiceImpl implements JobService {
                 Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.get().getTaskId());
 
                 if (job.isPresent() && jobTask.isPresent()) {
+//                    // ✅ Apply search filter on jobId
+//                    if (txt != null && !job.get().getJobId().toLowerCase().contains(txt.toLowerCase())) {
+//                        continue; // skip this record if jobId does not match
+//                    }
+                    String jobId = job.get().getJobId() != null ? job.get().getJobId().toLowerCase() : "";
+                    String taskShowId = jobMappingTask.get().getTaskShowId() != null ? jobMappingTask.get().getTaskShowId().toLowerCase() : "";
+
+                    // ✅ Unified and safer search filter
+                    if (txt != null && !txt.trim().isEmpty()) {
+                        String searchTxt = txt.trim().toLowerCase();
+
+                        // Check if the search text matches either Job ID or Task ID
+                        boolean matchesJobId = jobId.contains(searchTxt);
+                        boolean matchesTaskId = taskShowId.contains(searchTxt);
+
+                        // Skip this record if neither field matches
+                        if (!matchesJobId && !matchesTaskId) {
+                            continue;
+                        }
+                    }
                     JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
                     details.setId(taskMapping.getUuid());
+                    details.setTaskName(jobTask.get().getName());
+                    details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
                     details.setJobTitle(jobTask.get().getName());
                     details.setJobDescription(job.get().getJobDescription());
@@ -754,6 +872,7 @@ public class JobServiceImpl implements JobService {
                         if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
                             Gson gson = new Gson();
                             CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
+                            details.setCustomerId(customerDetails.getId());
                             details.setCustomerName(customerDetails.getName());
                             details.setEmail(customerDetails.getEmail());
                             details.setMobileNumber(customerDetails.getMobileNumber());
@@ -815,7 +934,10 @@ public class JobServiceImpl implements JobService {
 
             // ✅ Filter by task status
             if (!TextUtils.isEmpty(filterRequest.getStatus())) {
-                builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", filterRequest.getStatus()));
+                if(filterRequest.getStatus().equalsIgnoreCase("NEW"))
+                    builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", "ASSIGNED"));
+                else
+                    builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", filterRequest.getStatus()));
             }
 
             // ✅ Date filters
@@ -866,7 +988,7 @@ public class JobServiceImpl implements JobService {
                     })
                     .collect(Collectors.toList());
 
-            List<JobDTO.DetailsForTechnician> responseList = buildTechnicianJobTaskDetails(filteredList, loggedInUserEmail);
+            List<JobDTO.DetailsForTechnician> responseList = buildTechnicianJobTaskDetails(filteredList,filterRequest.getTxt(),loggedInUserEmail);
 
             return new PageItem<>(pagedResult.getTotalPages(), responseList.size(), responseList, page, limit);
 
