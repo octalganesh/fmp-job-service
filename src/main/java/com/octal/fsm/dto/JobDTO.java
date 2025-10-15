@@ -222,6 +222,9 @@ public class JobDTO {
         private String taskId;
         private String taskName;
         private String note;
+        private String startDate;
+        private String endDate;
+        private String taskDescription;
         // Customer Info
         private String customerId;
         private String customerName;
@@ -232,8 +235,8 @@ public class JobDTO {
         private String jobTitle;
         private String jobId;
         private String jobType;
-        private String startDate;
-        private String endDate;
+        private String jobStartDate;
+        private String jobEndDate;
         // Tags, Documents, Description
         private List<String> jobTags;
         private List<Document> uploadedDocuments;

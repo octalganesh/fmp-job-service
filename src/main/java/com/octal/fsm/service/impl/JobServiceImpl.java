@@ -854,6 +854,9 @@ public class JobServiceImpl implements JobService {
                     details.setNote(taskMapping.getNote());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
+                    details.setJobStartDate(job.get().getJobStartDate().toString());
+                    details.setJobEndDate(job.get().getJobEndDate().toString());
+                    details.setTaskDescription(jobTask.get().getDescription());
                     details.setJobTitle(jobTask.get().getName());
                     details.setJobDescription(job.get().getJobDescription());
                     details.setStartDate(taskMapping.getStartDate() != null ? taskMapping.getStartDate().toString() : null);
