@@ -198,9 +198,9 @@ public class JobServiceImpl implements JobService {
     @Override
     public void updateJobTags(String jobId, JobDTO.UpdateJobTags updateJobTags, String loggedInUserEmail) throws CodeException {
         Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobId);
-        if(job.isEmpty())
+        if (job.isEmpty())
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
-        if(updateJobTags.getJobTags() == null || updateJobTags.getJobTags().isEmpty())
+        if (updateJobTags.getJobTags() == null || updateJobTags.getJobTags().isEmpty())
             throw new CodeException("Job Tags are required", ErrorCode.COMMON);
         List<JobMappingTags> jobMappingTags = job.get().getJobMappingTags();
         for (String jobTagId : updateJobTags.getJobTags()) {
@@ -506,7 +506,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public void updateAssignedTaskWithDocumentType(String jobTaskMappingId, JobDTO.UpdateAssignedTaskWithDocumentType updateAssignedTaskWithDocumentType, String loggedInUserEmail) throws CodeException {
         Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(jobTaskMappingId);
-        if(jobMappingTask.isEmpty())
+        if (jobMappingTask.isEmpty())
             throw new CodeException("Job Task Mapping Not Found", ErrorCode.COMMON);
         jobMappingTask.get().setDocumentTypeId(new Gson().toJson(updateAssignedTaskWithDocumentType.getDocumentTypeId()));
         jobMappingTaskRepository.save(jobMappingTask.get());
@@ -795,12 +795,12 @@ public class JobServiceImpl implements JobService {
 //            return new PageItem<>()
 //        }
         JobTaskMappingTechnician taskMapping = taskMappingOpt.get();
-        List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping),"", userName);
+        List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping), "", userName);
         return detailsList.isEmpty() ? null : detailsList.get(0);
     }
 
     @Override
-    public void updateJobTaskStatus(String technicianId, String taskId, String status, String userName) throws CodeException {
+    public void updateJobTaskStatus(String technicianId, String taskId, String status, String note, String userName) throws CodeException {
         Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
         if (jobTaskMappingTechnician.isPresent()) {
             JobTaskMappingTechnician taskMappingTechnician = jobTaskMappingTechnician.get();
@@ -808,6 +808,9 @@ public class JobServiceImpl implements JobService {
                 throw new CodeException("Task Already Completed", ErrorCode.BAD_REQUEST);
             }
             taskMappingTechnician.setTaskStatus(status);
+            if(!TextUtils.isEmpty(note)){
+                taskMappingTechnician.setNote(note);
+            }
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
         } else {
             throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
@@ -815,7 +818,7 @@ public class JobServiceImpl implements JobService {
 
     }
 
-    private List<JobDTO.DetailsForTechnician> buildTechnicianJobTaskDetails(List<JobTaskMappingTechnician> taskMappings,String txt, String loggedInUserEmail) {
+    private List<JobDTO.DetailsForTechnician> buildTechnicianJobTaskDetails(List<JobTaskMappingTechnician> taskMappings, String txt, String loggedInUserEmail) {
         List<JobDTO.DetailsForTechnician> responseList = new ArrayList<>();
 
         for (JobTaskMappingTechnician taskMapping : taskMappings) {
@@ -848,8 +851,12 @@ public class JobServiceImpl implements JobService {
                     JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
                     details.setId(taskMapping.getUuid());
                     details.setTaskName(jobTask.get().getName());
+                    details.setNote(taskMapping.getNote());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
+                    details.setJobStartDate(job.get().getJobStartDate().toString());
+                    details.setJobEndDate(job.get().getJobEndDate().toString());
+                    details.setTaskDescription(jobTask.get().getDescription());
                     details.setJobTitle(jobTask.get().getName());
                     details.setJobDescription(job.get().getJobDescription());
                     details.setStartDate(taskMapping.getStartDate() != null ? taskMapping.getStartDate().toString() : null);
@@ -934,7 +941,7 @@ public class JobServiceImpl implements JobService {
 
             // ✅ Filter by task status
             if (!TextUtils.isEmpty(filterRequest.getStatus())) {
-                if(filterRequest.getStatus().equalsIgnoreCase("NEW"))
+                if (filterRequest.getStatus().equalsIgnoreCase("NEW"))
                     builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", "ASSIGNED"));
                 else
                     builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", filterRequest.getStatus()));
@@ -988,7 +995,7 @@ public class JobServiceImpl implements JobService {
                     })
                     .collect(Collectors.toList());
 
-            List<JobDTO.DetailsForTechnician> responseList = buildTechnicianJobTaskDetails(filteredList,filterRequest.getTxt(),loggedInUserEmail);
+            List<JobDTO.DetailsForTechnician> responseList = buildTechnicianJobTaskDetails(filteredList, filterRequest.getTxt(), loggedInUserEmail);
 
             return new PageItem<>(pagedResult.getTotalPages(), responseList.size(), responseList, page, limit);
 

@@ -146,10 +146,11 @@ public class JobController extends BaseController {
     public ResponseEntity<ApiResponse>updateJobTaskStatus(@PathVariable("technicianId") String technicianId,
                                                     @PathVariable("taskId") String taskId,
                                                     @RequestParam("status") String status,
+                                                    @RequestParam(value = "note",required = false,defaultValue = "") String note,
                                                     HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            jobService.updateJobTaskStatus(technicianId, taskId, status, userName);
+            jobService.updateJobTaskStatus(technicianId, taskId, status,note, userName);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job task status updated successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error updating job task status: {}", e.getMessage(), e);

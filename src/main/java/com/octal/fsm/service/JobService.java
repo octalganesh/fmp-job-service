@@ -33,7 +33,8 @@ public interface JobService {
 
     JobDTO.DetailsForTechnician getJobTaskDetailsForTechnician(String technicianId, String taskId, String userName) throws CodeException;
 
-    void updateJobTaskStatus(String technicianId, String taskId, String status, String userName) throws CodeException;
+    void updateJobTaskStatus(String technicianId, String taskId, String status, String note, String userName) throws CodeException;
+
     void updateAssignedTaskWithDocumentType(String jobTaskMappingId, JobDTO.UpdateAssignedTaskWithDocumentType updateAssignedTaskWithDocumentType, String loggedInUserEmail) throws CodeException;
 //    Boolean changeJobStatus(String id, String status) throws CodeException;
 //
