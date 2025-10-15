@@ -221,6 +221,7 @@ public class JobDTO {
         private String id;
         private String taskId;
         private String taskName;
+        private String note;
         // Customer Info
         private String customerId;
         private String customerName;
