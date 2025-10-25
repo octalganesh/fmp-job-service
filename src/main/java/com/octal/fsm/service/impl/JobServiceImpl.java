@@ -262,10 +262,10 @@ public class JobServiceImpl implements JobService {
             builder.with(jobSpecificationFactory.isEqual("customerTypeId", customerType));
         }
         if (!TextUtils.isEmpty(fromStartDate)) {
-            builder.with(jobSpecificationFactory.isGreaterThanOrEquals("jobStartDate", LocalDate.parse(fromStartDate).atStartOfDay()));
+            builder.with(jobSpecificationFactory.isGreaterThanOrEquals("jobStartDate", LocalDate.parse(fromStartDate)));
         }
         if (!TextUtils.isEmpty(toStartDate)) {
-            builder.with(jobSpecificationFactory.isLessThanOrEquals("jobEndDate", LocalDate.parse(toStartDate).atTime(23, 59, 59)));
+            builder.with(jobSpecificationFactory.isLessThanOrEquals("jobEndDate", LocalDate.parse(toStartDate)));
         }
         Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageable);
         List<JobDTO.JobListResponse> responseList = new ArrayList<>();
@@ -885,7 +885,7 @@ public class JobServiceImpl implements JobService {
                             .replace("<jobId>", job.get().getJobId())
                             .replace("<taskId>", taskMapping.getUuid())
                             .replace("<technicianId>", taskMapping.getTechnicianId())
-                            .replace("<customerId>",job.get().getCustomerId());
+                            .replace("<customerId>", job.get().getCustomerId());
                     details.setClientFeedbackUrl(clientFeedbackLink);
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
@@ -957,7 +957,7 @@ public class JobServiceImpl implements JobService {
                             document.setFile(documents1.getDocumentUrl());
                             document.setFileType(documents1.getFileType());
                             document.setFileName(documents1.getFileName());
-                            if(document.getThumbnail()!=null)
+                            if (document.getThumbnail() != null)
                                 document.setThumbnail(documents1.getThumbnail());
                             documents.add(document);
                         }
