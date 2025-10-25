@@ -222,9 +222,11 @@ public class JobDTO {
         private String taskId;
         private String taskName;
         private String note;
+        private String frontOfficeNote;
         private String startDate;
         private String endDate;
         private String taskDescription;
+        private String clientFeedbackUrl;
         // Customer Info
         private String customerId;
         private String customerName;
@@ -252,6 +254,8 @@ public class JobDTO {
     public static class Document {
         private String file;
         private String fileType;
+        private String fileName;
+        private String thumbnail;
     }
 
 }

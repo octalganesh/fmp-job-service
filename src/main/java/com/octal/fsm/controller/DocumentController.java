@@ -3,7 +3,6 @@ package com.octal.fsm.controller;
 import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.common.CommonConstants;
 import com.octal.fsm.dto.DocumentDTO;
-import com.octal.fsm.dto.JobDTO;
 import com.octal.fsm.service.DocumentService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequestMapping("/documents")
@@ -29,6 +29,17 @@ public class DocumentController extends BaseController {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
             documentService.uploadDocument(addJobDTO);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Document Upload Successfully.", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error creating job: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+    @PostMapping("/upload-multiple")
+    public ResponseEntity<ApiResponse> uploadMultipleDocument(@Valid @RequestBody List<DocumentDTO.Add> addJobDTO, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            documentService.uploadMultipleDocument(addJobDTO);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Document Upload Successfully.", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);

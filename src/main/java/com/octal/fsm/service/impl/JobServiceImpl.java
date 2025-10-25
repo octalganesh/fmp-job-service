@@ -19,6 +19,7 @@ import com.octal.fsm.utils.TextUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Type;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +92,12 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private JobService jobService;
+    @Autowired
+    private DocumentsRepository documentsRepository;
+    @Value("${aws.base-url}")
+    private String awsS3BaseUrl;
+    @Value("${client.feedback.link}")
+    private String clientFeedbackLink;
 
     @Override
     public String addJob(JobDTO.Add addJobDTO) throws CodeException {
@@ -814,7 +822,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public void updateJobTaskStatus(String technicianId, String taskId, String status, String note, String userName) throws CodeException {
+    public void updateJobTaskStatus(String technicianId, String taskId, String status, String note, String signature, String userName) throws CodeException {
         Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
         if (jobTaskMappingTechnician.isPresent()) {
             JobTaskMappingTechnician taskMappingTechnician = jobTaskMappingTechnician.get();
@@ -823,7 +831,13 @@ public class JobServiceImpl implements JobService {
             }
             taskMappingTechnician.setTaskStatus(status);
             if (!TextUtils.isEmpty(note)) {
-                taskMappingTechnician.setNote(note);
+                taskMappingTechnician.setTechnicianNote(note);
+            }
+            if (status.equalsIgnoreCase("COMPLETED")) {
+                if (TextUtils.isEmpty(signature))
+                    throw new CodeException("Customer Signature is required to complete the task", ErrorCode.BAD_REQUEST);
+                taskMappingTechnician.setSignature(awsS3BaseUrl + signature);
+                taskMappingTechnician.setSignatureDateTime(LocalDateTime.now());
             }
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
         } else {
@@ -865,7 +879,14 @@ public class JobServiceImpl implements JobService {
                     JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
                     details.setId(taskMapping.getUuid());
                     details.setTaskName(jobTask.get().getName());
-                    details.setNote(taskMapping.getNote());
+                    details.setNote(taskMapping.getTechnicianNote());
+                    details.setFrontOfficeNote(taskMapping.getNote());
+                    clientFeedbackLink = clientFeedbackLink
+                            .replace("<jobId>", job.get().getJobId())
+                            .replace("<taskId>", taskMapping.getUuid())
+                            .replace("<technicianId>", taskMapping.getTechnicianId())
+                            .replace("<customerId>",job.get().getCustomerId());
+                    details.setClientFeedbackUrl(clientFeedbackLink);
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
                     details.setJobStartDate(job.get().getJobStartDate().toString());
@@ -922,11 +943,23 @@ public class JobServiceImpl implements JobService {
                             for (String doc : documentList) {
                                 JobDTO.Document document = new JobDTO.Document();
                                 document.setFile(doc);
-                                document.setFileType("application/pdf"); // Default type, could be enhanced
+                                document.setFileType("pdf"); // Default type, could be enhanced
                                 documents.add(document);
                             }
                         } catch (Exception e) {
                             logger.error("Error parsing documents: {}", e.getMessage());
+                        }
+                    }
+                    List<Documents> documentsList = documentsRepository.findByAttachTypeId(taskMapping.getJobTaskMappingId());
+                    if (!documentsList.isEmpty()) {
+                        for (Documents documents1 : documentsList) {
+                            JobDTO.Document document = new JobDTO.Document();
+                            document.setFile(documents1.getDocumentUrl());
+                            document.setFileType(documents1.getFileType());
+                            document.setFileName(documents1.getFileName());
+                            if(document.getThumbnail()!=null)
+                                document.setThumbnail(documents1.getThumbnail());
+                            documents.add(document);
                         }
                     }
                     details.setUploadedDocuments(documents);

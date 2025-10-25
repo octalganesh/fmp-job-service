@@ -18,6 +18,7 @@ public class DocumentDTO {
         private String fileName;
         @NotBlank
         private String documentUrl;
+        private String thumbnail;
         private String documentTypeId;
         @NotBlank
         private String fileType;
