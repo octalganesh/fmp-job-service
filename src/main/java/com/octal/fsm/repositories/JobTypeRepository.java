@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface JobTypeRepository extends JpaRepository<JobType,Long>, JpaSpecificationExecutor<JobType> {
 
     Optional<JobType> findByUuid(String id);
+    Optional<JobType> findByUuidAndTenantId(String id,Long tenantId);
 }

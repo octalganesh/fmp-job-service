@@ -64,6 +64,9 @@ public class Job extends AbstractPersistable {
     @Column(name = "budget")
     private Double budget;
 
+    @Column(name = "tenant_id")
+    private Long tenantId;
+
     @Override
     public String toString() {
         return "Job{" +

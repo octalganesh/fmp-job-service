@@ -37,6 +37,8 @@ public class JobDTO {
         private java.util.List<String> jobTags;
         private String additionalNotes; // Optional
         private java.util.List<String> documents; //Optional
+        private Long tenantId;
+        private Boolean isSuperAdmin;
     }
 
     @Data

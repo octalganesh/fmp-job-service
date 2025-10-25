@@ -12,10 +12,15 @@ import java.util.Optional;
 public interface JobTagRepository extends JpaRepository<JobTag, Long>, JpaSpecificationExecutor<JobTag> {
 
     Optional<JobTag> findByUuid(String id);
+    Optional<JobTag> findByUuidAndTenantId(String id,Long tenantId);
 
     Boolean existsByName(String name);
 
     Boolean existsByUuid(String uuid);
 
     Boolean existsByNameAndUuidNot(String name, String id);
+
+    Boolean existsByNameAndTenantId(String name, Long tenantId);
+
+    Boolean existsByNameAndTenantIdAndUuidNot(String name, Long tenantId, String id);
 }

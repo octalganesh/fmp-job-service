@@ -32,8 +32,10 @@ public class ManageJobTagsController extends BaseController {
         logger.info("JobTagController.addJobTag");
         String userName = request.getHeader(CommonConstants.USER_NAME);
         try {
+            Long tenantId=getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
             String messageResponse = TextUtils.isEmpty(jobTagAdd.getId()) ? "JobTag added Successfully!" : "JobTag updated Successfully!";
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, messageResponse,jobTagService.addJobTag(jobTagAdd), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, messageResponse,jobTagService.addJobTag(jobTagAdd,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return handleException(e);
         }
@@ -43,8 +45,10 @@ public class ManageJobTagsController extends BaseController {
     public ResponseEntity<ApiResponse> JobTagList(@Valid @RequestBody PageRequest.List listRequest, HttpServletRequest request) {
         logger.info("JobTagController./list");
         try {
+            Long tenantId=getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, CommonConstants.DETAILS_FETCHED, jobTagService.getAllJobTags(listRequest), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, CommonConstants.DETAILS_FETCHED, jobTagService.getAllJobTags(listRequest,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return handleException(e);
         }
@@ -67,7 +71,9 @@ public class ManageJobTagsController extends BaseController {
         logger.info("JobTagController./by/id");
         String userName = request.getHeader(CommonConstants.USER_NAME);
         try {
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "fetched successfully!", jobTagService.getJobTagByUuid(id), "200", HttpStatus.OK), HttpStatus.OK);
+            Long tenantId=getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "fetched successfully!", jobTagService.getJobTagByUuid(id,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return handleException(e);
         }

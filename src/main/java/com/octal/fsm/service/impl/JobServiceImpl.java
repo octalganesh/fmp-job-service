@@ -100,8 +100,13 @@ public class JobServiceImpl implements JobService {
     private String clientFeedbackLink;
 
     @Override
-    public String addJob(JobDTO.Add addJobDTO) throws CodeException {
+    public String addJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
+            if (!isSuperAdmin) {
+                addJobDTO.setTenantId(tenantId);
+            } else {
+                addJobDTO.setTenantId(1l);
+            }
             validatedJobDTO(addJobDTO);
             return jobTransformer.transformToEntity(addJobDTO); // Using getRecordId() instead of getId()
         } catch (Exception e) {
@@ -110,8 +115,10 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public void createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice) throws CodeException {
-        Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(createUpFrontInvoice.getJobId());
+    public void createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        Optional<Job> job = jobRepository.findByUuidAndTenantIdAndDeletedFalse(createUpFrontInvoice.getJobId(), tenantId);
         if (job.isEmpty())
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         String customerRefId = job.get().getCustomerQuickBookId();
@@ -204,8 +211,10 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public void updateJobTags(String jobId, JobDTO.UpdateJobTags updateJobTags, String loggedInUserEmail) throws CodeException {
-        Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobId);
+    public void updateJobTags(String jobId, JobDTO.UpdateJobTags updateJobTags, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        Optional<Job> job = jobRepository.findByUuidAndTenantIdAndDeletedFalse(jobId, tenantId);
         if (job.isEmpty())
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         if (updateJobTags.getJobTags() == null || updateJobTags.getJobTags().isEmpty())
@@ -227,7 +236,9 @@ public class JobServiceImpl implements JobService {
 
 
     @Override
-    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail) throws CodeException {
+    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, Long tenantId, Boolean isSuperAdmin, String loggedInUserEmail) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(order)) {
@@ -236,6 +247,7 @@ public class JobServiceImpl implements JobService {
             pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).descending());
         }
         builder.with(jobSpecificationFactory.isEqual("deleted", false));
+        builder.with(jobSpecificationFactory.isEqual("tenantId", tenantId));
 //        if (org.apache.commons.lang.StringUtils.isNotBlank(listRequest.getSearchText())) {
 //            builder.with(jobTagSpecificationFactory.like("name", listRequest.getSearchText()));
 //        }
@@ -308,8 +320,10 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public JobDTO.Detail getJobById(String id, String loggedInUserEmail) throws CodeException {
-        Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(id);
+    public JobDTO.Detail getJobById(String id, Long tenantId, Boolean isSuperAdmin, String loggedInUserEmail) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        Optional<Job> jobOpt = jobRepository.findByUuidAndTenantIdAndDeletedFalse(id, tenantId);
         if (jobOpt.isEmpty())
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         Job job = jobOpt.get();
@@ -424,8 +438,10 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public void assignJobToTechnician(JobDTO.AssignJobToTechnician assignJobToTechnician, String loggedInUserEmail) throws CodeException {
-        Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(assignJobToTechnician.getJobId());
+    public void assignJobToTechnician(JobDTO.AssignJobToTechnician assignJobToTechnician, Long tenantId, Boolean isSuperAdmin, String loggedInUserEmail) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        Boolean jobExist = jobRepository.existsByUuidAndTenantIdAndDeletedFalse(assignJobToTechnician.getJobId(), tenantId);
         if (!jobExist)
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(assignJobToTechnician.getJobTaskMappingId());
@@ -468,7 +484,7 @@ public class JobServiceImpl implements JobService {
                 Gson gson = new Gson();
                 // Save attached documents in DB
                 jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
-                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail);
+                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), tenantId, isSuperAdmin, loggedInUserEmail);
 
                 // Convert response data to TechnicianDTO.GetDetails
                 if (jobDetails != null) {
@@ -509,7 +525,7 @@ public class JobServiceImpl implements JobService {
                 Gson gson = new Gson();
                 // Save attached documents in DB
                 JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
-                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail);
+                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), tenantId, isSuperAdmin, loggedInUserEmail);
 
                 // Convert response data to TechnicianDTO.GetDetails
                 if (jobDetails != null) {
@@ -885,7 +901,7 @@ public class JobServiceImpl implements JobService {
                             .replace("<jobId>", job.get().getJobId())
                             .replace("<taskId>", taskMapping.getUuid())
                             .replace("<technicianId>", taskMapping.getTechnicianId())
-                            .replace("<customerId>",job.get().getCustomerId());
+                            .replace("<customerId>", job.get().getCustomerId());
                     details.setClientFeedbackUrl(clientFeedbackLink);
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
@@ -957,7 +973,7 @@ public class JobServiceImpl implements JobService {
                             document.setFile(documents1.getDocumentUrl());
                             document.setFileType(documents1.getFileType());
                             document.setFileName(documents1.getFileName());
-                            if(document.getThumbnail()!=null)
+                            if (document.getThumbnail() != null)
                                 document.setThumbnail(documents1.getThumbnail());
                             documents.add(document);
                         }

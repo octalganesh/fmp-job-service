@@ -9,14 +9,14 @@ import com.octal.fsm.models.request.PageRequest;
 
 public interface JobTagService {
 
-    String addJobTag(JobTagDTO.Add add) throws CodeException;
+    String addJobTag(JobTagDTO.Add add,Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
     Boolean deleteById(String id) throws CodeException;
 
-    JobTypeDTO.Detail getJobTagByUuid(String id) throws CodeException;
+    JobTypeDTO.Detail getJobTagByUuid(String id,Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
     Boolean changeStatus(String id) throws CodeException;
 
-    PageItem<JobTagDTO.Detail> getAllJobTags(PageRequest.List listRequest);
+    PageItem<JobTagDTO.Detail> getAllJobTags(PageRequest.List listRequest,Long tenantId, Boolean isSuperAdmin);
 
 }
