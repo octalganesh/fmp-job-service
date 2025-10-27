@@ -960,7 +960,7 @@ public class JobServiceImpl implements JobService {
                             document.setFile(documents1.getDocumentUrl());
                             document.setFileType(documents1.getFileType());
                             document.setFileName(documents1.getFileName());
-                            if (document.getThumbnail() != null)
+                            if (documents1.getThumbnail() != null)
                                 document.setThumbnail(documents1.getThumbnail());
                             documents.add(document);
                         }
