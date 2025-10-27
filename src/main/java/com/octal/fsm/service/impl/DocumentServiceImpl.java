@@ -163,7 +163,7 @@ public class DocumentServiceImpl implements DocumentService {
             documents.setFileName(addJobDTO.getFileName());
             documents.setDocumentUrl(awsS3BaseUrl+addJobDTO.getDocumentUrl());
             documents.setFileType(addJobDTO.getFileType());
-            if(addJobDTO.getThumbnail()!=null && addJobDTO.getThumbnail().isEmpty())
+            if(addJobDTO.getThumbnail()!=null && !addJobDTO.getThumbnail().isEmpty())
                 documents.setThumbnail(addJobDTO.getThumbnail());
             documents.setDocumentTypeId(addJobDTO.getDocumentTypeId());
             documents.setAttachType(addJobDTO.getAttachType());
