@@ -25,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -227,7 +228,7 @@ public class JobServiceImpl implements JobService {
 
 
     @Override
-    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail,String location) throws CodeException {
+    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail, String location) throws CodeException {
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(order)) {
@@ -400,6 +401,7 @@ public class JobServiceImpl implements JobService {
             if (jobTask.isPresent()) {
                 dto.setId(jobMappingTask.getUuid());
                 dto.setTaskId(jobTask.get().getUuid());
+                dto.setTaskShowId(jobMappingTask.getTaskShowId());
                 dto.setTaskName(jobTask.get().getName());
                 dto.setTaskDescription(jobTask.get().getDescription());
                 Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.getUuid());
@@ -535,6 +537,23 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Job Task Mapping Not Found", ErrorCode.COMMON);
         jobMappingTask.get().setDocumentTypeId(new Gson().toJson(updateAssignedTaskWithDocumentType.getDocumentTypeId()));
         jobMappingTaskRepository.save(jobMappingTask.get());
+    }
+
+    @Override
+    public void updateJobTask(String technicianId, String taskId, String note, String userName) throws CodeException {
+        Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+        if (jobTaskMappingTechnician.isPresent()) {
+            JobTaskMappingTechnician taskMappingTechnician = jobTaskMappingTechnician.get();
+            if (taskMappingTechnician.getTaskStatus().equalsIgnoreCase("COMPLETED")) {
+                throw new CodeException("Task Already Completed", ErrorCode.BAD_REQUEST);
+            }
+            if (TextUtils.isEmpty(note))
+                throw new CodeException("note cannot be empty", ErrorCode.BAD_REQUEST);
+            taskMappingTechnician.setTechnicianNote(note);
+            jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
+        } else {
+            throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
+        }
     }
 
 //    @Override
@@ -880,6 +899,15 @@ public class JobServiceImpl implements JobService {
                         }
                     }
                     JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
+                    ResponseEntity<ApiResponse> response = adminClient.getFeedbackByJobTaskId(jobMappingTask.get().getTaskShowId(), null);
+                    if (response != null && response.getBody() != null && response.getBody().getData() != null) {
+                        Gson gson = new Gson();
+                        String stringResponse = gson.toJson(response.getBody().getData());
+                        JobDTO.CustomerFeedbackResponse customerFeedbackResponse = gson.fromJson(stringResponse, JobDTO.CustomerFeedbackResponse.class);
+                        if (customerFeedbackResponse != null) {
+                            details.setCustomerFeedbackResponse(customerFeedbackResponse);
+                        }
+                    }
                     details.setId(taskMapping.getUuid());
                     details.setTaskName(jobTask.get().getName());
                     details.setNote(taskMapping.getTechnicianNote());
