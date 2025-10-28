@@ -151,6 +151,7 @@ public class JobDTO {
     public static class JobTaskListResponse {
         private String id;
         private String taskId;
+        private String taskShowId;
         private String taskName;
         private String taskDescription;
         private String createdAt;
@@ -246,6 +247,8 @@ public class JobDTO {
         private String status;
         private Double serviceLocationLat;
         private Double serviceLocationLng;
+        // response for customer feedback on the task
+        private CustomerFeedbackResponse customerFeedbackResponse;
     }
 
     @Data
@@ -257,5 +260,19 @@ public class JobDTO {
         private String fileName;
         private String thumbnail;
     }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class CustomerFeedbackResponse {
+        private String id;
+        private String customerName;
+        private String feedback;
+        private Double rating;
+        private String jobId;
+        private String createdAt;
+        private String jobTaskId;
+    }
+
 
 }
