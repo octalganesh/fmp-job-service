@@ -37,6 +37,9 @@ public class JobDTO {
         private java.util.List<String> jobTags;
         private String additionalNotes; // Optional
         private java.util.List<String> documents; //Optional
+        private String uploadedByType; // Admin, FrontOffice, Technician
+        private String uploadedByTypeId; // Admin Id, Customer Id, Technician Id
+        private String uploadedByUserName; // Admin Id, Customer Id, Technician Id
     }
 
     @Data

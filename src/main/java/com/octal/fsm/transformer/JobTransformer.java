@@ -116,6 +116,9 @@ public class JobTransformer {
                 document.setDocumentUrl(awsS3BaseUrl+documentUrl);
                 document.setAttachType("JOB");
                 document.setAttachTypeId(job.getJobId());
+                document.setUploadedByType(addJobDTO.getUploadedByType());
+                document.setUploadedByTypeId(addJobDTO.getUploadedByTypeId());
+                document.setUploadedByUserName(addJobDTO.getUploadedByUserName());
                 documentsList.add(document);
 
                 JobMappingDocuments jobMappingDocuments = new JobMappingDocuments();
