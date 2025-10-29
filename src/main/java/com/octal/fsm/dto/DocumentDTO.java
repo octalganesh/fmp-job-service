@@ -45,5 +45,6 @@ public class DocumentDTO {
         private String uploadedByType;
         private String uploadedByTypeId;
         private String createdAt;
+        private  String documentTypeId;
     }
 }
