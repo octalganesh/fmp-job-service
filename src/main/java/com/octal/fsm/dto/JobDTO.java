@@ -37,6 +37,9 @@ public class JobDTO {
         private java.util.List<String> jobTags;
         private String additionalNotes; // Optional
         private java.util.List<String> documents; //Optional
+        private String uploadedByType; // Admin, FrontOffice, Technician
+        private String uploadedByTypeId; // Admin Id, Customer Id, Technician Id
+        private String uploadedByUserName; // Admin Id, Customer Id, Technician Id
     }
 
     @Data
@@ -151,6 +154,7 @@ public class JobDTO {
     public static class JobTaskListResponse {
         private String id;
         private String taskId;
+        private String taskShowId;
         private String taskName;
         private String taskDescription;
         private String createdAt;
@@ -222,9 +226,12 @@ public class JobDTO {
         private String taskId;
         private String taskName;
         private String note;
+        private String frontOfficeNote;
         private String startDate;
         private String endDate;
         private String taskDescription;
+        private String clientFeedbackUrl;
+        private String signature;
         // Customer Info
         private String customerId;
         private String customerName;
@@ -237,6 +244,8 @@ public class JobDTO {
         private String jobType;
         private String jobStartDate;
         private String jobEndDate;
+        private String jobNote;
+        private List<Document> jobUploadedDocuments;
         // Tags, Documents, Description
         private List<String> jobTags;
         private List<Document> uploadedDocuments;
@@ -244,6 +253,8 @@ public class JobDTO {
         private String status;
         private Double serviceLocationLat;
         private Double serviceLocationLng;
+        // response for customer feedback on the task
+        private CustomerFeedbackResponse customerFeedbackResponse;
     }
 
     @Data
@@ -252,6 +263,23 @@ public class JobDTO {
     public static class Document {
         private String file;
         private String fileType;
+        private String fileName;
+        private String thumbnail;
+        private String documentTypeId;
     }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class CustomerFeedbackResponse {
+        private String id;
+        private String customerName;
+        private String feedback;
+        private Double rating;
+        private String jobId;
+        private String createdAt;
+        private String jobTaskId;
+    }
+
 
 }

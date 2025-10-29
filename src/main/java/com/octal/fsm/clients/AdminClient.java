@@ -1,6 +1,6 @@
 package com.octal.fsm.clients;
 
-import com.google.protobuf.Api;
+
 import com.octal.fsm.dto.ApiResponse;
 import com.octal.fsm.dto.EmailTemplateDto;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -28,5 +28,8 @@ public interface AdminClient {
 
     @PostMapping("/email-template/get-template-content")
     ResponseEntity<ApiResponse> getTemplateContent(@RequestBody EmailTemplateDto.EmailTemplateRequest request, @RequestHeader(USER_NAME) String userName);
+
+    @GetMapping("/customer-feedback/get-feedback-by-taskId/{jobTaskId}")
+    ResponseEntity<ApiResponse>getFeedbackByJobTaskId(@PathVariable("jobTaskId") String jobTaskId,@RequestHeader(USER_NAME) String userName);
 
 }

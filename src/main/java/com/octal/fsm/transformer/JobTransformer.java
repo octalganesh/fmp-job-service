@@ -13,6 +13,7 @@ import com.octal.fsm.helper.CodeGenerator;
 import com.octal.fsm.repositories.*;
 import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -46,6 +47,8 @@ public class JobTransformer {
     private DocumentsRepository documentsRepository;
     @Autowired
     private CodeGenerator codeGenerator;
+    @Value("${aws.base-url}")
+    private String awsS3BaseUrl;
 
     public String transformToEntity(JobDTO.Add addJobDTO) throws CodeException {
         Job job = new Job();
@@ -101,6 +104,7 @@ public class JobTransformer {
         }
         job.setJobMappingTags(jobMappingTags);
         job.setAdditionalNotes(addJobDTO.getAdditionalNotes());
+        job.setJobId(codeGenerator.getJobId());
         // Documents
         List<Documents> documentsList = new ArrayList<>();
         List<JobMappingDocuments> documents = new ArrayList<>();
@@ -109,7 +113,12 @@ public class JobTransformer {
                 Documents document = new Documents();
                 document.setFileName(TextUtils.getFileNameFromFileUrl(documentUrl));
                 document.setFileType(TextUtils.getFileTypeFromFileUrl(documentUrl));
-                document.setDocumentUrl(documentUrl);
+                document.setDocumentUrl(awsS3BaseUrl+documentUrl);
+                document.setAttachType("JOB");
+                document.setAttachTypeId(job.getJobId());
+                document.setUploadedByType(addJobDTO.getUploadedByType());
+                document.setUploadedByTypeId(addJobDTO.getUploadedByTypeId());
+                document.setUploadedByUserName(addJobDTO.getUploadedByUserName());
                 documentsList.add(document);
 
                 JobMappingDocuments jobMappingDocuments = new JobMappingDocuments();
@@ -120,7 +129,6 @@ public class JobTransformer {
             documentsRepository.saveAll(documentsList);
             job.setJobMappingDocuments(documents);
         }
-        job.setJobId(codeGenerator.getJobId());
         jobRepository.save(job);
         return job.getUuid();
     }

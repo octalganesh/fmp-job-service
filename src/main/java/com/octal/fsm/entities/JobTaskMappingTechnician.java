@@ -27,6 +27,9 @@ public class JobTaskMappingTechnician extends AbstractPersistable {
     @Column(name = "note")
     private String note;
 
+    @Column(name = "technician_note")
+    private String technicianNote;
+
     @Column(name = "start_date")
     private LocalDate startDate;
 
@@ -36,6 +39,13 @@ public class JobTaskMappingTechnician extends AbstractPersistable {
     @Lob
     @Column(name = "documents")
     private String documents;
+
+    @Column(name = "signature")
+    private String signature;  // customer signature image URL when job task is completed
+
+    @Column(name = "signature_date_time")
+    private LocalDateTime signatureDateTime;
+
 
 }
 
