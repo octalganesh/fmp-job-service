@@ -228,6 +228,7 @@ public class JobDTO {
         private String endDate;
         private String taskDescription;
         private String clientFeedbackUrl;
+        private String signature;
         // Customer Info
         private String customerId;
         private String customerName;
