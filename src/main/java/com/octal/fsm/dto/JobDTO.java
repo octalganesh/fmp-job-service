@@ -244,6 +244,8 @@ public class JobDTO {
         private String jobType;
         private String jobStartDate;
         private String jobEndDate;
+        private String jobNote;
+        private List<Document> jobUploadedDocuments;
         // Tags, Documents, Description
         private List<String> jobTags;
         private List<Document> uploadedDocuments;
@@ -263,6 +265,7 @@ public class JobDTO {
         private String fileType;
         private String fileName;
         private String thumbnail;
+        private String documentTypeId;
     }
 
     @Data

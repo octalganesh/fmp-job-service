@@ -927,6 +927,7 @@ public class JobServiceImpl implements JobService {
                         details.setSignature(taskMapping.getSignature());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
+                    details.setJobNote(job.get().getAdditionalNotes());
                     details.setJobStartDate(job.get().getJobStartDate().toString());
                     details.setJobEndDate(job.get().getJobEndDate().toString());
                     details.setTaskDescription(jobTask.get().getDescription());
@@ -969,7 +970,19 @@ public class JobServiceImpl implements JobService {
                         tag.ifPresent(jobTag -> jobTags.add(jobTag.getName()));
                     }
                     details.setJobTags(jobTags);
-
+                    List<Documents>jobDocuments=documentsRepository.findByAttachTypeId(job.get().getJobId());
+                    if(!jobDocuments.isEmpty()){
+                        for(Documents documents:jobDocuments){
+                            JobDTO.Document document=new JobDTO.Document();
+                            document.setFile(documents.getDocumentUrl());
+                            document.setFileType(documents.getFileType());
+                            document.setFileName(documents.getFileName());
+                            if(documents.getThumbnail()!=null)
+                                document.setThumbnail(documents.getThumbnail());
+                            document.setDocumentTypeId(documents.getDocumentTypeId());
+                            details.getJobUploadedDocuments().add(document);
+                        }
+                    }
                     // Get uploaded documents
                     List<JobDTO.Document> documents = new ArrayList<>();
                     if (!TextUtils.isEmpty(taskMapping.getDocuments())) {
