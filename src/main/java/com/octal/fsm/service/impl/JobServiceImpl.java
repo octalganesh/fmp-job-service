@@ -980,7 +980,7 @@ public class JobServiceImpl implements JobService {
                             if(documents.getThumbnail()!=null)
                                 document.setThumbnail(documents.getThumbnail());
                             document.setDocumentTypeId(documents.getDocumentTypeId());
-                            details.getJobUploadedDocuments().add(document);
+                            //details.getJobUploadedDocuments().add(document);
                         }
                     }
                     // Get uploaded documents
