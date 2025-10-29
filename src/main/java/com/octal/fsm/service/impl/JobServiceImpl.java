@@ -469,10 +469,13 @@ public class JobServiceImpl implements JobService {
                 }
                 jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
 
-
                 Gson gson = new Gson();
-                // Save attached documents in DB
-                jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
+                if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
+                    List<String> documentsWithUrl = assignJobToTechnician.getDocuments().stream()
+                            .map(doc -> awsS3BaseUrl + doc)  // Prepending AWS base URL
+                            .collect(Collectors.toList());
+                    jobTaskMappingToTechnician.get().setDocuments(gson.toJson(documentsWithUrl));
+                }
                 JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail);
 
                 // Convert response data to TechnicianDTO.GetDetails
@@ -506,14 +509,16 @@ public class JobServiceImpl implements JobService {
                         e.printStackTrace();
                     }
                 }
+                Gson gson = new Gson();
                 if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
-                    Gson gson = new Gson();
-                    jobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
+                    List<String> documentsWithUrl = assignJobToTechnician.getDocuments().stream()
+                            .map(doc -> awsS3BaseUrl + doc)  // Prepending AWS base URL
+                            .collect(Collectors.toList());
+                    jobTaskMappingTechnician.setDocuments(gson.toJson(documentsWithUrl));
                 }
                 JobTaskMappingTechnician JobTaskMappingTechnician = jobTaskMappingTechnicianRepository.save(jobTaskMappingTechnician);
-                Gson gson = new Gson();
+
                 // Save attached documents in DB
-                JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail);
 
                 // Convert response data to TechnicianDTO.GetDetails
@@ -976,7 +981,8 @@ public class JobServiceImpl implements JobService {
                             for (String doc : documentList) {
                                 JobDTO.Document document = new JobDTO.Document();
                                 document.setFile(doc);
-                                document.setFileType("pdf"); // Default type, could be enhanced
+                                document.setFileType(TextUtils.getFileTypeFromFileUrl(doc));
+                                document.setFileName(TextUtils.getFileNameFromFileUrl(doc));
                                 documents.add(document);
                             }
                         } catch (Exception e) {
