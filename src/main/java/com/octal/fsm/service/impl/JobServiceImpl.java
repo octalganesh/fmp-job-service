@@ -914,10 +914,12 @@ public class JobServiceImpl implements JobService {
                     details.setFrontOfficeNote(taskMapping.getNote());
                     clientFeedbackLink = clientFeedbackLink
                             .replace("<jobId>", job.get().getJobId())
-                            .replace("<taskId>", taskMapping.getUuid())
+                            .replace("<taskId>", jobMappingTask.get().getTaskShowId())
                             .replace("<technicianId>", taskMapping.getTechnicianId())
                             .replace("<customerId>", job.get().getCustomerId());
                     details.setClientFeedbackUrl(clientFeedbackLink);
+                    if(!TextUtils.isEmpty(taskMapping.getSignature()))
+                        details.setSignature(taskMapping.getSignature());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
                     details.setJobStartDate(job.get().getJobStartDate().toString());

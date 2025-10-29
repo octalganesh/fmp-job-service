@@ -15,4 +15,6 @@ public interface JobMappingTaskRepository extends JpaRepository<JobMappingTask, 
     Boolean existsByTaskShowId(String newCode);
 
     Boolean existsByUuidAndDeletedFalse(String uuid);
+
+    Optional<JobMappingTask> findByTaskShowId(String jobTaskId);
 }
