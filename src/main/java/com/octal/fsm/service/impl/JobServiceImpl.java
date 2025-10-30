@@ -32,10 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.lang.reflect.Type;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -1047,8 +1044,12 @@ public class JobServiceImpl implements JobService {
 
             // ✅ Filter by task status
             if (!TextUtils.isEmpty(filterRequest.getStatus())) {
-                if (filterRequest.getStatus().equalsIgnoreCase("NEW"))
+                if (filterRequest.getStatus().equalsIgnoreCase("new"))
                     builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", "ASSIGNED"));
+                else if(filterRequest.getStatus().equalsIgnoreCase("ongoing")) {
+                    Set<String> statusList = Set.of("ENROUTE", "ARRIVED", "INPROGRESS");
+                    builder.with(jobTaskMappingTechnicianSpecificationFactory.fieldIn("taskStatus", statusList));
+                }
                 else
                     builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", filterRequest.getStatus()));
             }
