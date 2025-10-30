@@ -9,6 +9,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -245,7 +246,7 @@ public class JobDTO {
         private String jobStartDate;
         private String jobEndDate;
         private String jobNote;
-        private List<Document> jobUploadedDocuments;
+        private List<Document> jobUploadedDocuments=new ArrayList<>();
         // Tags, Documents, Description
         private List<String> jobTags;
         private List<Document> uploadedDocuments;

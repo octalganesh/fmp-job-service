@@ -857,7 +857,12 @@ public class JobServiceImpl implements JobService {
                 throw new CodeException("Task Already Completed", ErrorCode.BAD_REQUEST);
             }
             taskMappingTechnician.setTaskStatus(status);
-            if (!TextUtils.isEmpty(note)) {
+            if (taskMappingTechnician.getTaskStatus().equalsIgnoreCase("cancelled")) {
+                if(TextUtils.isEmpty(note)){
+                    throw new CodeException("Cancel Reason is required to cancel the task", ErrorCode.BAD_REQUEST);
+                }
+                taskMappingTechnician.setCancelReason(note);
+            } else if (!TextUtils.isEmpty(note)) {
                 taskMappingTechnician.setTechnicianNote(note);
             }
             if (status.equalsIgnoreCase("COMPLETED")) {
@@ -923,7 +928,7 @@ public class JobServiceImpl implements JobService {
                             .replace("<technicianId>", taskMapping.getTechnicianId())
                             .replace("<customerId>", job.get().getCustomerId());
                     details.setClientFeedbackUrl(clientFeedbackLink);
-                    if(!TextUtils.isEmpty(taskMapping.getSignature()))
+                    if (!TextUtils.isEmpty(taskMapping.getSignature()))
                         details.setSignature(taskMapping.getSignature());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
@@ -970,17 +975,17 @@ public class JobServiceImpl implements JobService {
                         tag.ifPresent(jobTag -> jobTags.add(jobTag.getName()));
                     }
                     details.setJobTags(jobTags);
-                    List<Documents>jobDocuments=documentsRepository.findByAttachTypeId(job.get().getJobId());
-                    if(!jobDocuments.isEmpty()){
-                        for(Documents documents:jobDocuments){
-                            JobDTO.Document document=new JobDTO.Document();
+                    List<Documents> jobDocuments = documentsRepository.findByAttachTypeId(job.get().getJobId());
+                    if (!jobDocuments.isEmpty()) {
+                        for (Documents documents : jobDocuments) {
+                            JobDTO.Document document = new JobDTO.Document();
                             document.setFile(documents.getDocumentUrl());
                             document.setFileType(documents.getFileType());
                             document.setFileName(documents.getFileName());
-                            if(documents.getThumbnail()!=null)
+                            if (documents.getThumbnail() != null)
                                 document.setThumbnail(documents.getThumbnail());
                             document.setDocumentTypeId(documents.getDocumentTypeId());
-                            //details.getJobUploadedDocuments().add(document);
+                            details.getJobUploadedDocuments().add(document);
                         }
                     }
                     // Get uploaded documents
