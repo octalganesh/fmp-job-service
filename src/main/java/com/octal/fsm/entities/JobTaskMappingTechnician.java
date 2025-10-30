@@ -46,6 +46,9 @@ public class JobTaskMappingTechnician extends AbstractPersistable {
     @Column(name = "signature_date_time")
     private LocalDateTime signatureDateTime;
 
+    @Column(name = "cancel_reason")
+    private String cancelReason;
+
 
 }
 
