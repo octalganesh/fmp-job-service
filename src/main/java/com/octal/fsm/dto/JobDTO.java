@@ -233,6 +233,7 @@ public class JobDTO {
         private String taskDescription;
         private String clientFeedbackUrl;
         private String signature;
+        private String cancelReason;
         // Customer Info
         private String customerId;
         private String customerName;

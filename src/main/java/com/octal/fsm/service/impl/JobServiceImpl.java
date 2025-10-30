@@ -930,6 +930,8 @@ public class JobServiceImpl implements JobService {
                     details.setClientFeedbackUrl(clientFeedbackLink);
                     if (!TextUtils.isEmpty(taskMapping.getSignature()))
                         details.setSignature(taskMapping.getSignature());
+                    if (!TextUtils.isEmpty(taskMapping.getCancelReason()))
+                        details.setSignature(taskMapping.getCancelReason());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
                     details.setJobNote(job.get().getAdditionalNotes());
