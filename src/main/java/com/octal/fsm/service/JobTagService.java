@@ -13,7 +13,7 @@ public interface JobTagService {
 
     Boolean deleteById(String id) throws CodeException;
 
-    JobTypeDTO.Detail getJobTagByUuid(String id) throws CodeException;
+    JobTagDTO.Detail getJobTagByUuid(String id) throws CodeException;
 
     Boolean changeStatus(String id) throws CodeException;
 
