@@ -43,9 +43,8 @@ public class QuickBooksTokenStore {
             token.setAccessToken(response.getAccessToken());
             token.setRefreshToken(response.getRefreshToken());
             token.setExpiresAt(LocalDateTime.now().plusSeconds(response.getExpiresIn()));
-            tokenRepository.save(token);
+            token=tokenRepository.save(token);
         }
-
         return token;
     }
 }

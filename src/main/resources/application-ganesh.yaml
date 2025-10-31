@@ -52,6 +52,7 @@ forgot.password.time.in.second: 60
 forgot.password.otp.resend.count: 3
 user.activation.link.url: http://12.com:7070/?token=<token>
 user.forget.password.link: http://65.72/reset-password/<token>
+client.feedback.link: https://development.d1ig8p7rfwgvkb.amplifyapp.com/client-feedback?jobId=<jobId>&taskId=<taskId>&technicianId=<technicianId>&customerId=<customerId>
 
 feign:
   client:

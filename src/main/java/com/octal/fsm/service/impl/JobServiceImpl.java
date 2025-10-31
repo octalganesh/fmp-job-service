@@ -19,20 +19,20 @@ import com.octal.fsm.utils.TextUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Type;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -90,6 +90,12 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private JobService jobService;
+    @Autowired
+    private DocumentsRepository documentsRepository;
+    @Value("${aws.base-url}")
+    private String awsS3BaseUrl;
+    @Value("${client.feedback.link}")
+    private String clientFeedbackLink;
 
     @Override
     public String addJob(JobDTO.Add addJobDTO) throws CodeException {
@@ -219,7 +225,7 @@ public class JobServiceImpl implements JobService {
 
 
     @Override
-    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail) throws CodeException {
+    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail, String location) throws CodeException {
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(order)) {
@@ -254,10 +260,13 @@ public class JobServiceImpl implements JobService {
             builder.with(jobSpecificationFactory.isEqual("customerTypeId", customerType));
         }
         if (!TextUtils.isEmpty(fromStartDate)) {
-            builder.with(jobSpecificationFactory.isGreaterThanOrEquals("jobStartDate", LocalDate.parse(fromStartDate).atStartOfDay()));
+            builder.with(jobSpecificationFactory.isGreaterThanOrEquals("jobStartDate", LocalDate.parse(fromStartDate)));
         }
         if (!TextUtils.isEmpty(toStartDate)) {
-            builder.with(jobSpecificationFactory.isLessThanOrEquals("jobEndDate", LocalDate.parse(toStartDate).atTime(23, 59, 59)));
+            builder.with(jobSpecificationFactory.isLessThanOrEquals("jobEndDate", LocalDate.parse(toStartDate)));
+        }
+        if (!TextUtils.isEmpty(location)) {
+            builder.with(jobSpecificationFactory.like("serviceLocation", location));
         }
         Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageable);
         List<JobDTO.JobListResponse> responseList = new ArrayList<>();
@@ -389,6 +398,7 @@ public class JobServiceImpl implements JobService {
             if (jobTask.isPresent()) {
                 dto.setId(jobMappingTask.getUuid());
                 dto.setTaskId(jobTask.get().getUuid());
+                dto.setTaskShowId(jobMappingTask.getTaskShowId());
                 dto.setTaskName(jobTask.get().getName());
                 dto.setTaskDescription(jobTask.get().getDescription());
                 Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.getUuid());
@@ -456,10 +466,13 @@ public class JobServiceImpl implements JobService {
                 }
                 jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
 
-
                 Gson gson = new Gson();
-                // Save attached documents in DB
-                jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
+                if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
+                    List<String> documentsWithUrl = assignJobToTechnician.getDocuments().stream()
+                            .map(doc -> awsS3BaseUrl + doc)  // Prepending AWS base URL
+                            .collect(Collectors.toList());
+                    jobTaskMappingToTechnician.get().setDocuments(gson.toJson(documentsWithUrl));
+                }
                 JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail);
 
                 // Convert response data to TechnicianDTO.GetDetails
@@ -493,14 +506,16 @@ public class JobServiceImpl implements JobService {
                         e.printStackTrace();
                     }
                 }
+                Gson gson = new Gson();
                 if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
-                    Gson gson = new Gson();
-                    jobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
+                    List<String> documentsWithUrl = assignJobToTechnician.getDocuments().stream()
+                            .map(doc -> awsS3BaseUrl + doc)  // Prepending AWS base URL
+                            .collect(Collectors.toList());
+                    jobTaskMappingTechnician.setDocuments(gson.toJson(documentsWithUrl));
                 }
                 JobTaskMappingTechnician JobTaskMappingTechnician = jobTaskMappingTechnicianRepository.save(jobTaskMappingTechnician);
-                Gson gson = new Gson();
+
                 // Save attached documents in DB
-                JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail);
 
                 // Convert response data to TechnicianDTO.GetDetails
@@ -524,6 +539,23 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Job Task Mapping Not Found", ErrorCode.COMMON);
         jobMappingTask.get().setDocumentTypeId(new Gson().toJson(updateAssignedTaskWithDocumentType.getDocumentTypeId()));
         jobMappingTaskRepository.save(jobMappingTask.get());
+    }
+
+    @Override
+    public void updateJobTask(String technicianId, String taskId, String note, String userName) throws CodeException {
+        Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+        if (jobTaskMappingTechnician.isPresent()) {
+            JobTaskMappingTechnician taskMappingTechnician = jobTaskMappingTechnician.get();
+            if (taskMappingTechnician.getTaskStatus().equalsIgnoreCase("COMPLETED")) {
+                throw new CodeException("Task Already Completed", ErrorCode.BAD_REQUEST);
+            }
+            if (TextUtils.isEmpty(note))
+                throw new CodeException("note cannot be empty", ErrorCode.BAD_REQUEST);
+            taskMappingTechnician.setTechnicianNote(note);
+            jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
+        } else {
+            throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
+        }
     }
 
 //    @Override
@@ -814,7 +846,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public void updateJobTaskStatus(String technicianId, String taskId, String status, String note, String userName) throws CodeException {
+    public void updateJobTaskStatus(String technicianId, String taskId, String status, String note, String signature, String userName) throws CodeException {
         Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
         if (jobTaskMappingTechnician.isPresent()) {
             JobTaskMappingTechnician taskMappingTechnician = jobTaskMappingTechnician.get();
@@ -822,8 +854,19 @@ public class JobServiceImpl implements JobService {
                 throw new CodeException("Task Already Completed", ErrorCode.BAD_REQUEST);
             }
             taskMappingTechnician.setTaskStatus(status);
-            if (!TextUtils.isEmpty(note)) {
-                taskMappingTechnician.setNote(note);
+            if (taskMappingTechnician.getTaskStatus().equalsIgnoreCase("cancelled")) {
+                if(TextUtils.isEmpty(note)){
+                    throw new CodeException("Cancel Reason is required to cancel the task", ErrorCode.BAD_REQUEST);
+                }
+                taskMappingTechnician.setCancelReason(note);
+            } else if (!TextUtils.isEmpty(note)) {
+                taskMappingTechnician.setTechnicianNote(note);
+            }
+            if (status.equalsIgnoreCase("COMPLETED")) {
+                if (TextUtils.isEmpty(signature))
+                    throw new CodeException("Customer Signature is required to complete the task", ErrorCode.BAD_REQUEST);
+                taskMappingTechnician.setSignature(awsS3BaseUrl + signature);
+                taskMappingTechnician.setSignatureDateTime(LocalDateTime.now());
             }
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
         } else {
@@ -863,11 +906,32 @@ public class JobServiceImpl implements JobService {
                         }
                     }
                     JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
+                    ResponseEntity<ApiResponse> response = adminClient.getFeedbackByJobTaskId(jobMappingTask.get().getTaskShowId(), null);
+                    if (response != null && response.getBody() != null && response.getBody().getData() != null) {
+                        Gson gson = new Gson();
+                        String stringResponse = gson.toJson(response.getBody().getData());
+                        JobDTO.CustomerFeedbackResponse customerFeedbackResponse = gson.fromJson(stringResponse, JobDTO.CustomerFeedbackResponse.class);
+                        if (customerFeedbackResponse != null) {
+                            details.setCustomerFeedbackResponse(customerFeedbackResponse);
+                        }
+                    }
                     details.setId(taskMapping.getUuid());
                     details.setTaskName(jobTask.get().getName());
-                    details.setNote(taskMapping.getNote());
+                    details.setNote(taskMapping.getTechnicianNote());
+                    details.setFrontOfficeNote(taskMapping.getNote());
+                    clientFeedbackLink = clientFeedbackLink
+                            .replace("<jobId>", job.get().getJobId())
+                            .replace("<taskId>", jobMappingTask.get().getTaskShowId())
+                            .replace("<technicianId>", taskMapping.getTechnicianId())
+                            .replace("<customerId>", job.get().getCustomerId());
+                    details.setClientFeedbackUrl(clientFeedbackLink);
+                    if (!TextUtils.isEmpty(taskMapping.getSignature()))
+                        details.setSignature(taskMapping.getSignature());
+                    if (!TextUtils.isEmpty(taskMapping.getCancelReason()))
+                        details.setCancelReason(taskMapping.getCancelReason());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
+                    details.setJobNote(job.get().getAdditionalNotes());
                     details.setJobStartDate(job.get().getJobStartDate().toString());
                     details.setJobEndDate(job.get().getJobEndDate().toString());
                     details.setTaskDescription(jobTask.get().getDescription());
@@ -910,7 +974,19 @@ public class JobServiceImpl implements JobService {
                         tag.ifPresent(jobTag -> jobTags.add(jobTag.getName()));
                     }
                     details.setJobTags(jobTags);
-
+                    List<Documents> jobDocuments = documentsRepository.findByAttachTypeId(job.get().getJobId());
+                    if (!jobDocuments.isEmpty()) {
+                        for (Documents documents : jobDocuments) {
+                            JobDTO.Document document = new JobDTO.Document();
+                            document.setFile(documents.getDocumentUrl());
+                            document.setFileType(documents.getFileType());
+                            document.setFileName(documents.getFileName());
+                            if (documents.getThumbnail() != null)
+                                document.setThumbnail(documents.getThumbnail());
+                            document.setDocumentTypeId(documents.getDocumentTypeId());
+                            details.getJobUploadedDocuments().add(document);
+                        }
+                    }
                     // Get uploaded documents
                     List<JobDTO.Document> documents = new ArrayList<>();
                     if (!TextUtils.isEmpty(taskMapping.getDocuments())) {
@@ -922,11 +998,24 @@ public class JobServiceImpl implements JobService {
                             for (String doc : documentList) {
                                 JobDTO.Document document = new JobDTO.Document();
                                 document.setFile(doc);
-                                document.setFileType("application/pdf"); // Default type, could be enhanced
+                                document.setFileType(TextUtils.getFileTypeFromFileUrl(doc));
+                                document.setFileName(TextUtils.getFileNameFromFileUrl(doc));
                                 documents.add(document);
                             }
                         } catch (Exception e) {
                             logger.error("Error parsing documents: {}", e.getMessage());
+                        }
+                    }
+                    List<Documents> documentsList = documentsRepository.findByAttachTypeId(taskMapping.getJobTaskMappingId());
+                    if (!documentsList.isEmpty()) {
+                        for (Documents documents1 : documentsList) {
+                            JobDTO.Document document = new JobDTO.Document();
+                            document.setFile(documents1.getDocumentUrl());
+                            document.setFileType(documents1.getFileType());
+                            document.setFileName(documents1.getFileName());
+                            if (documents1.getThumbnail() != null)
+                                document.setThumbnail(documents1.getThumbnail());
+                            documents.add(document);
                         }
                     }
                     details.setUploadedDocuments(documents);
@@ -955,8 +1044,12 @@ public class JobServiceImpl implements JobService {
 
             // ✅ Filter by task status
             if (!TextUtils.isEmpty(filterRequest.getStatus())) {
-                if (filterRequest.getStatus().equalsIgnoreCase("NEW"))
+                if (filterRequest.getStatus().equalsIgnoreCase("new"))
                     builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", "ASSIGNED"));
+                else if(filterRequest.getStatus().equalsIgnoreCase("ongoing")) {
+                    Set<String> statusList = Set.of("ENROUTE", "ARRIVED", "INPROGRESS");
+                    builder.with(jobTaskMappingTechnicianSpecificationFactory.fieldIn("taskStatus", statusList));
+                }
                 else
                     builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", filterRequest.getStatus()));
             }

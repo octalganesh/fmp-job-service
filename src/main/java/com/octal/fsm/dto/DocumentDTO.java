@@ -18,6 +18,7 @@ public class DocumentDTO {
         private String fileName;
         @NotBlank
         private String documentUrl;
+        private String thumbnail;
         private String documentTypeId;
         @NotBlank
         private String fileType;
@@ -44,5 +45,6 @@ public class DocumentDTO {
         private String uploadedByType;
         private String uploadedByTypeId;
         private String createdAt;
+        private  String documentTypeId;
     }
 }

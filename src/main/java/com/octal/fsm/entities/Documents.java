@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.Lob;
 import javax.persistence.Table;
 
 @Entity
@@ -19,8 +20,12 @@ public class Documents extends AbstractPersistable {
     @Column(name = "file_name", nullable = false)
     private String fileName;
 
+    @Lob
     @Column(name = "document_url", nullable = false)
     private String documentUrl;
+
+    @Column(name = "thumbnail")
+    private String thumbnail;
 
     @Column(name = "file_type", nullable = false)
     private String fileType;
