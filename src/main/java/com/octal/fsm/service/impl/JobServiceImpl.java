@@ -920,12 +920,12 @@ public class JobServiceImpl implements JobService {
                     details.setTaskName(jobTask.get().getName());
                     details.setNote(taskMapping.getTechnicianNote());
                     details.setFrontOfficeNote(taskMapping.getNote());
-                    clientFeedbackLink = clientFeedbackLink
+                    String customerFeedbackLink = clientFeedbackLink
                             .replace("<jobId>", job.get().getJobId())
                             .replace("<taskId>", jobMappingTask.get().getTaskShowId())
                             .replace("<technicianId>", taskMapping.getTechnicianId())
                             .replace("<customerId>", job.get().getCustomerId());
-                    details.setClientFeedbackUrl(clientFeedbackLink);
+                    details.setClientFeedbackUrl(customerFeedbackLink);
                     if (!TextUtils.isEmpty(taskMapping.getSignature()))
                         details.setSignature(taskMapping.getSignature());
                     if (!TextUtils.isEmpty(taskMapping.getCancelReason()))
