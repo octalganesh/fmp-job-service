@@ -134,6 +134,7 @@ public class JobDTO {
         private String serviceLocation;
         private String jobType;
         private String customerName;
+        private String customerType;
         private String jobStartDate;
         private String jobEndDate;
         private String leadSource;

@@ -288,6 +288,7 @@ public class JobServiceImpl implements JobService {
                     Map<String, String> customerDetails = gson.fromJson(gson.toJson(apiResponse.getData()), customerDetailsStr);
                     if (customerDetails != null) {
                         dto.setCustomerName(customerDetails.get("customerName"));
+                        dto.setCustomerType(customerDetails.get("customerType"));
                         dto.setLeadSource(customerDetails.get("leadSourceName"));
                     } else {
                         dto.setCustomerName("");
