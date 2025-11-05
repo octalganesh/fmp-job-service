@@ -65,7 +65,7 @@ public class DocumentServiceImpl implements DocumentService {
         }
         Documents documents = new Documents();
         documents.setFileName(addJobDTO.getFileName());
-        documents.setDocumentUrl(addJobDTO.getDocumentUrl());
+        documents.setDocumentUrl(awsS3BaseUrl+addJobDTO.getDocumentUrl());
         if(addJobDTO.getThumbnail()!=null && addJobDTO.getThumbnail().isEmpty())
             documents.setThumbnail(addJobDTO.getThumbnail());
         documents.setFileType(addJobDTO.getFileType());
@@ -79,7 +79,7 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
-    public PageItem<DocumentDTO.ListResponse> getListOfDocument(String type, String typeId, String uploadedByType, String uploadByTypeId, String fileType, int page, int size, String sortBy, Boolean order, String loggedInUserEmail) throws CodeException {
+    public PageItem<DocumentDTO.ListResponse> getListOfDocument(String type, String typeId, String uploadedByType, String uploadByTypeId, String fileType, int page, int size, String sortBy, Boolean order,String documentTypeId, String loggedInUserEmail) throws CodeException {
         Job job = null;
         if (type.equalsIgnoreCase("JOB")) {
             Optional<Job> jobExits = jobRepository.findByUuidAndDeletedFalse(typeId);
@@ -113,6 +113,9 @@ public class DocumentServiceImpl implements DocumentService {
             builder.with(documentsSpecificationFactory.isEqual("attachType", type));
             builder.with(documentsSpecificationFactory.isEqual("attachTypeId", typeId));
         }
+        if(!TextUtils.isEmpty(documentTypeId)){
+            builder.with(documentsSpecificationFactory.isEqual("documentTypeId", documentTypeId));
+        }
         Page<Documents> pagedResult = documentsRepository.findAll(builder.build(), pageable);
         List<DocumentDTO.ListResponse> responseList = new ArrayList<>();
         for (Documents doc : pagedResult.getContent()) {
@@ -124,6 +127,7 @@ public class DocumentServiceImpl implements DocumentService {
             response.setUploadedByType(doc.getUploadedByType());
             response.setUploadedByTypeId(doc.getUploadedByTypeId());
             response.setCreatedAt(doc.getCreatedAt() != null ? doc.getCreatedAt().toString() : null);
+            response.setDocumentTypeId(doc.getDocumentTypeId()!=null?doc.getDocumentTypeId():null);
             responseList.add(response);
         }
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, page,
@@ -163,8 +167,8 @@ public class DocumentServiceImpl implements DocumentService {
             documents.setFileName(addJobDTO.getFileName());
             documents.setDocumentUrl(awsS3BaseUrl+addJobDTO.getDocumentUrl());
             documents.setFileType(addJobDTO.getFileType());
-            if(addJobDTO.getThumbnail()!=null && addJobDTO.getThumbnail().isEmpty())
-                documents.setThumbnail(addJobDTO.getThumbnail());
+            if(addJobDTO.getThumbnail()!=null && !addJobDTO.getThumbnail().isEmpty())
+                documents.setThumbnail(awsS3BaseUrl+addJobDTO.getThumbnail());
             documents.setDocumentTypeId(addJobDTO.getDocumentTypeId());
             documents.setAttachType(addJobDTO.getAttachType());
             documents.setAttachTypeId(addJobDTO.getAttachTypeId());

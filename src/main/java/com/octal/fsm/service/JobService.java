@@ -17,7 +17,7 @@ public interface JobService {
 
     void updateJobTags(String jobId, JobDTO.UpdateJobTags updateJobTags, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
-    PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, Long tenantId, Boolean isSuperAdmin, String loggedInUserEmail) throws CodeException;
+    PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail,String location, Long tenantId, Boolean isSuperAdmin,) throws CodeException;
 
     //    JobDTO.Detail updateJob(JobDTO.Update updateJobDTO) throws CodeException;
 //
@@ -38,6 +38,8 @@ public interface JobService {
     void updateJobTaskStatus(String technicianId, String taskId, String status, String note, String signature, String userName) throws CodeException;
 
     void updateAssignedTaskWithDocumentType(String jobTaskMappingId, JobDTO.UpdateAssignedTaskWithDocumentType updateAssignedTaskWithDocumentType, String loggedInUserEmail) throws CodeException;
+
+    void updateJobTask(String technicianId, String taskId, String note, String userName) throws CodeException;
 //    Boolean changeJobStatus(String id, String status) throws CodeException;
 //
 //    PageItem<JobDTO.List> getAllJobs(PageRequest.List listRequest);

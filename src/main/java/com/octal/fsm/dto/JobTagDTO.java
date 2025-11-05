@@ -13,6 +13,7 @@ public class JobTagDTO {
     public static class Add {
         private String id;
         private String name;
+        private String tagColor;
         private boolean isActive;
     }
 
@@ -23,6 +24,7 @@ public class JobTagDTO {
     public static class Detail {
         private String id;
         private String name;
+        private String tagColor;
         private String createdAt;
         private String updatedAt;
         private Boolean isActive;

@@ -9,6 +9,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -37,6 +38,9 @@ public class JobDTO {
         private java.util.List<String> jobTags;
         private String additionalNotes; // Optional
         private java.util.List<String> documents; //Optional
+        private String uploadedByType; // Admin, FrontOffice, Technician
+        private String uploadedByTypeId; // Admin Id, Customer Id, Technician Id
+        private String uploadedByUserName; // Admin Id, Customer Id, Technician Id
         private Long tenantId;
         private Boolean isSuperAdmin;
     }
@@ -132,6 +136,7 @@ public class JobDTO {
         private String serviceLocation;
         private String jobType;
         private String customerName;
+        private String customerType;
         private String jobStartDate;
         private String jobEndDate;
         private String leadSource;
@@ -153,6 +158,7 @@ public class JobDTO {
     public static class JobTaskListResponse {
         private String id;
         private String taskId;
+        private String taskShowId;
         private String taskName;
         private String taskDescription;
         private String createdAt;
@@ -229,6 +235,8 @@ public class JobDTO {
         private String endDate;
         private String taskDescription;
         private String clientFeedbackUrl;
+        private String signature;
+        private String cancelReason;
         // Customer Info
         private String customerId;
         private String customerName;
@@ -241,6 +249,8 @@ public class JobDTO {
         private String jobType;
         private String jobStartDate;
         private String jobEndDate;
+        private String jobNote;
+        private List<Document> jobUploadedDocuments=new ArrayList<>();
         // Tags, Documents, Description
         private List<String> jobTags;
         private List<Document> uploadedDocuments;
@@ -248,6 +258,8 @@ public class JobDTO {
         private String status;
         private Double serviceLocationLat;
         private Double serviceLocationLng;
+        // response for customer feedback on the task
+        private CustomerFeedbackResponse customerFeedbackResponse;
     }
 
     @Data
@@ -258,6 +270,21 @@ public class JobDTO {
         private String fileType;
         private String fileName;
         private String thumbnail;
+        private String documentTypeId;
     }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class CustomerFeedbackResponse {
+        private String id;
+        private String customerName;
+        private String feedback;
+        private Double rating;
+        private String jobId;
+        private String createdAt;
+        private String jobTaskId;
+    }
+
 
 }

@@ -49,19 +49,21 @@ public class DocumentController extends BaseController {
 
     @GetMapping("/list")
     public ResponseEntity<ApiResponse> documentList(@RequestParam(defaultValue = "0") int page,
-                                               @RequestParam(defaultValue = "10") int size,
-                                               @RequestParam(defaultValue = "createdAt") String sortBy,
-                                               @RequestParam(defaultValue = "true") Boolean order,
-                                               @RequestParam("type") String type,
-                                               @RequestParam("typeId") String typeId,
-                                               @RequestParam(defaultValue = "") String uploadedByType,
-                                               @RequestParam(defaultValue = "") String uploadByTypeId,
-                                               @RequestParam(defaultValue = "") String fileType,
+                                                    @RequestParam(defaultValue = "10") int size,
+                                                    @RequestParam(defaultValue = "createdAt") String sortBy,
+                                                    @RequestParam(defaultValue = "true") Boolean order,
+                                                    @RequestParam("type") String type,
+                                                    @RequestParam("typeId") String typeId,
+                                                    @RequestParam(defaultValue = "") String uploadedByType,
+                                                    @RequestParam(defaultValue = "") String uploadByTypeId,
+                                                    @RequestParam(defaultValue = "") String fileType,
+                                                    @RequestParam(defaultValue = "") String documentTypeId,
+
                                                HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
             //Todo List Method to get all Job List.
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", documentService.getListOfDocument(type, typeId, uploadedByType, uploadByTypeId, fileType, page, size, sortBy, order, userName), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", documentService.getListOfDocument(type, typeId, uploadedByType, uploadByTypeId, fileType, page, size, sortBy, order, documentTypeId,userName), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);

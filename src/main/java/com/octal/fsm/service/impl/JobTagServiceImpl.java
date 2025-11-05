@@ -40,6 +40,8 @@ public class JobTagServiceImpl implements JobTagService {
             tenantId=1L;
         if (TextUtils.isEmpty(add.getName()))
             throw new CodeException("Tag name is required", ErrorCode.COMMON);
+        if(TextUtils.isEmpty(add.getTagColor()))
+            throw new CodeException("Tag color is required", ErrorCode.COMMON);
 //        Optional<JobTag> optionalJobTag = jobTagRepository.findByUuid(add.getId());
 //        if (optionalJobTag.isPresent() && !optionalJobTag.get().getUuid().equals(add.getId())) {
 //            throw new CodeException("JobTag is already present!", ErrorCode.RECORD_NOT_FOUND);
@@ -70,6 +72,7 @@ public class JobTagServiceImpl implements JobTagService {
         newJobTagRecord.setActive(Boolean.TRUE.equals(add.isActive()));
         newJobTagRecord.setDeleted(false);
         newJobTagRecord.setName(add.getName());
+        newJobTagRecord.setTagColor(add.getTagColor());
         JobTag jobTag = jobTagRepository.save
                 (newJobTagRecord);
         return jobTag.getUuid();
@@ -93,8 +96,9 @@ public class JobTagServiceImpl implements JobTagService {
             tenantId=1L;
         Optional<JobTag> jobTagOptional = jobTagRepository.findByUuidAndTenantId(id,tenantId);
         if (jobTagOptional.isPresent()) {
-            JobTypeDTO.Detail jobType = new JobTypeDTO.Detail();
+            JobTagDTO.Detail jobType = new JobTagDTO.Detail();
             jobType.setName(jobTagOptional.get().getName());
+            jobType.setTagColor(jobTagOptional.get().getTagColor());
             jobType.setId(jobTagOptional.get().getUuid());
             jobType.setIsActive(jobTagOptional.get().getActive());
             jobType.setCreatedAt(jobTagOptional.get().getCreatedAt().toString());
@@ -155,6 +159,7 @@ public class JobTagServiceImpl implements JobTagService {
             JobTagDTO.Detail dto=new JobTagDTO.Detail();
             dto.setId(jobTag.getUuid());
             dto.setName(jobTag.getName());
+            dto.setTagColor(jobTag.getTagColor());
             dto.setIsActive(jobTag.getActive());
             dto.setCreatedAt(String.valueOf(jobTag.getCreatedAt()));
             dto.setUpdatedAt(String.valueOf(jobTag.getUpdatedAt()));

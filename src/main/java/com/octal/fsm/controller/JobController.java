@@ -55,13 +55,14 @@ public class JobController extends BaseController {
                                                @RequestParam(defaultValue = "") String customerType,
                                                @RequestParam(defaultValue = "") String fromStartDate,
                                                @RequestParam(defaultValue = "") String toStartDate,
+                                               @RequestParam(defaultValue = "") String location,
                                                HttpServletRequest request) {
         try {
             Long tenantId = getTenantId(request);
             boolean isSuperAdmin=isSuperAdmin(request);
             String userName = request.getHeader(CommonConstants.USER_NAME);
             //Todo List Method to get all Job List.
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getAllJobs(page, size, sortBy, order, jobType, jobStatus, jobTag, serviceLocationLat, serviceLocationLng, customerType, fromStartDate, toStartDate, tenantId,isSuperAdmin,userName), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getAllJobs(page, size, sortBy, order, jobType, jobStatus, jobTag, serviceLocationLat, serviceLocationLng, customerType, fromStartDate, toStartDate,userName,location, tenantId,isSuperAdmin,userName), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);
@@ -166,6 +167,22 @@ public class JobController extends BaseController {
             return handleException(e);
         }
     }
+    @PutMapping("/update-job-task/{technicianId}/{taskId}")
+    public ResponseEntity<ApiResponse>updateJobTask(@PathVariable("technicianId") String technicianId,
+                                                          @PathVariable("taskId") String taskId,
+                                                          @RequestParam(value = "note",defaultValue = "") String note,
+                                                          HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            jobService.updateJobTask(technicianId, taskId,note,userName);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job task updated successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error updating job task status: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+
 //
 //    /**
 //     * Delete a job

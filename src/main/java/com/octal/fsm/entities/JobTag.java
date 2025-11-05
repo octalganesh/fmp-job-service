@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.checkerframework.checker.units.qual.C;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -26,4 +27,8 @@ public class JobTag extends AbstractPersistable {
 
     @Column(name = "tenant_id")
     private Long tenantId;
+
+    @Column(name = "tag_color", nullable = false)
+    private String tagColor;
+
 }
