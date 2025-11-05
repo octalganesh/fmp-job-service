@@ -91,7 +91,7 @@ public class JobTagServiceImpl implements JobTagService {
     }
 
     @Override
-    public JobTypeDTO.Detail getJobTagByUuid(String id,Long tenantId, Boolean isSuperAdmin) throws CodeException {
+    public JobTagDTO.Detail getJobTagByUuid(String id, Long tenantId, Boolean isSuperAdmin) throws CodeException {
         if(isSuperAdmin)
             tenantId=1L;
         Optional<JobTag> jobTagOptional = jobTagRepository.findByUuidAndTenantId(id,tenantId);

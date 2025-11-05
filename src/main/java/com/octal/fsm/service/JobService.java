@@ -17,13 +17,13 @@ public interface JobService {
 
     void updateJobTags(String jobId, JobDTO.UpdateJobTags updateJobTags, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
-    PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail,String location, Long tenantId, Boolean isSuperAdmin,) throws CodeException;
+    PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail,String location, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
     //    JobDTO.Detail updateJob(JobDTO.Update updateJobDTO) throws CodeException;
 //
 //    Boolean deleteJob(String id) throws CodeException;
 //
-    JobDTO.Detail getJobById(String id,Long tenantId, Boolean isSuperAdmin, String loggedInUserEmail) throws CodeException;
+    JobDTO.Detail getJobById(String id, String loggedInUserEmail,Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
     PageItem<JobDTO.JobTaskListResponse> getJobTask(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException;
 

@@ -321,6 +321,8 @@ public class JobServiceImpl implements JobService {
                 size);
     }
 
+
+
     @Override
     public JobDTO.Detail getJobById(String id, String loggedInUserEmail ,Long tenantId, Boolean isSuperAdmin) throws CodeException {
         if (isSuperAdmin)
@@ -490,7 +492,7 @@ public class JobServiceImpl implements JobService {
                             .collect(Collectors.toList());
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(documentsWithUrl));
                 }
-                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), tenantId, isSuperAdmin, loggedInUserEmail);
+                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(),loggedInUserEmail, tenantId, isSuperAdmin);
 
                 // Convert response data to TechnicianDTO.GetDetails
                 if (jobDetails != null) {
@@ -534,7 +536,7 @@ public class JobServiceImpl implements JobService {
 
                 // Save attached documents in DB
                 JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
-                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), tenantId, isSuperAdmin, loggedInUserEmail);
+                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(),loggedInUserEmail, tenantId, isSuperAdmin);
 
                 // Convert response data to TechnicianDTO.GetDetails
                 if (jobDetails != null) {

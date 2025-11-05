@@ -62,7 +62,7 @@ public class JobController extends BaseController {
             boolean isSuperAdmin=isSuperAdmin(request);
             String userName = request.getHeader(CommonConstants.USER_NAME);
             //Todo List Method to get all Job List.
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getAllJobs(page, size, sortBy, order, jobType, jobStatus, jobTag, serviceLocationLat, serviceLocationLng, customerType, fromStartDate, toStartDate,userName,location, tenantId,isSuperAdmin,userName), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getAllJobs(page, size, sortBy, order, jobType, jobStatus, jobTag, serviceLocationLat, serviceLocationLng, customerType, fromStartDate, toStartDate,userName,location,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);
@@ -79,7 +79,7 @@ public class JobController extends BaseController {
             Long tenantId = getTenantId(request);
             boolean isSuperAdmin=isSuperAdmin(request);
             //Todo List Method to get all Job List.
-            JobDTO.Detail job = jobService.getJobById(id,tenantId,isSuperAdmin, userName);
+            JobDTO.Detail job = jobService.getJobById(id,userName,tenantId,isSuperAdmin);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job retrieved successfully", job, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving job: {}", e.getMessage(), e);
