@@ -106,7 +106,7 @@ public class JobServiceImpl implements JobService {
                 addJobDTO.setTenantId(1l);
             }
             validatedJobDTO(addJobDTO);
-            return jobTransformer.transformToEntity(addJobDTO); // Using getRecordId() instead of getId()
+            return jobTransformer.transformToEntity(addJobDTO,tenantId,isSuperAdmin); // Using getRecordId() instead of getId()
         } catch (Exception e) {
             throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
         }
@@ -235,8 +235,7 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String location, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
-        if (isSuperAdmin)
-            tenantId = 1L;
+        
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(order)) {
