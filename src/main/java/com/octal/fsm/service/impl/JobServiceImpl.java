@@ -245,7 +245,9 @@ public class JobServiceImpl implements JobService {
             pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).descending());
         }
         builder.with(jobSpecificationFactory.isEqual("deleted", false));
-        builder.with(jobSpecificationFactory.isEqual("tenantId", tenantId));
+
+            builder.with(jobSpecificationFactory.isEqual("tenantId", tenantId));
+
 //        if (org.apache.commons.lang.StringUtils.isNotBlank(listRequest.getSearchText())) {
 //            builder.with(jobTagSpecificationFactory.like("name", listRequest.getSearchText()));
 //        }

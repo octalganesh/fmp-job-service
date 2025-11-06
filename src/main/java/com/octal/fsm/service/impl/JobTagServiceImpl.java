@@ -151,7 +151,9 @@ public class JobTagServiceImpl implements JobTagService {
                 pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
             }
         }
-        builder.with(jobTagSpecificationFactory.isEqual("tenantId", tenantId));
+
+            builder.with(jobTagSpecificationFactory.isEqual("tenantId", tenantId));
+
         prepareJobTagSearchFilter(listRequest, builder);
         Page<JobTag> pagedResult = jobTagRepository.findAll(builder.build(), pageable);
         List<JobTagDTO.Detail> responseList = new ArrayList<>();
