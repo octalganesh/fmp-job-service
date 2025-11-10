@@ -42,7 +42,7 @@ public class QuickBooksTokenStore {
 
             token.setAccessToken(response.getAccessToken());
             token.setRefreshToken(response.getRefreshToken());
-            token.setExpiresAt(LocalDateTime.now().plusSeconds(response.getExpiresIn()));
+            token.setExpiresAt(LocalDateTime.now().plusMinutes(response.getExpiresIn()));
             token=tokenRepository.save(token);
         }
         return token;
