@@ -550,6 +550,8 @@ public class JobServiceImpl implements JobService {
                 }
             }
 //                throw new CodeException("Job Task Already Assigned to Technician", ErrorCode.COMMON);
+        }else{
+            throw new CodeException("Technician Not Found", ErrorCode.COMMON);
         }
     }
 
