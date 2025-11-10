@@ -588,7 +588,7 @@ public class JobServiceImpl implements JobService {
                 throw new CodeException("Drawing Json cannot be empty", ErrorCode.BAD_REQUEST);
             taskMappingTechnician.setDrawingJson(taskDrawingRequest.getDrawingJson());
             if(!TextUtils.isEmpty(taskDrawingRequest.getDrawingFileUrl()))
-                taskMappingTechnician.setDrawingImage(taskDrawingRequest.getDrawingFileUrl());
+                taskMappingTechnician.setDrawingImage(awsS3BaseUrl+taskDrawingRequest.getDrawingFileUrl());
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
         } else {
             throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
