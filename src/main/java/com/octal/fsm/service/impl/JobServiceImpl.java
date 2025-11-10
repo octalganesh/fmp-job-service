@@ -579,6 +579,22 @@ public class JobServiceImpl implements JobService {
         }
     }
 
+    @Override
+    public void addDrawingToJobTask(String technicianId, String taskId, JobDTO.TaskDrawingRequest taskDrawingRequest, String userName) throws CodeException {
+        Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+        if (jobTaskMappingTechnician.isPresent()) {
+            JobTaskMappingTechnician taskMappingTechnician = jobTaskMappingTechnician.get();
+            if(TextUtils.isEmpty(taskDrawingRequest.getDrawingJson()))
+                throw new CodeException("Drawing Json cannot be empty", ErrorCode.BAD_REQUEST);
+            taskMappingTechnician.setDrawingJson(taskDrawingRequest.getDrawingJson());
+            if(!TextUtils.isEmpty(taskDrawingRequest.getDrawingFileUrl()))
+                taskMappingTechnician.setDrawingImage(taskDrawingRequest.getDrawingFileUrl());
+            jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
+        } else {
+            throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
+        }
+    }
+
 //    @Override
 //    public JobDTO.Detail updateJob(JobDTO.Update updateJobDTO) throws CodeException {
 //        try {
@@ -950,6 +966,10 @@ public class JobServiceImpl implements JobService {
                         details.setSignature(taskMapping.getSignature());
                     if (!TextUtils.isEmpty(taskMapping.getCancelReason()))
                         details.setCancelReason(taskMapping.getCancelReason());
+                    if(!TextUtils.isEmpty(taskMapping.getDrawingJson()))
+                        details.setDrawingJsonData(taskMapping.getDrawingJson());
+                    if(!TextUtils.isEmpty(taskMapping.getDrawingImage()))
+                        details.setDrawingImage(taskMapping.getDrawingImage());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
                     details.setJobNote(job.get().getAdditionalNotes());

@@ -182,6 +182,21 @@ public class JobController extends BaseController {
         }
     }
 
+    @PostMapping("/add-drawing-to-job-task/{technicianId}/{taskId}")
+    public ResponseEntity<ApiResponse>addDrawingToJobTask(@PathVariable("technicianId") String technicianId,
+                                                  @PathVariable("taskId") String taskId,
+                                                   @RequestBody JobDTO.TaskDrawingRequest taskDrawingRequest,
+                                                  HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            jobService.addDrawingToJobTask(technicianId, taskId, taskDrawingRequest,userName);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Drawing added to job task successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error adding drawing to job task: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 
 //
 //    /**
