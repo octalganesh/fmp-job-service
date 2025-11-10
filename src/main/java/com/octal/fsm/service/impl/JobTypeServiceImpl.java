@@ -244,7 +244,9 @@ public class JobTypeServiceImpl implements JobTypeService {
         } else {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
         }
-        builder.with(jobTypeSpecificationFactory.isEqual("tenantId", tenantId));
+
+            builder.with(jobTypeSpecificationFactory.isEqual("tenantId", tenantId));
+
         prepareJobTypeSearchFilter(listRequest, builder);
         Page<JobType> pagedResult = jobTypeRepository.findAll(builder.build(), pageable);
         List<JobTypeDTO.Detail> responseList = new ArrayList<>();
@@ -304,7 +306,9 @@ public class JobTypeServiceImpl implements JobTypeService {
         } else {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
         }
-        builder.with(jobTypeSpecificationFactory.isEqual("tenantId", tenantId));
+
+            builder.with(jobTypeSpecificationFactory.isEqual("tenantId", tenantId));
+
         prepareJobTypeSearchFilter(listRequest, builder);
         Page<JobType> pagedResult = jobTypeRepository.findAll(builder.build(), pageable);
         List<JobTypeDTO.DetailWithoutJobTasks> responseList = new ArrayList<>();

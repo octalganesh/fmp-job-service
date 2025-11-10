@@ -27,6 +27,7 @@ public class JobTaskMappingTechnician extends AbstractPersistable {
     @Column(name = "note")
     private String note;
 
+    @Lob
     @Column(name = "technician_note")
     private String technicianNote;
 
@@ -49,6 +50,13 @@ public class JobTaskMappingTechnician extends AbstractPersistable {
     @Column(name = "cancel_reason")
     private String cancelReason;
 
+    @Lob
+    @Column(name = "drawing_json")
+    private String drawingJson;
+
+    @Lob
+    @Column(name="drawing_image")
+    private String drawingImage;
 
 }
 

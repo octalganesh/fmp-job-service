@@ -237,6 +237,8 @@ public class JobDTO {
         private String clientFeedbackUrl;
         private String signature;
         private String cancelReason;
+        private String drawingJsonData;
+        private String drawingImage;
         // Customer Info
         private String customerId;
         private String customerName;
@@ -284,6 +286,14 @@ public class JobDTO {
         private String jobId;
         private String createdAt;
         private String jobTaskId;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TaskDrawingRequest {
+        private String drawingJson;
+        private String drawingFileUrl;
     }
 
 

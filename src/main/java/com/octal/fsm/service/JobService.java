@@ -40,6 +40,8 @@ public interface JobService {
     void updateAssignedTaskWithDocumentType(String jobTaskMappingId, JobDTO.UpdateAssignedTaskWithDocumentType updateAssignedTaskWithDocumentType, String loggedInUserEmail) throws CodeException;
 
     void updateJobTask(String technicianId, String taskId, String note, String userName) throws CodeException;
+
+    void addDrawingToJobTask(String technicianId, String taskId, JobDTO.TaskDrawingRequest taskDrawingRequest, String userName) throws CodeException;
 //    Boolean changeJobStatus(String id, String status) throws CodeException;
 //
 //    PageItem<JobDTO.List> getAllJobs(PageRequest.List listRequest);

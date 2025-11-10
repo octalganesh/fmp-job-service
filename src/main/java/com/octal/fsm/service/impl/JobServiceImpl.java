@@ -106,7 +106,7 @@ public class JobServiceImpl implements JobService {
                 addJobDTO.setTenantId(1l);
             }
             validatedJobDTO(addJobDTO);
-            return jobTransformer.transformToEntity(addJobDTO); // Using getRecordId() instead of getId()
+            return jobTransformer.transformToEntity(addJobDTO,tenantId,isSuperAdmin); // Using getRecordId() instead of getId()
         } catch (Exception e) {
             throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
         }
@@ -235,8 +235,7 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String location, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
-        if (isSuperAdmin)
-            tenantId = 1L;
+        
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(order)) {
@@ -245,7 +244,9 @@ public class JobServiceImpl implements JobService {
             pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).descending());
         }
         builder.with(jobSpecificationFactory.isEqual("deleted", false));
-        builder.with(jobSpecificationFactory.isEqual("tenantId", tenantId));
+
+            builder.with(jobSpecificationFactory.isEqual("tenantId", tenantId));
+
 //        if (org.apache.commons.lang.StringUtils.isNotBlank(listRequest.getSearchText())) {
 //            builder.with(jobTagSpecificationFactory.like("name", listRequest.getSearchText()));
 //        }
@@ -549,6 +550,8 @@ public class JobServiceImpl implements JobService {
                 }
             }
 //                throw new CodeException("Job Task Already Assigned to Technician", ErrorCode.COMMON);
+        }else{
+            throw new CodeException("Technician Not Found", ErrorCode.COMMON);
         }
     }
 
@@ -572,6 +575,22 @@ public class JobServiceImpl implements JobService {
             if (TextUtils.isEmpty(note))
                 throw new CodeException("note cannot be empty", ErrorCode.BAD_REQUEST);
             taskMappingTechnician.setTechnicianNote(note);
+            jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
+        } else {
+            throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
+        }
+    }
+
+    @Override
+    public void addDrawingToJobTask(String technicianId, String taskId, JobDTO.TaskDrawingRequest taskDrawingRequest, String userName) throws CodeException {
+        Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+        if (jobTaskMappingTechnician.isPresent()) {
+            JobTaskMappingTechnician taskMappingTechnician = jobTaskMappingTechnician.get();
+            if(TextUtils.isEmpty(taskDrawingRequest.getDrawingJson()))
+                throw new CodeException("Drawing Json cannot be empty", ErrorCode.BAD_REQUEST);
+            taskMappingTechnician.setDrawingJson(taskDrawingRequest.getDrawingJson());
+            if(!TextUtils.isEmpty(taskDrawingRequest.getDrawingFileUrl()))
+                taskMappingTechnician.setDrawingImage(awsS3BaseUrl+taskDrawingRequest.getDrawingFileUrl());
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
         } else {
             throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
@@ -949,6 +968,10 @@ public class JobServiceImpl implements JobService {
                         details.setSignature(taskMapping.getSignature());
                     if (!TextUtils.isEmpty(taskMapping.getCancelReason()))
                         details.setCancelReason(taskMapping.getCancelReason());
+                    if(!TextUtils.isEmpty(taskMapping.getDrawingJson()))
+                        details.setDrawingJsonData(taskMapping.getDrawingJson());
+                    if(!TextUtils.isEmpty(taskMapping.getDrawingImage()))
+                        details.setDrawingImage(taskMapping.getDrawingImage());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
                     details.setJobNote(job.get().getAdditionalNotes());
