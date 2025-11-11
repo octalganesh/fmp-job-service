@@ -98,18 +98,25 @@ public class JobServiceImpl implements JobService {
     private String clientFeedbackLink;
 
     @Override
-    public String addJob(JobDTO.Add addJobDTO) throws CodeException {
+    public String addJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
+            if (!isSuperAdmin) {
+                addJobDTO.setTenantId(tenantId);
+            } else {
+                addJobDTO.setTenantId(1l);
+            }
             validatedJobDTO(addJobDTO);
-            return jobTransformer.transformToEntity(addJobDTO); // Using getRecordId() instead of getId()
+            return jobTransformer.transformToEntity(addJobDTO, tenantId, isSuperAdmin); // Using getRecordId() instead of getId()
         } catch (Exception e) {
             throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
         }
     }
 
     @Override
-    public void createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice) throws CodeException {
-        Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(createUpFrontInvoice.getJobId());
+    public void createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        Optional<Job> job = jobRepository.findByUuidAndTenantIdAndDeletedFalse(createUpFrontInvoice.getJobId(), tenantId);
         if (job.isEmpty())
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         String customerRefId = job.get().getCustomerQuickBookId();
@@ -202,8 +209,10 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public void updateJobTags(String jobId, JobDTO.UpdateJobTags updateJobTags, String loggedInUserEmail) throws CodeException {
-        Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobId);
+    public void updateJobTags(String jobId, JobDTO.UpdateJobTags updateJobTags, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        Optional<Job> job = jobRepository.findByUuidAndTenantIdAndDeletedFalse(jobId, tenantId);
         if (job.isEmpty())
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         if (updateJobTags.getJobTags() == null || updateJobTags.getJobTags().isEmpty())
@@ -225,7 +234,8 @@ public class JobServiceImpl implements JobService {
 
 
     @Override
-    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail, String location) throws CodeException {
+    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String location, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(order)) {
@@ -234,6 +244,9 @@ public class JobServiceImpl implements JobService {
             pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).descending());
         }
         builder.with(jobSpecificationFactory.isEqual("deleted", false));
+
+        builder.with(jobSpecificationFactory.isEqual("tenantId", tenantId));
+
 //        if (org.apache.commons.lang.StringUtils.isNotBlank(listRequest.getSearchText())) {
 //            builder.with(jobTagSpecificationFactory.like("name", listRequest.getSearchText()));
 //        }
@@ -288,6 +301,7 @@ public class JobServiceImpl implements JobService {
                     Map<String, String> customerDetails = gson.fromJson(gson.toJson(apiResponse.getData()), customerDetailsStr);
                     if (customerDetails != null) {
                         dto.setCustomerName(customerDetails.get("customerName"));
+                        dto.setCustomerType(customerDetails.get("customerType"));
                         dto.setLeadSource(customerDetails.get("leadSourceName"));
                     } else {
                         dto.setCustomerName("");
@@ -308,9 +322,12 @@ public class JobServiceImpl implements JobService {
                 size);
     }
 
+
     @Override
-    public JobDTO.Detail getJobById(String id, String loggedInUserEmail) throws CodeException {
-        Optional<Job> jobOpt = jobRepository.findByUuidAndDeletedFalse(id);
+    public JobDTO.Detail getJobById(String id, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        Optional<Job> jobOpt = jobRepository.findByUuidAndTenantIdAndDeletedFalse(id, tenantId);
         if (jobOpt.isEmpty())
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         Job job = jobOpt.get();
@@ -426,8 +443,10 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public void assignJobToTechnician(JobDTO.AssignJobToTechnician assignJobToTechnician, String loggedInUserEmail) throws CodeException {
-        Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(assignJobToTechnician.getJobId());
+    public void assignJobToTechnician(JobDTO.AssignJobToTechnician assignJobToTechnician, Long tenantId, Boolean isSuperAdmin, String loggedInUserEmail) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        Boolean jobExist = jobRepository.existsByUuidAndTenantIdAndDeletedFalse(assignJobToTechnician.getJobId(), tenantId);
         if (!jobExist)
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(assignJobToTechnician.getJobTaskMappingId());
@@ -473,7 +492,7 @@ public class JobServiceImpl implements JobService {
                             .collect(Collectors.toList());
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(documentsWithUrl));
                 }
-                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail);
+                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail, tenantId, isSuperAdmin);
 
                 // Convert response data to TechnicianDTO.GetDetails
                 if (jobDetails != null) {
@@ -516,7 +535,8 @@ public class JobServiceImpl implements JobService {
                 JobTaskMappingTechnician JobTaskMappingTechnician = jobTaskMappingTechnicianRepository.save(jobTaskMappingTechnician);
 
                 // Save attached documents in DB
-                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail);
+                JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
+                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail, tenantId, isSuperAdmin);
 
                 // Convert response data to TechnicianDTO.GetDetails
                 if (jobDetails != null) {
@@ -529,6 +549,8 @@ public class JobServiceImpl implements JobService {
                 }
             }
 //                throw new CodeException("Job Task Already Assigned to Technician", ErrorCode.COMMON);
+        } else {
+            throw new CodeException("Technician Not Found", ErrorCode.COMMON);
         }
     }
 
@@ -552,6 +574,22 @@ public class JobServiceImpl implements JobService {
             if (TextUtils.isEmpty(note))
                 throw new CodeException("note cannot be empty", ErrorCode.BAD_REQUEST);
             taskMappingTechnician.setTechnicianNote(note);
+            jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
+        } else {
+            throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
+        }
+    }
+
+    @Override
+    public void addDrawingToJobTask(String technicianId, String taskId, JobDTO.TaskDrawingRequest taskDrawingRequest, String userName) throws CodeException {
+        Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+        if (jobTaskMappingTechnician.isPresent()) {
+            JobTaskMappingTechnician taskMappingTechnician = jobTaskMappingTechnician.get();
+            if (TextUtils.isEmpty(taskDrawingRequest.getDrawingJson()))
+                throw new CodeException("Drawing Json cannot be empty", ErrorCode.BAD_REQUEST);
+            taskMappingTechnician.setDrawingJson(taskDrawingRequest.getDrawingJson());
+            if (!TextUtils.isEmpty(taskDrawingRequest.getDrawingFileUrl()))
+                taskMappingTechnician.setDrawingImage(awsS3BaseUrl + taskDrawingRequest.getDrawingFileUrl());
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
         } else {
             throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
@@ -855,7 +893,7 @@ public class JobServiceImpl implements JobService {
             }
             taskMappingTechnician.setTaskStatus(status);
             if (taskMappingTechnician.getTaskStatus().equalsIgnoreCase("cancelled")) {
-                if(TextUtils.isEmpty(note)){
+                if (TextUtils.isEmpty(note)) {
                     throw new CodeException("Cancel Reason is required to cancel the task", ErrorCode.BAD_REQUEST);
                 }
                 taskMappingTechnician.setCancelReason(note);
@@ -919,16 +957,20 @@ public class JobServiceImpl implements JobService {
                     details.setTaskName(jobTask.get().getName());
                     details.setNote(taskMapping.getTechnicianNote());
                     details.setFrontOfficeNote(taskMapping.getNote());
-                    clientFeedbackLink = clientFeedbackLink
+                    String customerFeedbackLink = clientFeedbackLink
                             .replace("<jobId>", job.get().getJobId())
                             .replace("<taskId>", jobMappingTask.get().getTaskShowId())
                             .replace("<technicianId>", taskMapping.getTechnicianId())
                             .replace("<customerId>", job.get().getCustomerId());
-                    details.setClientFeedbackUrl(clientFeedbackLink);
+                    details.setClientFeedbackUrl(customerFeedbackLink);
                     if (!TextUtils.isEmpty(taskMapping.getSignature()))
                         details.setSignature(taskMapping.getSignature());
                     if (!TextUtils.isEmpty(taskMapping.getCancelReason()))
                         details.setCancelReason(taskMapping.getCancelReason());
+                    if (!TextUtils.isEmpty(taskMapping.getDrawingJson()))
+                        details.setDrawingJsonData(taskMapping.getDrawingJson());
+                    if (!TextUtils.isEmpty(taskMapping.getDrawingImage()))
+                        details.setDrawingImage(taskMapping.getDrawingImage());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
                     details.setJobNote(job.get().getAdditionalNotes());
@@ -1046,11 +1088,10 @@ public class JobServiceImpl implements JobService {
             if (!TextUtils.isEmpty(filterRequest.getStatus())) {
                 if (filterRequest.getStatus().equalsIgnoreCase("new"))
                     builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", "ASSIGNED"));
-                else if(filterRequest.getStatus().equalsIgnoreCase("ongoing")) {
+                else if (filterRequest.getStatus().equalsIgnoreCase("ongoing")) {
                     Set<String> statusList = Set.of("ENROUTE", "ARRIVED", "INPROGRESS");
                     builder.with(jobTaskMappingTechnicianSpecificationFactory.fieldIn("taskStatus", statusList));
-                }
-                else
+                } else
                     builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", filterRequest.getStatus()));
             }
 

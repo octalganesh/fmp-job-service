@@ -36,7 +36,7 @@ public class JobTypeServiceImpl implements JobTypeService {
     private SpecificationFactory<JobType> jobTypeSpecificationFactory;
 
     @Override
-    public String addJobType(JobTypeDTO.Add add) throws CodeException {
+    public String addJobType(JobTypeDTO.Add add,Long tenantId, Boolean isSuperAdmin) throws CodeException {
 //        if (TextUtils.isEmpty(add.getName()))
 //            throw new CodeException("type name is required", ErrorCode.COMMON);
 //        Optional<JobType> optionalJobType = jobTypeRepository.findByUuid(add.getId());
@@ -85,6 +85,8 @@ public class JobTypeServiceImpl implements JobTypeService {
 //        JobType jobType = jobTypeRepository.save
 //                (newJobTypeRecord);
 //        return jobType.getUuid();
+        if(isSuperAdmin)
+            tenantId=1L;
         if (TextUtils.isEmpty(add.getName())) {
             throw new CodeException("Type name is required", ErrorCode.COMMON);
         }
@@ -96,6 +98,7 @@ public class JobTypeServiceImpl implements JobTypeService {
             jobTypeRecord = new JobType();
             jobTypeRecord.setCreatedAt(LocalDateTime.now());
             jobTypeRecord.setDeleted(false);
+            jobTypeRecord.setTenantId(tenantId);
         }
 //  UPDATE case
         else {
@@ -194,8 +197,10 @@ public class JobTypeServiceImpl implements JobTypeService {
     }
 
     @Override
-    public JobTypeDTO.Detail getJobTypeByUuid(String id) throws CodeException {
-        Optional<JobType> jobTypeOptional = jobTypeRepository.findByUuid(id);
+    public JobTypeDTO.Detail getJobTypeByUuid(String id,Long tenantId, Boolean isSuperAdmin) throws CodeException {
+        if(isSuperAdmin)
+            tenantId=1L;
+        Optional<JobType> jobTypeOptional = jobTypeRepository.findByUuidAndTenantId(id,tenantId);
         if (jobTypeOptional.isPresent()) {
             JobTypeDTO.Detail jobType = new JobTypeDTO.Detail();
             jobType.setName(jobTypeOptional.get().getName());
@@ -227,7 +232,9 @@ public class JobTypeServiceImpl implements JobTypeService {
     }
 
     @Override
-    public PageItem<JobTypeDTO.Detail> getAllJobTypes(PageRequest.List listRequest) {
+    public PageItem<JobTypeDTO.Detail> getAllJobTypes(PageRequest.List listRequest,Long tenantId, Boolean isSuperAdmin) {
+        if(isSuperAdmin)
+            tenantId=1L;
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobType> builder = new GenericSpecificationsBuilder<>();
@@ -237,6 +244,9 @@ public class JobTypeServiceImpl implements JobTypeService {
         } else {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
         }
+
+            builder.with(jobTypeSpecificationFactory.isEqual("tenantId", tenantId));
+
         prepareJobTypeSearchFilter(listRequest, builder);
         Page<JobType> pagedResult = jobTypeRepository.findAll(builder.build(), pageable);
         List<JobTypeDTO.Detail> responseList = new ArrayList<>();
@@ -284,7 +294,9 @@ public class JobTypeServiceImpl implements JobTypeService {
     }
 
     @Override
-    public PageItem<JobTypeDTO.DetailWithoutJobTasks> getAllJobTypesForTechnician(PageRequest.List listRequest) {
+    public PageItem<JobTypeDTO.DetailWithoutJobTasks> getAllJobTypesForTechnician(PageRequest.List listRequest,Long tenantId, Boolean isSuperAdmin) {
+        if(isSuperAdmin)
+            tenantId=1L;
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobType> builder = new GenericSpecificationsBuilder<>();
@@ -294,6 +306,9 @@ public class JobTypeServiceImpl implements JobTypeService {
         } else {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
         }
+
+            builder.with(jobTypeSpecificationFactory.isEqual("tenantId", tenantId));
+
         prepareJobTypeSearchFilter(listRequest, builder);
         Page<JobType> pagedResult = jobTypeRepository.findAll(builder.build(), pageable);
         List<JobTypeDTO.DetailWithoutJobTasks> responseList = new ArrayList<>();

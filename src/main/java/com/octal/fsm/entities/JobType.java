@@ -26,5 +26,8 @@ public class JobType extends AbstractPersistable{
     @OneToMany(cascade = CascadeType.ALL,orphanRemoval = false)
     private List<JobTask> jobTasks=new ArrayList<>();
 
+    @Column(name = "tenant_id")
+    private Long tenantId;
+
 }
 

@@ -14,12 +14,14 @@ import java.util.Optional;
 public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificationExecutor<Job> {
 
     Optional<Job> findByUuidAndDeletedFalse(String id);
+    Optional<Job> findByUuidAndTenantIdAndDeletedFalse(String id,Long tenantId);
 
     Page<Job> findAllByDeletedFalse(Pageable pageable);
 
     Boolean existsByJobId(String jobId);
 
     Boolean existsByUuidAndDeletedFalse(String uuid);
+    Boolean existsByUuidAndTenantIdAndDeletedFalse(String uuid,Long tenantId);
 
 
     //List<Job> findByCustomerIdAndDeletedFalse(Long customerId);

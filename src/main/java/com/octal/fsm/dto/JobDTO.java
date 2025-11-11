@@ -41,6 +41,8 @@ public class JobDTO {
         private String uploadedByType; // Admin, FrontOffice, Technician
         private String uploadedByTypeId; // Admin Id, Customer Id, Technician Id
         private String uploadedByUserName; // Admin Id, Customer Id, Technician Id
+        private Long tenantId;
+        private Boolean isSuperAdmin;
     }
 
     @Data
@@ -134,6 +136,7 @@ public class JobDTO {
         private String serviceLocation;
         private String jobType;
         private String customerName;
+        private String customerType;
         private String jobStartDate;
         private String jobEndDate;
         private String leadSource;
@@ -234,6 +237,8 @@ public class JobDTO {
         private String clientFeedbackUrl;
         private String signature;
         private String cancelReason;
+        private String drawingJsonData;
+        private String drawingImage;
         // Customer Info
         private String customerId;
         private String customerName;
@@ -281,6 +286,14 @@ public class JobDTO {
         private String jobId;
         private String createdAt;
         private String jobTaskId;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TaskDrawingRequest {
+        private String drawingJson;
+        private String drawingFileUrl;
     }
 
 

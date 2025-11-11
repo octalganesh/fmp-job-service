@@ -35,7 +35,9 @@ public class JobTagServiceImpl implements JobTagService {
 
 
     @Override
-    public String addJobTag(JobTagDTO.Add add) throws CodeException {
+    public String addJobTag(JobTagDTO.Add add,Long tenantId, Boolean isSuperAdmin) throws CodeException {
+        if(isSuperAdmin)
+            tenantId=1L;
         if (TextUtils.isEmpty(add.getName()))
             throw new CodeException("Tag name is required", ErrorCode.COMMON);
         if(TextUtils.isEmpty(add.getTagColor()))
@@ -46,17 +48,18 @@ public class JobTagServiceImpl implements JobTagService {
 //        }
         JobTag newJobTagRecord = null;
         if (TextUtils.isEmpty(add.getId())) {
-            Boolean isTagExist = jobTagRepository.existsByName(add.getName());
+            Boolean isTagExist = jobTagRepository.existsByNameAndTenantId(add.getName(),tenantId);
             if(isTagExist){
                 throw new CodeException("Tag name is already exist", ErrorCode.COMMON);
             }
             newJobTagRecord = new JobTag();
             newJobTagRecord.setCreatedAt(LocalDateTime.now());
             newJobTagRecord.setUpdatedAt(LocalDateTime.now());
+            newJobTagRecord.setTenantId(tenantId);
         } else {
             Optional<JobTag> jobTag = jobTagRepository.findByUuid(add.getId());
             if (jobTag.isPresent()) {
-                Boolean isTagExist = jobTagRepository.existsByNameAndUuidNot(add.getName(),add.getId());
+                Boolean isTagExist = jobTagRepository.existsByNameAndTenantIdAndUuidNot(add.getName(),tenantId,add.getId());
                 if(isTagExist){
                     throw new CodeException("Tag name is already exist", ErrorCode.COMMON);
                 }
@@ -88,8 +91,10 @@ public class JobTagServiceImpl implements JobTagService {
     }
 
     @Override
-    public JobTagDTO.Detail getJobTagByUuid(String id) throws CodeException {
-        Optional<JobTag> jobTagOptional = jobTagRepository.findByUuid(id);
+    public JobTagDTO.Detail getJobTagByUuid(String id, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+        if(isSuperAdmin)
+            tenantId=1L;
+        Optional<JobTag> jobTagOptional = jobTagRepository.findByUuidAndTenantId(id,tenantId);
         if (jobTagOptional.isPresent()) {
             JobTagDTO.Detail jobType = new JobTagDTO.Detail();
             jobType.setName(jobTagOptional.get().getName());
@@ -126,7 +131,9 @@ public class JobTagServiceImpl implements JobTagService {
 
 
     @Override
-    public PageItem<JobTagDTO.Detail> getAllJobTags(PageRequest.List listRequest) {
+    public PageItem<JobTagDTO.Detail> getAllJobTags(PageRequest.List listRequest,Long tenantId, Boolean isSuperAdmin) {
+        if(isSuperAdmin)
+            tenantId=1L;
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobTag> builder = new GenericSpecificationsBuilder<>();
@@ -144,6 +151,9 @@ public class JobTagServiceImpl implements JobTagService {
                 pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
             }
         }
+
+            builder.with(jobTagSpecificationFactory.isEqual("tenantId", tenantId));
+
         prepareJobTagSearchFilter(listRequest, builder);
         Page<JobTag> pagedResult = jobTagRepository.findAll(builder.build(), pageable);
         List<JobTagDTO.Detail> responseList = new ArrayList<>();

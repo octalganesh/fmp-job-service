@@ -32,7 +32,9 @@ public class JobController extends BaseController {
     public ResponseEntity<ApiResponse> createJob(@Valid @RequestBody JobDTO.Add addJobDTO, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            String jobId = jobService.addJob(addJobDTO);
+            Long tenantId=getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
+            String jobId = jobService.addJob(addJobDTO,tenantId,isSuperAdmin);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job created successfully", jobId, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
@@ -56,9 +58,11 @@ public class JobController extends BaseController {
                                                @RequestParam(defaultValue = "") String location,
                                                HttpServletRequest request) {
         try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
             String userName = request.getHeader(CommonConstants.USER_NAME);
             //Todo List Method to get all Job List.
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getAllJobs(page, size, sortBy, order, jobType, jobStatus, jobTag, serviceLocationLat, serviceLocationLng, customerType, fromStartDate, toStartDate, userName,location), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getAllJobs(page, size, sortBy, order, jobType, jobStatus, jobTag, serviceLocationLat, serviceLocationLng, customerType, fromStartDate, toStartDate,location,userName,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);
@@ -72,8 +76,10 @@ public class JobController extends BaseController {
     public ResponseEntity<ApiResponse> getJobById(@PathVariable String id, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
             //Todo List Method to get all Job List.
-            JobDTO.Detail job = jobService.getJobById(id, userName);
+            JobDTO.Detail job = jobService.getJobById(id,userName,tenantId,isSuperAdmin);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job retrieved successfully", job, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving job: {}", e.getMessage(), e);
@@ -84,8 +90,10 @@ public class JobController extends BaseController {
     @PostMapping("/assign-technician-job-task")
     public ResponseEntity<ApiResponse> getJobTask(@RequestBody JobDTO.AssignJobToTechnician assignJobToTechnician, HttpServletRequest request) {
         try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            jobService.assignJobToTechnician(assignJobToTechnician, userName);
+            jobService.assignJobToTechnician(assignJobToTechnician,tenantId,isSuperAdmin, userName);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Assigned.", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving job: {}", e.getMessage(), e);
@@ -170,6 +178,21 @@ public class JobController extends BaseController {
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job task updated successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error updating job task status: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/add-drawing-to-job-task/{technicianId}/{taskId}")
+    public ResponseEntity<ApiResponse>addDrawingToJobTask(@PathVariable("technicianId") String technicianId,
+                                                  @PathVariable("taskId") String taskId,
+                                                   @RequestBody JobDTO.TaskDrawingRequest taskDrawingRequest,
+                                                  HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            jobService.addDrawingToJobTask(technicianId, taskId, taskDrawingRequest,userName);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Drawing added to job task successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error adding drawing to job task: {}", e.getMessage(), e);
             return handleException(e);
         }
     }
@@ -392,7 +415,9 @@ public class JobController extends BaseController {
     public ResponseEntity<ApiResponse> generateUpFrontInvoice(@RequestBody JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoiceRequest, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            jobService.createUpFrontInvoice(createUpFrontInvoiceRequest);
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
+            jobService.createUpFrontInvoice(createUpFrontInvoiceRequest,tenantId,isSuperAdmin);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice Generate Successfully.", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
@@ -417,8 +442,10 @@ public class JobController extends BaseController {
     @PutMapping("/update-job-tags/{jobId}")
     public ResponseEntity<ApiResponse> updateJobTags(@PathVariable("jobId") String jobId, @RequestBody JobDTO.UpdateJobTags updateJobTags, HttpServletRequest request) {
         try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            jobService.updateJobTags(jobId, updateJobTags, userName);
+            jobService.updateJobTags(jobId, updateJobTags, userName,tenantId,isSuperAdmin);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Tags Updated Successfully.", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error updating job tags: {}", e.getMessage(), e);

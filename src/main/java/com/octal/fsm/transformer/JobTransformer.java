@@ -50,7 +50,7 @@ public class JobTransformer {
     @Value("${aws.base-url}")
     private String awsS3BaseUrl;
 
-    public String transformToEntity(JobDTO.Add addJobDTO) throws CodeException {
+    public String transformToEntity(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
         Job job = new Job();
         job.setCustomerId(addJobDTO.getCustomerDetails().getCustomerId());
         job.setCustomerQuickBookId(addJobDTO.getCustomerDetails().getCustomerQuickBookId());
@@ -129,6 +129,7 @@ public class JobTransformer {
             documentsRepository.saveAll(documentsList);
             job.setJobMappingDocuments(documents);
         }
+        job.setTenantId(tenantId);
         jobRepository.save(job);
         return job.getUuid();
     }
