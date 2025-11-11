@@ -1,11 +1,14 @@
 package com.octal.fsm.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.octal.fsm.clients.AdminClient;
+import com.octal.fsm.clients.NotificationClient;
 import com.octal.fsm.clients.TechnicianClient;
 import com.octal.fsm.dto.*;
+import com.octal.fsm.dto.enums.PushNotificationType;
 import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
@@ -87,6 +90,10 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
+    @Autowired
+    private NotificationClient notificationClient;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
     private JobService jobService;
@@ -500,7 +507,21 @@ public class JobServiceImpl implements JobService {
                     TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
 
                     if (getDetails != null && getDetails.getEmail() != null) {
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail));
+                        PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
+                        ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
+                        ApiResponse body = notificationSlugContent.getBody();
+                        if(body != null){
+                            NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                            sendBulkNotificationToUsers.setTitle(content.getTitle());
+                            sendBulkNotificationToUsers.setBody(content.getMessage());
+                            sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
+                            sendBulkNotificationToUsers.setTypeId(jobDetails.getJobTypeId());
+                            Set<MultiUserDeviceDetails> set = new HashSet<>();
+                            set.add(getDetails.getMultiUserDeviceDetails());
+                            sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
+                            sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
+                        }
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail,sendBulkNotificationToUsers));
                     }
                 }
 
@@ -544,7 +565,21 @@ public class JobServiceImpl implements JobService {
                     TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
 
                     if (getDetails != null && getDetails.getEmail() != null) {
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail));
+                        PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
+                        ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
+                        ApiResponse body = notificationSlugContent.getBody();
+                        if(body != null){
+                            NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                            sendBulkNotificationToUsers.setTitle(content.getTitle());
+                            sendBulkNotificationToUsers.setBody(content.getMessage());
+                            sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
+                            sendBulkNotificationToUsers.setTypeId(jobDetails.getJobTypeId());
+                            Set<MultiUserDeviceDetails> set = new HashSet<>();
+                            set.add(getDetails.getMultiUserDeviceDetails());
+                            sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
+                            sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
+                        }
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail,sendBulkNotificationToUsers));
                     }
                 }
             }

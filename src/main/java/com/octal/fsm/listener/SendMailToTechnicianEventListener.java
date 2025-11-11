@@ -1,12 +1,17 @@
 package com.octal.fsm.listener;
 
+import com.octal.fsm.clients.NotificationClient;
+import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.dto.EmailDTO;
 import com.octal.fsm.dto.JobDTO;
+import com.octal.fsm.dto.PushNotificationRequest;
 import com.octal.fsm.dto.TechnicianDTO;
+import com.octal.fsm.dto.enums.PushNotificationType;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -20,13 +25,22 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private NotificationClient notificationClient;
+
     @Override
     @Async("sendMailToTechnicianEvent")
     public void onApplicationEvent(SendMailToTechnicianEvent event) {
         TechnicianDTO.TechnicianData technicianDTO = event.getTechnicianDTO();
         JobDTO.Detail jobDetails = event.getJobDetails(); // Assuming your event has job details
+        PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = event.getSendBulkNotificationToUsers();
 
         sendJobEmailToTechnician(technicianDTO, jobDetails, event.getLoggedInuser());
+        sendNotificationToUser(sendBulkNotificationToUsers);
+    }
+
+    private void sendNotificationToUser(PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers){
+        notificationClient.sendBulkPushNotification(sendBulkNotificationToUsers);
     }
 
     private void sendJobEmailToTechnician(TechnicianDTO.TechnicianData technician, JobDTO.Detail jobDetails, String loggedInuser) {
