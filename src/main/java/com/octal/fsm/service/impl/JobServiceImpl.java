@@ -106,7 +106,7 @@ public class JobServiceImpl implements JobService {
                 addJobDTO.setTenantId(1l);
             }
             validatedJobDTO(addJobDTO);
-            return jobTransformer.transformToEntity(addJobDTO,tenantId,isSuperAdmin); // Using getRecordId() instead of getId()
+            return jobTransformer.transformToEntity(addJobDTO, tenantId, isSuperAdmin); // Using getRecordId() instead of getId()
         } catch (Exception e) {
             throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
         }
@@ -235,7 +235,7 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String location, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
-        
+
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(order)) {
@@ -245,7 +245,7 @@ public class JobServiceImpl implements JobService {
         }
         builder.with(jobSpecificationFactory.isEqual("deleted", false));
 
-            builder.with(jobSpecificationFactory.isEqual("tenantId", tenantId));
+        builder.with(jobSpecificationFactory.isEqual("tenantId", tenantId));
 
 //        if (org.apache.commons.lang.StringUtils.isNotBlank(listRequest.getSearchText())) {
 //            builder.with(jobTagSpecificationFactory.like("name", listRequest.getSearchText()));
@@ -323,9 +323,8 @@ public class JobServiceImpl implements JobService {
     }
 
 
-
     @Override
-    public JobDTO.Detail getJobById(String id, String loggedInUserEmail ,Long tenantId, Boolean isSuperAdmin) throws CodeException {
+    public JobDTO.Detail getJobById(String id, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
         if (isSuperAdmin)
             tenantId = 1L;
         Optional<Job> jobOpt = jobRepository.findByUuidAndTenantIdAndDeletedFalse(id, tenantId);
@@ -493,7 +492,7 @@ public class JobServiceImpl implements JobService {
                             .collect(Collectors.toList());
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(documentsWithUrl));
                 }
-                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(),loggedInUserEmail, tenantId, isSuperAdmin);
+                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail, tenantId, isSuperAdmin);
 
                 // Convert response data to TechnicianDTO.GetDetails
                 if (jobDetails != null) {
@@ -537,7 +536,7 @@ public class JobServiceImpl implements JobService {
 
                 // Save attached documents in DB
                 JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
-                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(),loggedInUserEmail, tenantId, isSuperAdmin);
+                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail, tenantId, isSuperAdmin);
 
                 // Convert response data to TechnicianDTO.GetDetails
                 if (jobDetails != null) {
@@ -550,7 +549,7 @@ public class JobServiceImpl implements JobService {
                 }
             }
 //                throw new CodeException("Job Task Already Assigned to Technician", ErrorCode.COMMON);
-        }else{
+        } else {
             throw new CodeException("Technician Not Found", ErrorCode.COMMON);
         }
     }
@@ -586,11 +585,11 @@ public class JobServiceImpl implements JobService {
         Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
         if (jobTaskMappingTechnician.isPresent()) {
             JobTaskMappingTechnician taskMappingTechnician = jobTaskMappingTechnician.get();
-            if(TextUtils.isEmpty(taskDrawingRequest.getDrawingJson()))
+            if (TextUtils.isEmpty(taskDrawingRequest.getDrawingJson()))
                 throw new CodeException("Drawing Json cannot be empty", ErrorCode.BAD_REQUEST);
             taskMappingTechnician.setDrawingJson(taskDrawingRequest.getDrawingJson());
-            if(!TextUtils.isEmpty(taskDrawingRequest.getDrawingFileUrl()))
-                taskMappingTechnician.setDrawingImage(awsS3BaseUrl+taskDrawingRequest.getDrawingFileUrl());
+            if (!TextUtils.isEmpty(taskDrawingRequest.getDrawingFileUrl()))
+                taskMappingTechnician.setDrawingImage(awsS3BaseUrl + taskDrawingRequest.getDrawingFileUrl());
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
         } else {
             throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
@@ -894,7 +893,7 @@ public class JobServiceImpl implements JobService {
             }
             taskMappingTechnician.setTaskStatus(status);
             if (taskMappingTechnician.getTaskStatus().equalsIgnoreCase("cancelled")) {
-                if(TextUtils.isEmpty(note)){
+                if (TextUtils.isEmpty(note)) {
                     throw new CodeException("Cancel Reason is required to cancel the task", ErrorCode.BAD_REQUEST);
                 }
                 taskMappingTechnician.setCancelReason(note);
@@ -968,9 +967,9 @@ public class JobServiceImpl implements JobService {
                         details.setSignature(taskMapping.getSignature());
                     if (!TextUtils.isEmpty(taskMapping.getCancelReason()))
                         details.setCancelReason(taskMapping.getCancelReason());
-                    if(!TextUtils.isEmpty(taskMapping.getDrawingJson()))
+                    if (!TextUtils.isEmpty(taskMapping.getDrawingJson()))
                         details.setDrawingJsonData(taskMapping.getDrawingJson());
-                    if(!TextUtils.isEmpty(taskMapping.getDrawingImage()))
+                    if (!TextUtils.isEmpty(taskMapping.getDrawingImage()))
                         details.setDrawingImage(taskMapping.getDrawingImage());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
@@ -1057,7 +1056,7 @@ public class JobServiceImpl implements JobService {
                             document.setFileType(documents1.getFileType());
                             document.setFileName(documents1.getFileName());
                             if (documents1.getThumbnail() != null)
-                                 document.setThumbnail(documents1.getThumbnail());
+                                document.setThumbnail(documents1.getThumbnail());
                             documents.add(document);
                         }
                     }
@@ -1089,11 +1088,10 @@ public class JobServiceImpl implements JobService {
             if (!TextUtils.isEmpty(filterRequest.getStatus())) {
                 if (filterRequest.getStatus().equalsIgnoreCase("new"))
                     builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", "ASSIGNED"));
-                else if(filterRequest.getStatus().equalsIgnoreCase("ongoing")) {
+                else if (filterRequest.getStatus().equalsIgnoreCase("ongoing")) {
                     Set<String> statusList = Set.of("ENROUTE", "ARRIVED", "INPROGRESS");
                     builder.with(jobTaskMappingTechnicianSpecificationFactory.fieldIn("taskStatus", statusList));
-                }
-                else
+                } else
                     builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", filterRequest.getStatus()));
             }
 
