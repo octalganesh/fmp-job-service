@@ -73,6 +73,7 @@ public class JobDTO {
     public static class LeaveJob{
         private String jobId;
         private String frontOfficeUserId;
+        private String frontOfficeUserName;
         private String reasonForLeave;
         private JobUpdateType jobUpdateType;
 
@@ -245,7 +246,7 @@ public class JobDTO {
         private String frontOfficeId;
         private String reason;
         private String jobId;
-
+        private String frontOfficeName;
         private Boolean isActive;
         private boolean deleted;
         private LocalDateTime createdAt;

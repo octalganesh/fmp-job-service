@@ -22,6 +22,9 @@ public class JobHistory extends AbstractPersistable {
     @Column(name = "front_office_id")
     private String frontOfficeId;
 
+    @Column(name = "front_office_name")
+    private String frontOfficeName;
+
     @Column(name = "reason")
     private String reason;
 

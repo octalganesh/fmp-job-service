@@ -633,6 +633,8 @@ public class JobServiceImpl implements JobService {
                 jobHistory.setFrontOfficeId(leaveJob.getFrontOfficeUserId());
                 jobHistory.setTenantId(tenantId);
                 jobHistory.setActive(false);
+                jobHistory.setFrontOfficeName(leaveJob.getFrontOfficeUserName());
+                jobHistory.setUpdatedAt(LocalDateTime.now());
                 jobHistoryRepository.save(jobHistory);
             } else {
 
@@ -648,8 +650,10 @@ public class JobServiceImpl implements JobService {
                 jobHistory.setJobId(leaveJob.getJobId());
                 jobHistory.setReason(leaveJob.getReasonForLeave());
                 jobHistory.setFrontOfficeId(leaveJob.getFrontOfficeUserId());
+                jobHistory.setFrontOfficeName(leaveJob.getFrontOfficeUserName());
                 jobHistory.setTenantId(tenantId);
                 jobHistory.setActive(true);
+                jobHistory.setUpdatedAt(LocalDateTime.now());
                 jobHistoryRepository.save(jobHistory);
 
 
@@ -694,6 +698,9 @@ public class JobServiceImpl implements JobService {
                     dto.setTenantId(jobHistory.getTenantId());
                     dto.setCreatedAt(jobHistory.getCreatedAt());
                     dto.setFrontOfficeId(jobHistory.getFrontOfficeId());
+                    dto.setUpdatedAt(jobHistory.getUpdatedAt());
+                    dto.setIsActive(jobHistory.getActive());
+                    dto.setFrontOfficeName(jobHistory.getFrontOfficeName());
                      responseList.add(dto);
                 }
 
