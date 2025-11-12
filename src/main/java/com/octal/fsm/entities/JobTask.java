@@ -1,13 +1,12 @@
 package com.octal.fsm.entities;
 
+import com.octal.fsm.entities.enums.TaskAssignedType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Getter
 @Setter
@@ -15,7 +14,7 @@ import javax.persistence.Table;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "job_task")
-public class JobTask extends AbstractPersistable{
+public class JobTask extends AbstractPersistable {
 
     @Column(name = "name", nullable = false)
     private String name;
@@ -23,5 +22,14 @@ public class JobTask extends AbstractPersistable{
     @Column(name = "description", length = 512)
     private String description;
 
-}
+    @Column(name = "assigned_type", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private TaskAssignedType assignedType;
 
+    @Column(name = "sequence")
+    private Integer sequence;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "job_type_id")
+    private JobType jobType;
+}

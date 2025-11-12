@@ -296,5 +296,14 @@ public class JobDTO {
         private String drawingFileUrl;
     }
 
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class AddJobStatus {
+        private String name;
+        private Integer sequenceOrder;
+        private String colorCode; // todo need to discus
+    }
+
 
 }

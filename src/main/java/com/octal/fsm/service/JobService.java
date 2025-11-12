@@ -6,6 +6,7 @@ import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.models.request.PageRequest;
 
 import javax.validation.Valid;
+import java.util.List;
 
 public interface JobService {
 
@@ -32,6 +33,8 @@ public interface JobService {
 
     PageItem<JobDTO.DetailsForTechnician> getJobTasksForTechnician(JobDTO.JobFilterRequest filterRequest, String technicianId, String loggedInUserEmail) throws CodeException;
 
+
+    void addJobStatus(List<JobDTO.AddJobStatus> addJobStatus, Long tenantId, boolean isSuperAdmin, String userName);
 
     JobDTO.DetailsForTechnician getJobTaskDetailsForTechnician(String technicianId, String taskId, String userName) throws CodeException;
 

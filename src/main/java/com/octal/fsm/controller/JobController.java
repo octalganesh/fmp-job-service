@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequestMapping("/jobs")
@@ -449,6 +450,21 @@ public class JobController extends BaseController {
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Tags Updated Successfully.", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error updating job tags: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/add-job-status")
+    public ResponseEntity<ApiResponse>addJobStatus(@RequestBody List<JobDTO.AddJobStatus> addJobStatus,
+                                                  HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
+            jobService.addJobStatus(addJobStatus,tenantId,isSuperAdmin, userName);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Status Added.", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error adding job status: {}", e.getMessage(), e);
             return handleException(e);
         }
     }

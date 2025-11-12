@@ -89,6 +89,9 @@ public class JobServiceImpl implements JobService {
     private ApplicationEventPublisher applicationEventPublisher;
 
     @Autowired
+    private JobStatusMasterRepository jobStatusMasterRepository;
+
+    @Autowired
     private JobService jobService;
     @Autowired
     private DocumentsRepository documentsRepository;
@@ -594,6 +597,21 @@ public class JobServiceImpl implements JobService {
         } else {
             throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
         }
+    }
+
+    @Override
+    public void addJobStatus(List<JobDTO.AddJobStatus> addJobStatus, Long tenantId, boolean isSuperAdmin, String userName) {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        List<JobStatusMaster>jobStatusMasterList=new ArrayList<>();
+        for(JobDTO.AddJobStatus dto : addJobStatus){
+            JobStatusMaster jobStatusMaster = new JobStatusMaster();
+            jobStatusMaster.setName(dto.getName());
+            jobStatusMaster.setTenantId(tenantId);
+            jobStatusMasterList.add(jobStatusMaster);
+        }
+
+        jobStatusMasterRepository.saveAll(jobStatusMasterList);
     }
 
 //    @Override

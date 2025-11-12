@@ -17,4 +17,5 @@ public class JobStatusMaster extends AbstractPersistable{
     private String description;
     private Integer sequenceOrder;
     private String colorCode; // todo need to discuss
+    private Long tenantId;
 }

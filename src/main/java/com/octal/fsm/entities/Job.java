@@ -273,7 +273,7 @@ public class Job extends AbstractPersistable {
     @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<JobMappingDocuments> jobMappingDocuments = new ArrayList<>();
 
-    @OneToMany
+    @ManyToOne
     @JoinColumn(name = "job_status_id", nullable = false)
     private JobStatusMaster jobStatusMaster;
 
