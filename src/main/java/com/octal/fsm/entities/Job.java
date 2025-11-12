@@ -260,6 +260,14 @@ public class Job extends AbstractPersistable {
         this.jobStatusMaster = jobStatusMaster;
     }
 
+    public String getCurrentTaskId() {
+        return currentTaskId;
+    }
+
+    public void setCurrentTaskId(String currentTask) {
+        this.currentTaskId = currentTask;
+    }
+
     // ✅ One-to-Many relationship with JobMappingTask
     @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<JobMappingTags> jobMappingTags = new ArrayList<>();
@@ -274,8 +282,11 @@ public class Job extends AbstractPersistable {
     private List<JobMappingDocuments> jobMappingDocuments = new ArrayList<>();
 
     @ManyToOne
-    @JoinColumn(name = "job_status_id", nullable = false)
+    @JoinColumn(name = "job_status_id")  // todo need to add nullable = false later
     private JobStatusMaster jobStatusMaster;
+
+    @Column(name="current_task_Id") // todo need to attach this as job mapping task uuid to track the job's current task
+    private String currentTaskId;
 
 }
 

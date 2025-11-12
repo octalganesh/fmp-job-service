@@ -1,5 +1,6 @@
 package com.octal.fsm.entities;
 
+import com.octal.fsm.entities.enums.TaskAssignedType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -30,6 +31,12 @@ public class JobMappingTask extends AbstractPersistable {
 
     @Column(name = "task_sequence")
     private Integer taskSequence;
+
+    @Column(name="job_task_status")
+    private String jobTaskStatus; // todo job status when this task is the current task.
+
+    @Column(name = "assign_type")
+    private TaskAssignedType assignType;
 
 
 }

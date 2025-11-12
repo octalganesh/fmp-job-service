@@ -32,4 +32,8 @@ public class JobTask extends AbstractPersistable {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_type_id")
     private JobType jobType;
+
+    @ManyToOne
+    @JoinColumn(name = "job_status_id", nullable = false)
+    private JobStatusMaster jobStatusMaster;
 }
