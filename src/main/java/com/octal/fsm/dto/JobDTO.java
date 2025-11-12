@@ -1,5 +1,6 @@
 package com.octal.fsm.dto;
 
+import com.octal.fsm.dto.enums.JobUpdateType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,6 +22,7 @@ public class JobDTO {
     public static class Add {
 
         private CustomerDetails customerDetails;
+        private String frontOfficeId;
 
         private String jobTypeId;
         private String serviceLocation;
@@ -67,6 +69,14 @@ public class JobDTO {
         private String invoiceType;
     }
 
+    @Data
+    public static class LeaveJob{
+        private String jobId;
+        private String frontOfficeUserId;
+        private String reasonForLeave;
+        private JobUpdateType jobUpdateType;
+
+    }
     @Data
     public static class UpdateJobTags{
         private List<String> jobTags;
@@ -220,6 +230,26 @@ public class JobDTO {
         private List<String> jobTag;
         private String startDate;
         private String endDate;
+    }
+
+
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+     public static class JobHistoryDTO {
+
+        private Long recordId;
+        private String id;
+        private Long tenantId;
+        private String frontOfficeId;
+        private String reason;
+        private String jobId;
+
+        private Boolean isActive;
+        private boolean deleted;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
     }
 
     @Data
