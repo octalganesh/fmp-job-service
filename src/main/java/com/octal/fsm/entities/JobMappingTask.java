@@ -28,6 +28,9 @@ public class JobMappingTask extends AbstractPersistable {
     @Column(name = "document_type_id")
     private String documentTypeId;  // An List of DocumentType IDs in JSON format
 
+    @Column(name = "task_sequence")
+    private Integer taskSequence;
+
 
 }
 

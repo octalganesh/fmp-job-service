@@ -22,5 +22,6 @@ public class JobTask extends AbstractPersistable{
 
     @Column(name = "description", length = 512)
     private String description;
+
 }
 
