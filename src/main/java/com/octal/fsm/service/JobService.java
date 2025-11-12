@@ -1,9 +1,11 @@
 package com.octal.fsm.service;
 
+import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.dto.JobDTO;
 import com.octal.fsm.dto.PageItem;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.models.request.PageRequest;
+import org.springframework.http.ResponseEntity;
 
 import javax.validation.Valid;
 
@@ -35,7 +37,7 @@ public interface JobService {
 
     JobDTO.DetailsForTechnician getJobTaskDetailsForTechnician(String technicianId, String taskId, String userName) throws CodeException;
 
-    void updateJobTaskStatus(String technicianId, String taskId, String status, String note, String signature, String userName) throws CodeException;
+    void updateJobTaskStatus(String technicianId, String taskId, String status, String note, String signature, String userName,Long tenantId) throws CodeException;
 
     void updateAssignedTaskWithDocumentType(String jobTaskMappingId, JobDTO.UpdateAssignedTaskWithDocumentType updateAssignedTaskWithDocumentType, String loggedInUserEmail) throws CodeException;
 
@@ -57,4 +59,7 @@ public interface JobService {
 //    JobDTO.Detail updateJobProgress(String jobId, String summary, String status) throws CodeException;
 //
 //    JobDTO.Detail completeJob(String jobId, String summary) throws CodeException;
+
+    ResponseEntity<ApiResponse> getFrontOfficeDevices(String id, Long tenantId) throws CodeException;
+
 }
