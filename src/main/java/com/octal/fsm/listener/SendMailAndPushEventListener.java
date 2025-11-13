@@ -58,7 +58,7 @@ public class SendMailAndPushEventListener implements ApplicationListener<SendMai
             mail.setProps(placeholders);
 
             // ✅ Send email using your unified sendMail method
-            emailService.sendMail(mail, loggedInuser);
+            emailService.sendMail(mail, loggedInuser,1l,false);
 
         } catch (Exception e) {
             e.printStackTrace();

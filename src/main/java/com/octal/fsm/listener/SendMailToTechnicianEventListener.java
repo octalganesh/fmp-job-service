@@ -35,7 +35,7 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
         JobDTO.Detail jobDetails = event.getJobDetails(); // Assuming your event has job details
         PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = event.getSendBulkNotificationToUsers();
 
-        sendJobEmailToTechnician(technicianDTO, jobDetails, event.getLoggedInuser());
+        sendJobEmailToTechnician(technicianDTO, jobDetails, event.getLoggedInuser(),event.getTenantId(),event.isSuperAdmin());
         sendNotificationToUser(sendBulkNotificationToUsers);
     }
 

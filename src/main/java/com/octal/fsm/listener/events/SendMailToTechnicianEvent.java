@@ -14,13 +14,14 @@ public class SendMailToTechnicianEvent extends ApplicationEvent {
     private final PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers;
 
 
-    public SendMailToTechnicianEvent(TechnicianDTO.TechnicianData technicianDTO, JobDTO.Detail jobDetails, String loggedInuser, Long tenantId, boolean isSuperAdmin) {
+    public SendMailToTechnicianEvent(TechnicianDTO.TechnicianData technicianDTO, JobDTO.Detail jobDetails, String loggedInuser, Long tenantId, boolean isSuperAdmin, PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers) {
         super(technicianDTO);
         this.technicianDTO = technicianDTO;
         this.jobDetails = jobDetails;
         this.loggedInuser = loggedInuser;
         this.tenantId = tenantId;
         this.isSuperAdmin = isSuperAdmin;
+        this.sendBulkNotificationToUsers = sendBulkNotificationToUsers;
     }
     public boolean isSuperAdmin() {
         return isSuperAdmin;
@@ -28,8 +29,7 @@ public class SendMailToTechnicianEvent extends ApplicationEvent {
 
     public Long getTenantId() {
         return tenantId;
-        this.sendBulkNotificationToUsers = sendBulkNotificationToUsers;
-    }
+     }
 
     public TechnicianDTO.TechnicianData getTechnicianDTO() {
         return technicianDTO;
