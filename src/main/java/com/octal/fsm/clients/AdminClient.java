@@ -20,14 +20,17 @@ public interface AdminClient {
     ResponseEntity<ApiResponse> getCustomerById(@PathVariable("id") String id,@RequestHeader("userName") String userName);
 
     @GetMapping(value = "/customer-profile/job-details-lead-customer-details")
-    ResponseEntity<ApiResponse> getJobDetailsWithLeadAndCustomerDetails(@RequestParam("customerId") String customerId, @RequestParam("leadSourceId") String leadSourceId, @RequestHeader(USER_NAME) String userName);
+    ResponseEntity<ApiResponse> getJobDetailsWithLeadAndCustomerDetails(@RequestParam("customerId") String customerId, @RequestParam("leadSourceId") String leadSourceId, @RequestHeader(USER_NAME) String userName,@RequestHeader("tenantId") Long tenantId,
+                                                                        @RequestHeader("superAdmin") boolean superAdmin);
 
     @GetMapping(value = "/customer-profile/job-details")
-    ResponseEntity<ApiResponse> getJobDetailsForCustomerInfo(@RequestParam("customerId") String customerId, @RequestParam("leadSourceId") String leadSourceId, @RequestParam("customerTypeId") String customerTypeId, @RequestHeader(USER_NAME) String userName);
+    ResponseEntity<ApiResponse> getJobDetailsForCustomerInfo(@RequestParam("customerId") String customerId, @RequestParam("leadSourceId") String leadSourceId, @RequestParam("customerTypeId") String customerTypeId, @RequestHeader(USER_NAME) String userName,@RequestHeader("tenantId") Long tenantId,
+                                                             @RequestHeader("superAdmin") boolean superAdmin);
 
 
     @PostMapping("/email-template/get-template-content")
-    ResponseEntity<ApiResponse> getTemplateContent(@RequestBody EmailTemplateDto.EmailTemplateRequest request, @RequestHeader(USER_NAME) String userName);
+    ResponseEntity<ApiResponse> getTemplateContent(@RequestBody EmailTemplateDto.EmailTemplateRequest request, @RequestHeader(USER_NAME) String userName ,@RequestHeader("tenantId") Long tenantId,
+                                                   @RequestHeader("superAdmin") boolean superAdmin);
 
     @GetMapping("/customer-feedback/get-feedback-by-taskId/{jobTaskId}")
     ResponseEntity<ApiResponse>getFeedbackByJobTaskId(@PathVariable("jobTaskId") String jobTaskId,@RequestHeader(USER_NAME) String userName);

@@ -28,7 +28,7 @@ public class EmailServiceImpl implements EmailService {
     @Autowired
     private AdminClient adminClient;
 
-    public void sendMail(EmailDTO mail, String loggedInuser) throws MessagingException {
+    public void sendMail(EmailDTO mail, String loggedInuser,Long tenantId,boolean isSuperAdmin) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
@@ -36,7 +36,7 @@ public class EmailServiceImpl implements EmailService {
         EmailTemplateDto.EmailTemplateRequest request = new EmailTemplateDto.EmailTemplateRequest(mail.getTemplateName(), mail.getProps());
 
         // Get subject and body from DB
-        ResponseEntity<ApiResponse> subjectAndBody = adminClient.getTemplateContent(request, loggedInuser);
+        ResponseEntity<ApiResponse> subjectAndBody = adminClient.getTemplateContent(request, loggedInuser,tenantId,isSuperAdmin);
 
         if (subjectAndBody != null && subjectAndBody.getBody() != null && subjectAndBody.getBody().getData() != null) {
             Gson gson = new Gson();

@@ -26,10 +26,10 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
         TechnicianDTO.TechnicianData technicianDTO = event.getTechnicianDTO();
         JobDTO.Detail jobDetails = event.getJobDetails(); // Assuming your event has job details
 
-        sendJobEmailToTechnician(technicianDTO, jobDetails, event.getLoggedInuser());
+        sendJobEmailToTechnician(technicianDTO, jobDetails, event.getLoggedInuser(),event.getTenantId(),event.isSuperAdmin());
     }
 
-    private void sendJobEmailToTechnician(TechnicianDTO.TechnicianData technician, JobDTO.Detail jobDetails, String loggedInuser) {
+    private void sendJobEmailToTechnician(TechnicianDTO.TechnicianData technician, JobDTO.Detail jobDetails, String loggedInuser,Long tenantId,boolean isSuperAdmin) {
         try {
             // ✅ Prepare dynamic placeholders
             Map<String, Object> placeholders = new HashMap<>();
@@ -49,7 +49,7 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
             mail.setProps(placeholders);
 
             // ✅ Send email using your unified sendMail method
-            emailService.sendMail(mail, loggedInuser);
+            emailService.sendMail(mail, loggedInuser,tenantId,isSuperAdmin);
 
         } catch (Exception e) {
             e.printStackTrace();

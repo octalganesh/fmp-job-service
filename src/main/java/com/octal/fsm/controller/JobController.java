@@ -24,7 +24,6 @@ public class JobController extends BaseController {
 
     @Autowired
     private JobService jobService;
-
     /**
      * Create a new job
      */

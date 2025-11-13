@@ -305,7 +305,7 @@ public class JobServiceImpl implements JobService {
             dto.setJobStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
             dto.setJobEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
             try {
-                ApiResponse apiResponse = adminClient.getJobDetailsWithLeadAndCustomerDetails(job.getCustomerId(), job.getLeadSourceId(), loggedInUserEmail).getBody();
+                ApiResponse apiResponse = adminClient.getJobDetailsWithLeadAndCustomerDetails(job.getCustomerId(), job.getLeadSourceId(), loggedInUserEmail,tenantId,isSuperAdmin).getBody();
                 if (apiResponse != null && apiResponse.getData() != null) {
                     Gson gson = new Gson();
                     Type customerDetailsStr = new TypeToken<Map<String, String>>() {
@@ -353,7 +353,7 @@ public class JobServiceImpl implements JobService {
         }
         if (!TextUtils.isEmpty(job.getLeadSourceId()) || !TextUtils.isEmpty(job.getCustomerTypeId()) || !TextUtils.isEmpty(job.getCustomerId())) {
             try {
-                ApiResponse apiResponse = adminClient.getJobDetailsForCustomerInfo(job.getCustomerId(), job.getLeadSourceId(), job.getCustomerTypeId(), loggedInUserEmail).getBody();
+                ApiResponse apiResponse = adminClient.getJobDetailsForCustomerInfo(job.getCustomerId(), job.getLeadSourceId(), job.getCustomerTypeId(), loggedInUserEmail,tenantId,isSuperAdmin).getBody();
                 if (apiResponse != null && apiResponse.getData() != null) {
                     Gson gson = new Gson();
                     Type customerDetailsStr = new TypeToken<Map<String, String>>() {
@@ -512,7 +512,7 @@ public class JobServiceImpl implements JobService {
                     TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
 
                     if (getDetails != null && getDetails.getEmail() != null) {
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail));
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail,tenantId,isSuperAdmin));
                     }
                 }
 
@@ -556,7 +556,7 @@ public class JobServiceImpl implements JobService {
                     TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
 
                     if (getDetails != null && getDetails.getEmail() != null) {
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail));
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail,tenantId,isSuperAdmin));
                     }
                 }
             }
