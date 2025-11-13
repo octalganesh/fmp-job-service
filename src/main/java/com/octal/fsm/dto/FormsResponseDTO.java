@@ -10,5 +10,6 @@ import java.util.List;
 public class FormsResponseDTO {
     private String jobTypeId;
     private String jobId;
+    private String taskId;
     private List<FormsManagementDTO.Detail> formDetails;
 }

@@ -1,9 +1,7 @@
 package com.octal.fsm.service;
 
 import com.octal.fsm.common.ApiResponse;
-import com.octal.fsm.dto.FormsResponseDTO;
-import com.octal.fsm.dto.JobDTO;
-import com.octal.fsm.dto.PageItem;
+import com.octal.fsm.dto.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.models.request.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -70,5 +68,9 @@ public interface JobService {
 
 
     ResponseEntity<ApiResponse> getFrontOfficeDevices(String id, Long tenantId) throws CodeException;
+
+    ResponseEntity<ApiResponse> saveTechnicianHtmlForm(HTMLFormDTO.Add add,Long tenantId)throws CodeException;
+
+    public JobTaskMappingWithHTMLFormDTO getTechnicianHtmlForm(String taskId, Long tenantId)throws CodeException;
 
 }

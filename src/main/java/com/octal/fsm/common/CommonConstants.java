@@ -68,6 +68,7 @@ public class CommonConstants {
     public static final String DISTRICT_MANAGER = "District Manager";
     public static final String DISTRICT_NOT_FOUND="District not found by id";
     public static final String TECHNICIAN_MANAGER="Technician Manager";
+    public static final String HTML_PAGE_NOT_FOUND="Html page not found by id : ";
 
 
     private CommonConstants() {
