@@ -240,6 +240,17 @@ public class JobController extends BaseController {
         }
     }
 
+    @GetMapping("/forms-by-taskId/{taskId}")
+    public ResponseEntity<ApiResponse> getFormsDetails(@PathVariable("taskId") String taskId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Forms Details retrieved successfully", jobService.getFormsWithTaskId(taskId, tenantId), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 
 //
 //    /**

@@ -1,6 +1,7 @@
 package com.octal.fsm.service;
 
 import com.octal.fsm.common.ApiResponse;
+import com.octal.fsm.dto.FormsResponseDTO;
 import com.octal.fsm.dto.JobDTO;
 import com.octal.fsm.dto.PageItem;
 import com.octal.fsm.exceptions.CodeException;
@@ -64,6 +65,9 @@ public interface JobService {
 //    JobDTO.Detail updateJobProgress(String jobId, String summary, String status) throws CodeException;
 //
 //    JobDTO.Detail completeJob(String jobId, String summary) throws CodeException;
+
+    FormsResponseDTO getFormsWithTaskId(String taskId, Long tenantId)throws CodeException;
+
 
     ResponseEntity<ApiResponse> getFrontOfficeDevices(String id, Long tenantId) throws CodeException;
 

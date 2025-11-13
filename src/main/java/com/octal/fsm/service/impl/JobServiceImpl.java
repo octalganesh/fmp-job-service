@@ -579,21 +579,7 @@ public class JobServiceImpl implements JobService {
                     TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
 
                     if (getDetails != null && getDetails.getEmail() != null) {
-                        PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
-                        ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
-                        ApiResponse body = notificationSlugContent.getBody();
-                        if (body != null) {
-                            NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
-                            sendBulkNotificationToUsers.setTitle(content.getTitle());
-                            sendBulkNotificationToUsers.setBody(content.getMessage());
-                            sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
-                            sendBulkNotificationToUsers.setTypeId(jobDetails.getJobTypeId());
-                            Set<MultiUserDeviceDetails> set = new HashSet<>();
-                            set.add(getDetails.getMultiUserDeviceDetails());
-                            sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
-                            sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
-                        }
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail, sendBulkNotificationToUsers));
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail,null));
                     }
                 }
             }
@@ -1366,4 +1352,76 @@ public class JobServiceImpl implements JobService {
         return adminClient.getFrontOfficeDevices(id, tenantId);
     }
 
-}
+    List<FormsManagementDTO.Detail> getFormByJobType(String formType,Long tenantId){
+        ResponseEntity<ApiResponse> response = adminClient.getFormByJobTypeId(formType, tenantId);
+        ApiResponse body = response.getBody();
+        if(body != null) {
+            List<FormsManagementDTO.Detail> details = objectMapper.convertValue(
+                    body.getData(),
+                    new TypeReference<List<FormsManagementDTO.Detail>>() {
+                    }
+            );
+            return details;
+        }
+        return null;
+    }
+
+    @Override
+    public FormsResponseDTO getFormsWithTaskId(String taskId, Long tenantId) throws CodeException {
+        try{
+            Optional<JobTaskMappingTechnician> taskMappingOpt = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+            if(taskMappingOpt.isPresent()){
+                Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuidWithJob(taskMappingOpt.get().getJobTaskMappingId());
+                if(jobMappingTask.isPresent()){
+                    Optional<Job> job = jobRepository.findByUuidAndTenantIdAndDeletedFalse(jobMappingTask.get().getJob().getUuid(),tenantId);
+                    if(job.isPresent()){
+                        Optional<JobType> jobTask = jobTypeRepository.findByUuidAndTenantId(job.get().getJobTypeId(),tenantId);
+                        if(jobTask.isPresent()){
+                            String jobTypeId = jobTask.get().getUuid();
+                            List<FormsManagementDTO.Detail> formsDetails = getFormByJobType(jobTypeId, tenantId);
+                            FormsResponseDTO formsResponseDTO = new FormsResponseDTO();
+                            formsResponseDTO.setJobId(jobMappingTask.get().getJob().getUuid());
+                            formsResponseDTO.setJobTypeId(jobTypeId);
+                            formsResponseDTO.setFormDetails(formsDetails);
+                            return formsResponseDTO;
+                        }
+                    }
+                }
+
+            }
+            return null;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
