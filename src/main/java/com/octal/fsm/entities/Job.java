@@ -67,6 +67,17 @@ public class Job extends AbstractPersistable {
     @Column(name = "tenant_id")
     private Long tenantId;
 
+    @Column(name = "front_office_id")
+    private String frontOfficeId;
+
+    public String getFrontOfficeId() {
+        return frontOfficeId;
+    }
+
+    public void setFrontOfficeId(String frontOfficeId) {
+        this.frontOfficeId = frontOfficeId;
+    }
+
     public Long getTenantId() {
         return tenantId;
     }
