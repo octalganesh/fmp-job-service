@@ -27,6 +27,7 @@ public class QuickBooksTokenStore {
         token.setRealmId(realmId);
         token.setAccessToken(accessToken);
         token.setRefreshToken(refreshToken);
+        token.setUpdatedAt(LocalDateTime.now());
         token.setExpiresAt(LocalDateTime.now().plusSeconds(expiresInSeconds));
         tokenRepository.save(token);
     }
@@ -39,10 +40,10 @@ public class QuickBooksTokenStore {
             // refresh token
             OAuth2PlatformClient client = factory.getOAuth2PlatformClient();
             BearerTokenResponse response = client.refreshToken(token.getRefreshToken());
-
+            token.setUpdatedAt(LocalDateTime.now());
             token.setAccessToken(response.getAccessToken());
             token.setRefreshToken(response.getRefreshToken());
-            token.setExpiresAt(LocalDateTime.now().plusSeconds(response.getExpiresIn()));
+            token.setExpiresAt(LocalDateTime.now().plusMinutes(response.getExpiresIn()));
             token=tokenRepository.save(token);
         }
         return token;

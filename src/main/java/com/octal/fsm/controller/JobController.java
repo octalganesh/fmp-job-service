@@ -61,13 +61,14 @@ public class JobController extends BaseController {
                                                @RequestParam(defaultValue = "") String fromStartDate,
                                                @RequestParam(defaultValue = "") String toStartDate,
                                                @RequestParam(defaultValue = "") String location,
+                                               @RequestParam(defaultValue = "") String frontOfficeId,
                                                HttpServletRequest request) {
         try {
             Long tenantId = getTenantId(request);
             boolean isSuperAdmin=isSuperAdmin(request);
             String userName = request.getHeader(CommonConstants.USER_NAME);
             //Todo List Method to get all Job List.
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getAllJobs(page, size, sortBy, order, jobType, jobStatus, jobTag, serviceLocationLat, serviceLocationLng, customerType, fromStartDate, toStartDate,location,userName,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getAllJobs(page, size, sortBy, order, jobType, jobStatus, jobTag, serviceLocationLat, serviceLocationLng, customerType, fromStartDate, toStartDate,location,userName,tenantId,isSuperAdmin,frontOfficeId), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);
@@ -102,6 +103,42 @@ public class JobController extends BaseController {
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Assigned.", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving job: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+
+    @PostMapping("/leave-assign")
+    public ResponseEntity<ApiResponse> leaveOrReAssignJob(@Valid @RequestBody JobDTO.LeaveJob leaveJob, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            jobService.leaveOrReAssignJob(leaveJob, tenantId, isSuperAdmin, userName);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job removed Assigned.", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving job: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/job-leave-assign-history")
+    public ResponseEntity<ApiResponse> jobLeaveReassignHistory(@RequestParam(defaultValue = "0") int page,
+                                                               @RequestParam(defaultValue = "10") int size,
+                                                               @RequestParam(defaultValue = "createdAt") String sortBy,
+                                                               @RequestParam(defaultValue = "true") Boolean order,
+                                                               @RequestParam String jobId,
+                                                               @RequestParam(defaultValue = "") String fromStartDate,
+                                                               @RequestParam(defaultValue = "") String toStartDate,
+                                                               HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            //Todo List Method to get all Job List.
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.jobLeaveReassignHistory(page, size, sortBy, order, fromStartDate, toStartDate,jobId, userName, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);
         }
     }
