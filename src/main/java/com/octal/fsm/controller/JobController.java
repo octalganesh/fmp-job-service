@@ -3,8 +3,11 @@ package com.octal.fsm.controller;
 import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.common.CommonConstants;
 import com.octal.fsm.dto.JobDTO;
+import com.octal.fsm.dto.JobDashboardResponseDTO;
+import com.octal.fsm.dto.JobReportSummaryDTO;
 import com.octal.fsm.dto.PageItem;
 import com.octal.fsm.models.request.PageRequest;
+import com.octal.fsm.service.JobReportService;
 import com.octal.fsm.service.JobService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,6 +27,9 @@ public class JobController extends BaseController {
 
     @Autowired
     private JobService jobService;
+    @Autowired
+    private JobReportService jobReportService;
+
     /**
      * Create a new job
      */
@@ -196,7 +202,8 @@ public class JobController extends BaseController {
                                                     HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            jobService.updateJobTaskStatus(technicianId, taskId, status,note, signature,userName);
+            Long tenantId = getTenantId(request);
+            jobService.updateJobTaskStatus(technicianId, taskId, status,note, signature,userName,tenantId);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job task status updated successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error updating job task status: {}", e.getMessage(), e);
@@ -485,6 +492,28 @@ public class JobController extends BaseController {
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Tags Updated Successfully.", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error updating job tags: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/getJobReport")
+    public ResponseEntity<ApiResponse> getJobReport(@RequestBody JobReportSummaryDTO.Search search,HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Report Generated Successfully.", jobReportService.getJobReportSummary(search,tenantId), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error while generating report : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/dashboard")
+    public ResponseEntity<ApiResponse> getDashboardData(@RequestBody JobDashboardResponseDTO.Search search, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Dashboard data Generated Successfully.", jobReportService.getDashboardData(search,tenantId), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error while generating Dashboard data : {}", e.getMessage(), e);
             return handleException(e);
         }
     }

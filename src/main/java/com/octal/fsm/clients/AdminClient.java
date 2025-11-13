@@ -35,4 +35,7 @@ public interface AdminClient {
     @GetMapping("/customer-feedback/get-feedback-by-taskId/{jobTaskId}")
     ResponseEntity<ApiResponse>getFeedbackByJobTaskId(@PathVariable("jobTaskId") String jobTaskId,@RequestHeader(USER_NAME) String userName);
 
+    @GetMapping("/front-office/getFrontOfficeDevices/{id}")
+    ResponseEntity<com.octal.fsm.common.ApiResponse> getFrontOfficeDevices(@PathVariable("id") String id, @RequestHeader("tenantId") Long tenantId);
+
 }
