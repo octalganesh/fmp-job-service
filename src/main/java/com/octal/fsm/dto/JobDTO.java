@@ -304,6 +304,14 @@ public class JobDTO {
         private Integer sequenceOrder;
         private String colorCode; // todo need to discus
     }
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class JobStatusDetail {
+        private String id;
+        private String name;
+        private String colorCode; // todo need to discus
+    }
 
 
 }

@@ -468,4 +468,17 @@ public class JobController extends BaseController {
             return handleException(e);
         }
     }
+    
+    @GetMapping("/job-status/list")
+    public ResponseEntity<ApiResponse> getJobStatusList(HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Status List.", jobService.getAllJobStatus(tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving job status list: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
 }

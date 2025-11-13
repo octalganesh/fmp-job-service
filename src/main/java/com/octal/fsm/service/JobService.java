@@ -60,4 +60,6 @@ public interface JobService {
 //    JobDTO.Detail updateJobProgress(String jobId, String summary, String status) throws CodeException;
 //
 //    JobDTO.Detail completeJob(String jobId, String summary) throws CodeException;
+
+    List<JobDTO.JobStatusDetail> getAllJobStatus(Long tenantId, boolean isSuperAdmin);
 }

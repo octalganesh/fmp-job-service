@@ -9,6 +9,7 @@ import com.octal.fsm.entities.JobType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
+import com.octal.fsm.repositories.JobStatusMasterRepository;
 import com.octal.fsm.repositories.JobTypeRepository;
 import com.octal.fsm.service.JobTypeService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
@@ -31,6 +32,8 @@ public class JobTypeServiceImpl implements JobTypeService {
     private JobTypeRepository jobTypeRepository;
     @Autowired
     private SpecificationFactory<JobType> jobTypeSpecificationFactory;
+    @Autowired
+    private JobStatusMasterRepository jobStatusMasterRepository;
 
     @Override
     public String addJobType(JobTypeDTO.Add add,Long tenantId, Boolean isSuperAdmin) throws CodeException {
@@ -144,6 +147,8 @@ public class JobTypeServiceImpl implements JobTypeService {
 
                 taskEntity.setSequence(dto.getSequence());
                 taskEntity.setAssignedType(dto.getAssignedType());
+                taskEntity.setJobStatusMaster(jobStatusMasterRepository.findByUuid(dto.getStatusMasterId()).
+                        orElseThrow(()-> new CodeException("Job Status Master not found!", ErrorCode.COMMON)));
                 // Set the back-reference for bidirectional mapping
                 taskEntity.setJobType(jobTypeRecord);
 

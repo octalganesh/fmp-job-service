@@ -282,7 +282,7 @@ public class Job extends AbstractPersistable {
     private List<JobMappingDocuments> jobMappingDocuments = new ArrayList<>();
 
     @ManyToOne
-    @JoinColumn(name = "job_status_id")  // todo need to add nullable = false later
+    @JoinColumn(name = "job_status_id",nullable = false)  // todo need to add nullable = false later
     private JobStatusMaster jobStatusMaster;
 
     @Column(name="current_task_Id") // todo need to attach this as job mapping task uuid to track the job's current task

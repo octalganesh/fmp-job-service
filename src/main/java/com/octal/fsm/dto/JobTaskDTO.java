@@ -19,6 +19,7 @@ public class JobTaskDTO {
         private String description;
         private TaskAssignedType assignedType;
         private Integer sequence;
+        private String statusMasterId;
     }
 
     @Data

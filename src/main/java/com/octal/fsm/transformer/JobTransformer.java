@@ -62,6 +62,11 @@ public class JobTransformer {
             //Boolean jobTaskExist = jobTaskRepository.existsByUuid(jobTaskId);
             Optional<JobTask> jobTaskExist=jobTaskRepository.findByUuid(jobTaskId);
             if (jobTaskExist.isPresent()) {
+                if(jobTaskExist.get().getSequence()==1){
+                    job.setCurrentTaskId(jobTaskId);  // todo rather than passing whole object of status master in this we can pass either value or uuid of the same.
+                    job.setJobStatusMaster(jobTaskExist.get().getJobStatusMaster());
+                    job.setJobStatus(jobTaskExist.get().getName());
+                }
                 JobMappingTask task = new JobMappingTask();
                 task.setTaskId(jobTaskId);
                 task.setTaskShowId(codeGenerator.generateTaskId());

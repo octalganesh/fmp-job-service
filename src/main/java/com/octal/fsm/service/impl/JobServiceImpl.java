@@ -6,6 +6,7 @@ import com.google.gson.reflect.TypeToken;
 import com.octal.fsm.clients.AdminClient;
 import com.octal.fsm.clients.TechnicianClient;
 import com.octal.fsm.dto.*;
+import com.octal.fsm.dto.JobDTO.JobStatusDetail;
 import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
@@ -103,6 +104,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public String addJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
+            addJobDTO.setTenantId(!isSuperAdmin?tenantId:1L);
             if (!isSuperAdmin) {
                 addJobDTO.setTenantId(tenantId);
             } else {
@@ -1169,6 +1171,20 @@ public class JobServiceImpl implements JobService {
             logger.error("Error getting job tasks for technician: {}", e.getMessage(), e);
             throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
         }
+    }
+
+    @Override
+    public List<JobStatusDetail> getAllJobStatus(Long tenantId, boolean isSuperAdmin) {
+
+        List<JobStatusMaster> statusMasters;
+        Long tenantIdToUse = isSuperAdmin ? 1L : tenantId;
+        statusMasters = jobStatusMasterRepository.findAllByTenantIdAndDeletedFalse(tenantIdToUse);
+
+        List<JobStatusDetail> statusDetails = statusMasters.stream()
+                .map(statusMaster -> new JobStatusDetail(statusMaster.getUuid(),statusMaster.getName(), statusMaster.getColorCode()))
+                .collect(Collectors.toList());
+
+        return statusDetails;
     }
 
 }
