@@ -2,10 +2,7 @@ package com.octal.fsm.controller;
 
 import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.common.CommonConstants;
-import com.octal.fsm.dto.JobDTO;
-import com.octal.fsm.dto.JobDashboardResponseDTO;
-import com.octal.fsm.dto.JobReportSummaryDTO;
-import com.octal.fsm.dto.PageItem;
+import com.octal.fsm.dto.*;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.service.JobReportService;
 import com.octal.fsm.service.JobService;
@@ -527,6 +524,28 @@ public class JobController extends BaseController {
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Technician Task Summary Generated Successfully.", jobService.getTechnicianTaskSummary(technicianUuids,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error while generating Technician Task Summary : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/forms/save-form")
+    public ResponseEntity<ApiResponse> addHTMLFormPage(@RequestBody HTMLFormDTO.Add add, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "HTML form added for technician successfully", jobService.saveTechnicianHtmlForm(add, tenantId), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving job tasks for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/forms/by-task/{taskId}")
+    public ResponseEntity<ApiResponse> getHTMLFormsDetails(@PathVariable("taskId") String taskId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Forms Details retrieved successfully", jobService.getTechnicianHtmlForm(taskId, tenantId), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
             return handleException(e);
         }
     }
