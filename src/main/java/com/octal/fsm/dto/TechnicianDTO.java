@@ -52,5 +52,16 @@ public class TechnicianDTO {
         private MultiUserDeviceDetails multiUserDeviceDetails;
     }
 
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TaskStats {
+        private long assignedTasks;
+        private long completedTasks;
+        private long allTasks;
+    }
+
+
+
 
 }
