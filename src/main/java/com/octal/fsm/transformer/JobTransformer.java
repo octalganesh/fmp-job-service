@@ -134,6 +134,7 @@ public class JobTransformer {
             documentsRepository.saveAll(documentsList);
             job.setJobMappingDocuments(documents);
         }
+        job.setFrontOfficeId(addJobDTO.getFrontOfficeId());
         job.setTenantId(tenantId);
         jobRepository.save(job);
         return job.getUuid();

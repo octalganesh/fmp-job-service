@@ -3,8 +3,11 @@ package com.octal.fsm.controller;
 import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.common.CommonConstants;
 import com.octal.fsm.dto.JobDTO;
+import com.octal.fsm.dto.JobDashboardResponseDTO;
+import com.octal.fsm.dto.JobReportSummaryDTO;
 import com.octal.fsm.dto.PageItem;
 import com.octal.fsm.models.request.PageRequest;
+import com.octal.fsm.service.JobReportService;
 import com.octal.fsm.service.JobService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,6 +28,8 @@ public class JobController extends BaseController {
 
     @Autowired
     private JobService jobService;
+    @Autowired
+    private JobReportService jobReportService;
 
     /**
      * Create a new job
@@ -57,13 +62,14 @@ public class JobController extends BaseController {
                                                @RequestParam(defaultValue = "") String fromStartDate,
                                                @RequestParam(defaultValue = "") String toStartDate,
                                                @RequestParam(defaultValue = "") String location,
+                                               @RequestParam(defaultValue = "") String frontOfficeId,
                                                HttpServletRequest request) {
         try {
             Long tenantId = getTenantId(request);
             boolean isSuperAdmin=isSuperAdmin(request);
             String userName = request.getHeader(CommonConstants.USER_NAME);
             //Todo List Method to get all Job List.
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getAllJobs(page, size, sortBy, order, jobType, jobStatus, jobTag, serviceLocationLat, serviceLocationLng, customerType, fromStartDate, toStartDate,location,userName,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getAllJobs(page, size, sortBy, order, jobType, jobStatus, jobTag, serviceLocationLat, serviceLocationLng, customerType, fromStartDate, toStartDate,location,userName,tenantId,isSuperAdmin,frontOfficeId), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);
@@ -98,6 +104,42 @@ public class JobController extends BaseController {
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Assigned.", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving job: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+
+    @PostMapping("/leave-assign")
+    public ResponseEntity<ApiResponse> leaveOrReAssignJob(@Valid @RequestBody JobDTO.LeaveJob leaveJob, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            jobService.leaveOrReAssignJob(leaveJob, tenantId, isSuperAdmin, userName);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job removed Assigned.", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving job: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/job-leave-assign-history")
+    public ResponseEntity<ApiResponse> jobLeaveReassignHistory(@RequestParam(defaultValue = "0") int page,
+                                                               @RequestParam(defaultValue = "10") int size,
+                                                               @RequestParam(defaultValue = "createdAt") String sortBy,
+                                                               @RequestParam(defaultValue = "true") Boolean order,
+                                                               @RequestParam String jobId,
+                                                               @RequestParam(defaultValue = "") String fromStartDate,
+                                                               @RequestParam(defaultValue = "") String toStartDate,
+                                                               HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            //Todo List Method to get all Job List.
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.jobLeaveReassignHistory(page, size, sortBy, order, fromStartDate, toStartDate,jobId, userName, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);
         }
     }
@@ -161,7 +203,8 @@ public class JobController extends BaseController {
                                                     HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            jobService.updateJobTaskStatus(technicianId, taskId, status,note, signature,userName);
+            Long tenantId = getTenantId(request);
+            jobService.updateJobTaskStatus(technicianId, taskId, status,note, signature,userName,tenantId);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job task status updated successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error updating job task status: {}", e.getMessage(), e);
@@ -454,6 +497,40 @@ public class JobController extends BaseController {
         }
     }
 
+    @PostMapping("/getJobReport")
+    public ResponseEntity<ApiResponse> getJobReport(@RequestBody JobReportSummaryDTO.Search search,HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Report Generated Successfully.", jobReportService.getJobReportSummary(search,tenantId), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error while generating report : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/dashboard")
+    public ResponseEntity<ApiResponse> getDashboardData(@RequestBody JobDashboardResponseDTO.Search search, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Dashboard data Generated Successfully.", jobReportService.getDashboardData(search,tenantId), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error while generating Dashboard data : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/get-technician-task-summary")
+    public ResponseEntity<ApiResponse>getTechnicianTaskSummary(@RequestBody List<String> technicianUuids, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Technician Task Summary Generated Successfully.", jobService.getTechnicianTaskSummary(technicianUuids,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error while generating Technician Task Summary : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
     @PostMapping("/add-job-status")
     public ResponseEntity<ApiResponse>addJobStatus(@RequestBody List<JobDTO.AddJobStatus> addJobStatus,
                                                   HttpServletRequest request) {
@@ -468,7 +545,7 @@ public class JobController extends BaseController {
             return handleException(e);
         }
     }
-    
+
     @GetMapping("/job-status/list")
     public ResponseEntity<ApiResponse> getJobStatusList(HttpServletRequest request) {
         try {

@@ -24,5 +24,15 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
     Boolean existsByUuidAndTenantIdAndDeletedFalse(String uuid,Long tenantId);
 
 
-    //List<Job> findByCustomerIdAndDeletedFalse(Long customerId);
+      Optional<Job> findByUuidAndTenantIdAndFrontOfficeIdAndDeletedFalse(String id,Long tenantId,String frontOfficeId);
+
+    Optional<Job> findByUuidAndFrontOfficeIdAndDeletedFalse(String uuid, String frontOfficeId);
+
+    Page<Job> findAllByFrontOfficeIdAndDeletedFalse(String frontOfficeId, Pageable pageable);
+
+    boolean existsByJobIdAndFrontOfficeId(String jobId, String frontOfficeId);
+
+    boolean existsByUuidAndFrontOfficeIdAndDeletedFalse(String uuid, String frontOfficeId);
+
+    boolean existsByUuidAndTenantIdAndFrontOfficeIdAndDeletedFalse(String uuid, Long tenantId, String frontOfficeId);
 }
