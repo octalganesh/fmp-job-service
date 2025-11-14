@@ -528,7 +528,7 @@ public class JobController extends BaseController {
         }
     }
 
-    @PostMapping("/add-html-form")
+    @PostMapping("/forms/save-form")
     public ResponseEntity<ApiResponse> addHTMLFormPage(@RequestBody HTMLFormDTO.Add add, HttpServletRequest request) {
         try {
             Long tenantId = getTenantId(request);
@@ -539,7 +539,7 @@ public class JobController extends BaseController {
         }
     }
 
-    @GetMapping("/get-html-form-ById/{taskId}")
+    @GetMapping("/forms/by-task/{taskId}")
     public ResponseEntity<ApiResponse> getHTMLFormsDetails(@PathVariable("taskId") String taskId, HttpServletRequest request) {
         try {
             Long tenantId = getTenantId(request);
