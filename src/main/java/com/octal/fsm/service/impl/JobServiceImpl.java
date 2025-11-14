@@ -253,7 +253,7 @@ public class JobServiceImpl implements JobService {
 
 
     @Override
-    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String location, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin,String frontOfficeId) throws CodeException {
+    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String location, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin, String frontOfficeId) throws CodeException {
 
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
@@ -300,7 +300,7 @@ public class JobServiceImpl implements JobService {
         if (!TextUtils.isEmpty(location)) {
             builder.with(jobSpecificationFactory.like("serviceLocation", location));
         }
-        if(!TextUtils.isEmpty(frontOfficeId)){
+        if (!TextUtils.isEmpty(frontOfficeId)) {
             builder.with(jobSpecificationFactory.like("frontOfficeId", frontOfficeId));
         }
         Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageable);
@@ -1368,10 +1368,10 @@ public class JobServiceImpl implements JobService {
     }
 
 
-    List<FormsManagementDTO.Detail> getFormByJobType(String formType,Long tenantId){
+    List<FormsManagementDTO.Detail> getFormByJobType(String formType, Long tenantId) {
         ResponseEntity<ApiResponse> response = adminClient.getFormByJobTypeId(formType, tenantId);
         ApiResponse body = response.getBody();
-        if(body != null) {
+        if (body != null) {
             List<FormsManagementDTO.Detail> details = objectMapper.convertValue(
                     body.getData(),
                     new TypeReference<List<FormsManagementDTO.Detail>>() {
@@ -1384,15 +1384,15 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public FormsResponseDTO getFormsWithTaskId(String taskId, Long tenantId) throws CodeException {
-        try{
+        try {
             Optional<JobTaskMappingTechnician> taskMappingOpt = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
-            if(taskMappingOpt.isPresent()){
+            if (taskMappingOpt.isPresent()) {
                 Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuidWithJob(taskMappingOpt.get().getJobTaskMappingId());
-                if(jobMappingTask.isPresent()){
-                    Optional<Job> job = jobRepository.findByUuidAndTenantIdAndDeletedFalse(jobMappingTask.get().getJob().getUuid(),tenantId);
-                    if(job.isPresent()){
-                        Optional<JobType> jobTask = jobTypeRepository.findByUuidAndTenantId(job.get().getJobTypeId(),tenantId);
-                        if(jobTask.isPresent()){
+                if (jobMappingTask.isPresent()) {
+                    Optional<Job> job = jobRepository.findByUuidAndTenantIdAndDeletedFalse(jobMappingTask.get().getJob().getUuid(), tenantId);
+                    if (job.isPresent()) {
+                        Optional<JobType> jobTask = jobTypeRepository.findByUuidAndTenantId(job.get().getJobTypeId(), tenantId);
+                        if (jobTask.isPresent()) {
                             String jobTypeId = jobTask.get().getUuid();
                             List<FormsManagementDTO.Detail> formsDetails = getFormByJobType(jobTypeId, tenantId);
                             FormsResponseDTO formsResponseDTO = new FormsResponseDTO();
@@ -1468,37 +1468,6 @@ public class JobServiceImpl implements JobService {
         );
     }
 
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     @Override
     public HashMap<String, TechnicianDTO.TaskStats> getTechnicianTaskSummary(List<String> technicianUuids, Long tenantId, boolean isSuperAdmin) {
         if (isSuperAdmin)
@@ -1518,7 +1487,7 @@ public class JobServiceImpl implements JobService {
                     .count();
             long allTasks = taskMappings.stream()
                     .filter(mapping -> mapping.getTechnicianId().equals(technicianUuid))
-                            .count();
+                    .count();
 
 
             TechnicianDTO.TaskStats summary = new TechnicianDTO.TaskStats();

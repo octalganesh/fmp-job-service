@@ -2,10 +2,7 @@ package com.octal.fsm.controller;
 
 import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.common.CommonConstants;
-import com.octal.fsm.dto.JobDTO;
-import com.octal.fsm.dto.JobDashboardResponseDTO;
-import com.octal.fsm.dto.JobReportSummaryDTO;
-import com.octal.fsm.dto.PageItem;
+import com.octal.fsm.dto.*;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.service.JobReportService;
 import com.octal.fsm.service.JobService;
@@ -18,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequestMapping("/jobs")
