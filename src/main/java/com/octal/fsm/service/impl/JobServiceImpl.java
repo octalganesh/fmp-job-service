@@ -1389,9 +1389,9 @@ public class JobServiceImpl implements JobService {
             if (taskMappingOpt.isPresent()) {
                 Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuidWithJob(taskMappingOpt.get().getJobTaskMappingId());
                 if (jobMappingTask.isPresent()) {
-                    Optional<Job> job = jobRepository.findByUuidAndTenantIdAndDeletedFalse(jobMappingTask.get().getJob().getUuid(), tenantId);
+                    Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobMappingTask.get().getJob().getUuid());
                     if (job.isPresent()) {
-                        Optional<JobType> jobTask = jobTypeRepository.findByUuidAndTenantId(job.get().getJobTypeId(), tenantId);
+                        Optional<JobType> jobTask = jobTypeRepository.findByUuid(job.get().getJobTypeId());
                         if (jobTask.isPresent()) {
                             String jobTypeId = jobTask.get().getUuid();
                             List<FormsManagementDTO.Detail> formsDetails = getFormByJobType(jobTypeId, tenantId);

@@ -543,7 +543,7 @@ public class JobController extends BaseController {
     public ResponseEntity<ApiResponse> getHTMLFormsDetails(@PathVariable("taskId") String taskId, HttpServletRequest request) {
         try {
             Long tenantId = getTenantId(request);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Forms Details retrieved successfully", jobService.getTechnicianHtmlForm(taskId, tenantId), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Forms Details retrieved successfully", jobService.getFormsWithTaskId(taskId, tenantId), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
             return handleException(e);
