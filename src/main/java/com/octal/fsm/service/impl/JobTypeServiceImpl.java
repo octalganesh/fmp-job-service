@@ -283,6 +283,7 @@ public class JobTypeServiceImpl implements JobTypeService {
                         taskDto.setDescription(entity.getDescription());
                         taskDto.setAssignedType(entity.getAssignedType());
                         taskDto.setIsActive(entity.getActive());
+                        taskDto.setStatusMasterId(entity.getJobStatusMaster().getUuid());
                         taskDto.setSequence(entity.getSequence());
                         taskDto.setCreatedAt(entity.getCreatedAt().toString());
                         taskDto.setUpdatedAt(entity.getUpdatedAt().toString());

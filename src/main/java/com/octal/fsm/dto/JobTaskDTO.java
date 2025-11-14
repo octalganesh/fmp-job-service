@@ -33,6 +33,7 @@ public class JobTaskDTO {
         private Boolean isActive;
         private String description;
         private TaskAssignedType assignedType;
+        private String statusMasterId;
         private Integer sequence;
     }
 
