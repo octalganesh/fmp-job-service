@@ -1384,10 +1384,8 @@ public class JobServiceImpl implements JobService {
                             && mapping.getTaskStatus().equalsIgnoreCase("COMPLETED"))
                     .count();
             long allTasks = taskMappings.stream()
-                    .filter(mapping -> mapping.getTechnicianId().equals(technicianUuid) &&
-                            !mapping.getTaskStatus().equalsIgnoreCase("COMPLETED")
-                            && !mapping.getTaskStatus().equalsIgnoreCase("CANCELLED"))
-                    .count();
+                    .filter(mapping -> mapping.getTechnicianId().equals(technicianUuid))
+                            .count();
 
 
             TechnicianDTO.TaskStats summary = new TechnicianDTO.TaskStats();
