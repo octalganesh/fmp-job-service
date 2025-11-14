@@ -2,7 +2,10 @@ package com.octal.fsm.controller;
 
 import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.common.CommonConstants;
-import com.octal.fsm.dto.*;
+import com.octal.fsm.dto.JobDTO;
+import com.octal.fsm.dto.JobDashboardResponseDTO;
+import com.octal.fsm.dto.JobReportSummaryDTO;
+import com.octal.fsm.dto.PageItem;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.service.JobReportService;
 import com.octal.fsm.service.JobService;
@@ -233,17 +236,6 @@ public class JobController extends BaseController {
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Drawing added to job task successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error adding drawing to job task: {}", e.getMessage(), e);
-            return handleException(e);
-        }
-    }
-
-    @GetMapping("/forms-by-taskId/{taskId}")
-    public ResponseEntity<ApiResponse> getFormsDetails(@PathVariable("taskId") String taskId, HttpServletRequest request) {
-        try {
-            Long tenantId = getTenantId(request);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Forms Details retrieved successfully", jobService.getFormsWithTaskId(taskId, tenantId), "200", HttpStatus.OK), HttpStatus.OK);
-        } catch (Exception e) {
-            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
             return handleException(e);
         }
     }
@@ -522,6 +514,18 @@ public class JobController extends BaseController {
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Dashboard data Generated Successfully.", jobReportService.getDashboardData(search,tenantId), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error while generating Dashboard data : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/get-technician-task-summary")
+    public ResponseEntity<ApiResponse>getTechnicianTaskSummary(@RequestBody List<String> technicianUuids, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin=isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Technician Task Summary Generated Successfully.", jobService.getTechnicianTaskSummary(technicianUuids,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error while generating Technician Task Summary : {}", e.getMessage(), e);
             return handleException(e);
         }
     }
