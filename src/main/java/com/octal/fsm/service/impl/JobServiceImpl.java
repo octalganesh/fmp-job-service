@@ -527,6 +527,7 @@ public class JobServiceImpl implements JobService {
                         ApiResponse body = notificationSlugContent.getBody();
                         if (body != null) {
                             NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(),"#technicianName",getDetails.getName()));
                             sendBulkNotificationToUsers.setTitle(content.getTitle());
                             sendBulkNotificationToUsers.setBody(content.getMessage());
                             sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
