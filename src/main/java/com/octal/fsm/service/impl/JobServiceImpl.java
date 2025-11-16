@@ -532,8 +532,12 @@ public class JobServiceImpl implements JobService {
                             sendBulkNotificationToUsers.setBody(content.getMessage());
                             sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
                             sendBulkNotificationToUsers.setTypeId(jobTaskMappingToTechnician.get().getUuid());
-                            Set<MultiUserDeviceDetails> set = new HashSet<>();
-                            set.add(getDetails.getMultiUserDeviceDetails());
+                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
+                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO=new MultiUserDeviceDetailsDTO();
+                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
+                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
+                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                            set.add(multiUserDeviceDetailsDTO);
                             sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
                             sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
                         }
@@ -591,8 +595,12 @@ public class JobServiceImpl implements JobService {
                             sendBulkNotificationToUsers.setBody(content.getMessage());
                             sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
                             sendBulkNotificationToUsers.setTypeId(JobTaskMappingTechnician.getUuid());
-                            Set<MultiUserDeviceDetails> set = new HashSet<>();
-                            set.add(getDetails.getMultiUserDeviceDetails());
+                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
+                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO=new MultiUserDeviceDetailsDTO();
+                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
+                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
+                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                            set.add(multiUserDeviceDetailsDTO);
                             sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
                             sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
                         }
