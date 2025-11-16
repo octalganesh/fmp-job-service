@@ -590,7 +590,7 @@ public class JobServiceImpl implements JobService {
                             sendBulkNotificationToUsers.setTitle(content.getTitle());
                             sendBulkNotificationToUsers.setBody(content.getMessage());
                             sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
-                            sendBulkNotificationToUsers.setTypeId(jobTaskMappingToTechnician.get().getUuid());
+                            sendBulkNotificationToUsers.setTypeId(JobTaskMappingTechnician.getUuid());
                             Set<MultiUserDeviceDetails> set = new HashSet<>();
                             set.add(getDetails.getMultiUserDeviceDetails());
                             sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
