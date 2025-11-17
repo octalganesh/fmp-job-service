@@ -21,7 +21,7 @@ public class JobDashboardResponseDTO {
         private Double totalPendingAmounts;//
         private List<LocationSummaryDTO> popularServiceLocations;
         private Long totalJobs;
-        private Map<String,Long> jobsByType;
+        private Map<String, Long> jobsByType;
     }
 
     @Data

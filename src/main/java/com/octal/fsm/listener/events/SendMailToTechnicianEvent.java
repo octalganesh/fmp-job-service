@@ -23,13 +23,14 @@ public class SendMailToTechnicianEvent extends ApplicationEvent {
         this.isSuperAdmin = isSuperAdmin;
         this.sendBulkNotificationToUsers = sendBulkNotificationToUsers;
     }
+
     public boolean isSuperAdmin() {
         return isSuperAdmin;
     }
 
     public Long getTenantId() {
         return tenantId;
-     }
+    }
 
     public TechnicianDTO.TechnicianData getTechnicianDTO() {
         return technicianDTO;

@@ -1,16 +1,15 @@
 package com.octal.fsm.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.octal.fsm.dto.JobDashboardResponseDTO;
 import com.octal.fsm.dto.JobReportSummaryDTO;
-import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
-import com.octal.fsm.repositories.*;
+import com.octal.fsm.repositories.JobReportNativeRepository;
 import com.octal.fsm.service.JobReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +24,7 @@ public class JobReportServiceImpl implements JobReportService {
 
 
     @Override
-    public JobReportSummaryDTO.Detail getJobReportSummary(JobReportSummaryDTO.Search data,Long tenantId) throws CodeException {
+    public JobReportSummaryDTO.Detail getJobReportSummary(JobReportSummaryDTO.Search data, Long tenantId) throws CodeException {
 
         if (data.getStartDate() == null || data.getEndDate() == null) {
             throw new CodeException("Start date and end date are required", ErrorCode.COMMON);
@@ -34,7 +33,7 @@ public class JobReportServiceImpl implements JobReportService {
         JobReportSummaryDTO.Detail dto = new JobReportSummaryDTO.Detail();
         if (data.getStartDate() != null && data.getEndDate() != null) {
             Map<String, Object> result = jobReportNativeRepository.getFullReport(
-                    data.getStartDate().atStartOfDay(), data.getEndDate().atTime(23, 59, 59),tenantId);
+                    data.getStartDate().atStartOfDay(), data.getEndDate().atTime(23, 59, 59), tenantId);
 
             dto.setTotalNumberOfJobs(getLong(result.get("total_jobs")));
             dto.setActiveJobs(getLong(result.get("active_jobs")));
@@ -62,7 +61,7 @@ public class JobReportServiceImpl implements JobReportService {
         JobDashboardResponseDTO.Detail dto = new JobDashboardResponseDTO.Detail();
         if (search.getStartDate() != null && search.getEndDate() != null) {
             Map<String, Object> result = jobReportNativeRepository.getJobDashboardReport(
-                    search.getStartDate().atStartOfDay(), search.getEndDate().atTime(23, 59, 59),tenantId);
+                    search.getStartDate().atStartOfDay(), search.getEndDate().atTime(23, 59, 59), tenantId);
 
             dto.setActiveJobs(getLong(result.get("active_jobs")));
             dto.setTotalJobs(getLong(result.get("total_jobs")));
@@ -70,7 +69,7 @@ public class JobReportServiceImpl implements JobReportService {
             dto.setTotalPendingAmounts(getDouble(result.get("total_pending_payment")));
             ObjectMapper mapper = new ObjectMapper();
             dto.setPopularServiceLocations(parsePopularServiceLocations(mapper, result.get("popular_service_locations")));
-            dto.setJobsByType(parseJsonMap(mapper,result.get("job_type_counts")));
+            dto.setJobsByType(parseJsonMap(mapper, result.get("job_type_counts")));
 
         }
         return dto;
@@ -82,7 +81,8 @@ public class JobReportServiceImpl implements JobReportService {
         try {
             // Parse the JSON into Map<String, Map<String, Object>>
             Map<String, Map<String, Object>> data = mapper.readValue(
-                    rawJson.toString(), new TypeReference<>() {}
+                    rawJson.toString(), new TypeReference<>() {
+                    }
             );
 
             // Convert Map → List<LocationSummaryDTO>
@@ -104,7 +104,8 @@ public class JobReportServiceImpl implements JobReportService {
     private Map<String, Long> parseJsonMap(ObjectMapper mapper, Object jsonData) {
         if (jsonData == null) return new HashMap<>();
         try {
-            return mapper.readValue(jsonData.toString(), new TypeReference<Map<String, Long>>() {});
+            return mapper.readValue(jsonData.toString(), new TypeReference<Map<String, Long>>() {
+            });
         } catch (Exception e) {
             return new HashMap<>();
         }

@@ -1,13 +1,12 @@
 package com.octal.fsm.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.octal.fsm.dto.enums.JobUpdateType;
 import com.octal.fsm.entities.enums.TaskAssignedType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.fasterxml.jackson.annotation.JsonFormat;
 
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -61,7 +60,7 @@ public class JobDTO {
     }
 
     @Data
-    public static class CreateUpFrontInvoiceRequest{
+    public static class CreateUpFrontInvoiceRequest {
         private String jobId;
         private Double amount;
         private String email;
@@ -71,7 +70,7 @@ public class JobDTO {
     }
 
     @Data
-    public static class LeaveJob{
+    public static class LeaveJob {
         private String jobId;
         private String frontOfficeUserId;
         private String frontOfficeUserName;
@@ -79,17 +78,19 @@ public class JobDTO {
         private JobUpdateType jobUpdateType;
 
     }
+
     @Data
-    public static class UpdateJobTags{
+    public static class UpdateJobTags {
         private List<String> jobTags;
     }
+
     @Data
-    public static class UpdateAssignedTaskWithDocumentType{
+    public static class UpdateAssignedTaskWithDocumentType {
         private List<String> documentTypeId;
     }
 
     @Data
-    public static class InvoiceListResponse{
+    public static class InvoiceListResponse {
         private String id;
         private String invoiceId;
         private String invoiceType;
@@ -235,11 +236,10 @@ public class JobDTO {
     }
 
 
-
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-     public static class JobHistoryDTO {
+    public static class JobHistoryDTO {
 
         private Long recordId;
         private String id;
@@ -284,7 +284,7 @@ public class JobDTO {
         private String jobStartDate;
         private String jobEndDate;
         private String jobNote;
-        private List<Document> jobUploadedDocuments=new ArrayList<>();
+        private List<Document> jobUploadedDocuments = new ArrayList<>();
         // Tags, Documents, Description
         private List<String> jobTags;
         private List<Document> uploadedDocuments;
@@ -336,6 +336,7 @@ public class JobDTO {
         private Integer sequenceOrder;
         private String colorCode; // todo need to discus
     }
+
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -352,6 +353,6 @@ public class JobDTO {
         private String taskId;
         private String note;
         private TaskAssignedType assignedType;
-        private List<Document>documents;
+        private List<Document> documents;
     }
 }

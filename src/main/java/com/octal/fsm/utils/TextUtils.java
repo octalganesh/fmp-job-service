@@ -33,7 +33,7 @@ public class TextUtils {
         return value < 0;
     }
 
-    public static String getFileNameFromFileUrl(String documentUrl){
+    public static String getFileNameFromFileUrl(String documentUrl) {
         // Extract file name with extension
         String fileNameWithExtension = documentUrl.substring(documentUrl.lastIndexOf('/') + 1);
 
@@ -46,7 +46,8 @@ public class TextUtils {
         }
         return fileName;
     }
-    public static String getFileTypeFromFileUrl(String documentUrl){
+
+    public static String getFileTypeFromFileUrl(String documentUrl) {
         // Extract file name with extension
         String fileNameWithExtension = documentUrl.substring(documentUrl.lastIndexOf('/') + 1);
 
@@ -71,8 +72,6 @@ public class TextUtils {
             return message;
         }
     }
-
-
 
 
 }

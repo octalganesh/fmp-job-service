@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface JobInvoiceRepository  extends JpaRepository<JobInvoice, Long>, JpaSpecificationExecutor<JobInvoice> {
+public interface JobInvoiceRepository extends JpaRepository<JobInvoice, Long>, JpaSpecificationExecutor<JobInvoice> {
 }

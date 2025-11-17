@@ -1,9 +1,11 @@
 package com.octal.fsm.listener;
 
 import com.octal.fsm.clients.NotificationClient;
-import com.octal.fsm.dto.*;
+import com.octal.fsm.dto.CustomerDTO;
+import com.octal.fsm.dto.EmailDTO;
+import com.octal.fsm.dto.JobDTO;
+import com.octal.fsm.dto.PushNotificationRequest;
 import com.octal.fsm.listener.events.SendMailAndPushEvent;
-import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
@@ -34,7 +36,7 @@ public class SendMailAndPushEventListener implements ApplicationListener<SendMai
         sendNotificationToUser(event.getSendBulkNotificationToUsers());
     }
 
-    private void sendNotificationToUser(PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers){
+    private void sendNotificationToUser(PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers) {
         notificationClient.sendBulkPushNotification(sendBulkNotificationToUsers);
     }
 
@@ -58,7 +60,7 @@ public class SendMailAndPushEventListener implements ApplicationListener<SendMai
             mail.setProps(placeholders);
 
             // ✅ Send email using your unified sendMail method
-            emailService.sendMail(mail, loggedInuser,1l,false);
+            emailService.sendMail(mail, loggedInuser, 1l, false);
 
         } catch (Exception e) {
             e.printStackTrace();

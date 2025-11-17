@@ -3,7 +3,6 @@ package com.octal.fsm.listener.events;
 import com.octal.fsm.dto.CustomerDTO;
 import com.octal.fsm.dto.JobDTO;
 import com.octal.fsm.dto.PushNotificationRequest;
-import com.octal.fsm.dto.TechnicianDTO;
 import org.springframework.context.ApplicationEvent;
 
 public class SendMailAndPushEvent extends ApplicationEvent {

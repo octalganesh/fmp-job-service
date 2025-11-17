@@ -9,9 +9,9 @@ import com.octal.fsm.clients.AdminClient;
 import com.octal.fsm.clients.NotificationClient;
 import com.octal.fsm.clients.TechnicianClient;
 import com.octal.fsm.dto.*;
+import com.octal.fsm.dto.JobDTO.JobStatusDetail;
 import com.octal.fsm.dto.enums.JobUpdateType;
 import com.octal.fsm.dto.enums.PushNotificationType;
-import com.octal.fsm.dto.JobDTO.JobStatusDetail;
 import com.octal.fsm.entities.*;
 import com.octal.fsm.entities.enums.TaskAssignedType;
 import com.octal.fsm.exceptions.CodeException;
@@ -124,7 +124,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public String addJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
-            addJobDTO.setTenantId(!isSuperAdmin?tenantId:1L);
+            addJobDTO.setTenantId(!isSuperAdmin ? tenantId : 1L);
             validatedJobDTO(addJobDTO);
             return jobTransformer.transformToEntity(addJobDTO, tenantId, isSuperAdmin); // Using getRecordId() instead of getId()
         } catch (Exception e) {
@@ -316,7 +316,7 @@ public class JobServiceImpl implements JobService {
             dto.setJobStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
             dto.setJobEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
             try {
-                ApiResponse apiResponse = adminClient.getJobDetailsWithLeadAndCustomerDetails(job.getCustomerId(), job.getLeadSourceId(), loggedInUserEmail,tenantId,isSuperAdmin).getBody();
+                ApiResponse apiResponse = adminClient.getJobDetailsWithLeadAndCustomerDetails(job.getCustomerId(), job.getLeadSourceId(), loggedInUserEmail, tenantId, isSuperAdmin).getBody();
                 if (apiResponse != null && apiResponse.getData() != null) {
                     Gson gson = new Gson();
                     Type customerDetailsStr = new TypeToken<Map<String, String>>() {
@@ -364,7 +364,7 @@ public class JobServiceImpl implements JobService {
         }
         if (!TextUtils.isEmpty(job.getLeadSourceId()) || !TextUtils.isEmpty(job.getCustomerTypeId()) || !TextUtils.isEmpty(job.getCustomerId())) {
             try {
-                ApiResponse apiResponse = adminClient.getJobDetailsForCustomerInfo(job.getCustomerId(), job.getLeadSourceId(), job.getCustomerTypeId(), loggedInUserEmail,tenantId,isSuperAdmin).getBody();
+                ApiResponse apiResponse = adminClient.getJobDetailsForCustomerInfo(job.getCustomerId(), job.getLeadSourceId(), job.getCustomerTypeId(), loggedInUserEmail, tenantId, isSuperAdmin).getBody();
                 if (apiResponse != null && apiResponse.getData() != null) {
                     Gson gson = new Gson();
                     Type customerDetailsStr = new TypeToken<Map<String, String>>() {
@@ -529,13 +529,13 @@ public class JobServiceImpl implements JobService {
                         ApiResponse body = notificationSlugContent.getBody();
                         if (body != null) {
                             NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
-                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(),"#technicianName",getDetails.getName()));
+                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", getDetails.getName()));
                             sendBulkNotificationToUsers.setTitle(content.getTitle());
                             sendBulkNotificationToUsers.setBody(content.getMessage());
                             sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
                             sendBulkNotificationToUsers.setTypeId(jobTaskMappingToTechnician.get().getUuid());
                             Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
-                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO=new MultiUserDeviceDetailsDTO();
+                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
                             multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
                             multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
                             multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
@@ -543,7 +543,7 @@ public class JobServiceImpl implements JobService {
                             sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
                             sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
                         }
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail,tenantId,isSuperAdmin, sendBulkNotificationToUsers));
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail, tenantId, isSuperAdmin, sendBulkNotificationToUsers));
                     }
                 }
 
@@ -592,13 +592,13 @@ public class JobServiceImpl implements JobService {
                         ApiResponse body = notificationSlugContent.getBody();
                         if (body != null) {
                             NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
-                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(),"#technicianName",getDetails.getName()));
+                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", getDetails.getName()));
                             sendBulkNotificationToUsers.setTitle(content.getTitle());
                             sendBulkNotificationToUsers.setBody(content.getMessage());
                             sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
                             sendBulkNotificationToUsers.setTypeId(JobTaskMappingTechnician.getUuid());
                             Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
-                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO=new MultiUserDeviceDetailsDTO();
+                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
                             multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
                             multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
                             multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
@@ -606,7 +606,7 @@ public class JobServiceImpl implements JobService {
                             sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
                             sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
                         }
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail,tenantId,isSuperAdmin, sendBulkNotificationToUsers));
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail, tenantId, isSuperAdmin, sendBulkNotificationToUsers));
                     }
                 }
             }
@@ -662,8 +662,8 @@ public class JobServiceImpl implements JobService {
     public void addJobStatus(List<JobDTO.AddJobStatus> addJobStatus, Long tenantId, boolean isSuperAdmin, String userName) {
         if (isSuperAdmin)
             tenantId = 1L;
-        List<JobStatusMaster>jobStatusMasterList=new ArrayList<>();
-        for(JobDTO.AddJobStatus dto : addJobStatus){
+        List<JobStatusMaster> jobStatusMasterList = new ArrayList<>();
+        for (JobDTO.AddJobStatus dto : addJobStatus) {
             JobStatusMaster jobStatusMaster = new JobStatusMaster();
             jobStatusMaster.setName(dto.getName());
             jobStatusMaster.setTenantId(tenantId);
@@ -1397,7 +1397,7 @@ public class JobServiceImpl implements JobService {
         statusMasters = jobStatusMasterRepository.findAllByTenantIdAndDeletedFalse(tenantIdToUse);
 
         List<JobStatusDetail> statusDetails = statusMasters.stream()
-                .map(statusMaster -> new JobStatusDetail(statusMaster.getUuid(),statusMaster.getName(), statusMaster.getColorCode()))
+                .map(statusMaster -> new JobStatusDetail(statusMaster.getUuid(), statusMaster.getName(), statusMaster.getColorCode()))
                 .collect(Collectors.toList());
 
         return statusDetails;
@@ -1510,16 +1510,23 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public void updateJobTaskDetails(String jobId, JobDTO.UpdateJobTaskDetails updateJobTaskDetails, Long tenantId, String userName) throws CodeException{
-        Optional<Job>jobOptional=jobRepository.findByUuidAndTenantIdAndDeletedFalse(jobId,tenantId);
-        if(jobOptional.isEmpty())
+    public void updateJobTaskDetails(String jobId, JobDTO.UpdateJobTaskDetails updateJobTaskDetails, Long tenantId, String userName) throws CodeException {
+        Optional<Job> jobOptional = jobRepository.findByUuidAndTenantIdAndDeletedFalse(jobId, tenantId);
+        if (jobOptional.isEmpty())
             throw new CodeException("Job not found", ErrorCode.BAD_REQUEST);
-        if(updateJobTaskDetails.getAssignedType()==null)
+        if (updateJobTaskDetails.getAssignedType() == null)
             throw new CodeException("Assigned Type update is not allowed", ErrorCode.BAD_REQUEST);
-        if(updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.SYSTEM)){
-            // todo need to perform related task automatically
-        }
-        else if(updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.CSR)){
+        if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.SYSTEM)) {
+            // todo need to perform related task automatically for example BOM generation and quickbooks related stuff.
+        } else if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.CSR)) {
+            if (TextUtils.isEmpty(updateJobTaskDetails.getTaskId()))
+                throw new CodeException("Task Id is required to update the task details", ErrorCode.BAD_REQUEST);
+            Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
+            if (jobMappingTask.isEmpty())
+                throw new CodeException("Job Task mapping not found", ErrorCode.BAD_REQUEST);
+            JobMappingTask mappingTask = jobMappingTask.get();
+
+
         }
 
 

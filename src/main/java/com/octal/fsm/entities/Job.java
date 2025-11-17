@@ -1,16 +1,12 @@
 package com.octal.fsm.entities;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @NoArgsConstructor
@@ -296,7 +292,8 @@ public class Job extends AbstractPersistable {
     @JoinColumn(name = "job_status_id")  // todo need to add nullable = false later
     private JobStatusMaster jobStatusMaster;
 
-    @Column(name="current_task_Id") // todo need to attach this as job mapping task uuid to track the job's current task
+    @Column(name = "current_task_Id")
+    // todo need to attach this as job mapping task uuid to track the job's current task
     private String currentTaskId;
 
 }

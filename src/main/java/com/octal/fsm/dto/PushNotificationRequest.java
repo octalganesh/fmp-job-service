@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.util.HashMap;
 import java.util.Set;
 
 @Data
@@ -51,7 +50,7 @@ public class PushNotificationRequest {
     }
 
     @Data
-    public static class SendBulkNotificationToUsers{
+    public static class SendBulkNotificationToUsers {
         public Set<MultiUserDeviceDetailsDTO> technicianFcmTokenList;
         public Set<MultiUserDeviceDetails> frontOfficeFcmTokenList;
         public PushNotificationType type;

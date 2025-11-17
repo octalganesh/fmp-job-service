@@ -57,12 +57,12 @@ public class JobTaskMappingTechnician extends AbstractPersistable {
     private String drawingJson;
 
     @Lob
-    @Column(name="drawing_image")
+    @Column(name = "drawing_image")
     private String drawingImage;
 
-    @OneToMany(cascade = CascadeType.ALL,orphanRemoval = false)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = false)
     @JoinColumn(name = "job_task_mapping_technician_id")
-    private List<HTMLFormPage> htmlFormPages=new ArrayList<>();
+    private List<HTMLFormPage> htmlFormPages = new ArrayList<>();
 
 
 }

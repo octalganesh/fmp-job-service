@@ -4,7 +4,6 @@ import com.intuit.oauth2.client.OAuth2PlatformClient;
 import com.intuit.oauth2.data.BearerTokenResponse;
 import com.intuit.oauth2.exception.OAuthException;
 import com.octal.fsm.configuration.OAuth2PlatformClientFactory;
-import com.octal.fsm.controller.JobTypeController;
 import com.octal.fsm.entities.QuickBooksToken;
 import com.octal.fsm.repositories.QuickBooksTokenRepository;
 import com.octal.fsm.service.impl.QuickBooksTokenStore;
@@ -16,7 +15,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Component
 public class QuickBooksTokenScheduler {
@@ -34,8 +32,8 @@ public class QuickBooksTokenScheduler {
     private QuickBooksTokenStore quickBooksTokenStore;
 
     @Scheduled(cron = "0 */5 * * * *")
-     public void refreshTokens() throws OAuthException {
-        LOGGER.info("refresh token method called - "+ LocalDateTime.now());
+    public void refreshTokens() throws OAuthException {
+        LOGGER.info("refresh token method called - " + LocalDateTime.now());
         try {
             QuickBooksToken token = tokenRepository.findByRealmId(realmId).orElseThrow(() -> new RuntimeException("No QuickBooks token found for realmId " + realmId));
 
@@ -45,8 +43,8 @@ public class QuickBooksTokenScheduler {
             token.setAccessToken(response.getAccessToken());
             token.setRefreshToken(response.getRefreshToken());
             token.setExpiresAt(LocalDateTime.now().plusMinutes(response.getExpiresIn()));
-            token=tokenRepository.save(token);
-        }catch (Exception e){
+            token = tokenRepository.save(token);
+        } catch (Exception e) {
             e.printStackTrace();
         }
 

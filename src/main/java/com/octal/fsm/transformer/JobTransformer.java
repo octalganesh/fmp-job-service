@@ -2,13 +2,9 @@ package com.octal.fsm.transformer;
 
 
 import com.octal.fsm.clients.AdminClient;
-import com.octal.fsm.dto.ApiResponse;
-import com.octal.fsm.dto.CustomerDTO;
 import com.octal.fsm.dto.JobDTO;
 import com.octal.fsm.entities.*;
-import com.octal.fsm.entities.enums.Gender;
 import com.octal.fsm.exceptions.CodeException;
-import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.helper.CodeGenerator;
 import com.octal.fsm.repositories.*;
 import com.octal.fsm.utils.TextUtils;
@@ -17,10 +13,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 public class JobTransformer {
@@ -60,9 +55,9 @@ public class JobTransformer {
         List<JobMappingTask> jobMappingTask = new ArrayList<>();
         for (String jobTaskId : addJobDTO.getJobTaskId()) {
             //Boolean jobTaskExist = jobTaskRepository.existsByUuid(jobTaskId);
-            Optional<JobTask> jobTaskExist=jobTaskRepository.findByUuid(jobTaskId);
+            Optional<JobTask> jobTaskExist = jobTaskRepository.findByUuid(jobTaskId);
             if (jobTaskExist.isPresent()) {
-                if(jobTaskExist.get().getSequence()==1){
+                if (jobTaskExist.get().getSequence() == 1) {
                     job.setCurrentTaskId(jobTaskId);  // todo rather than passing whole object of status master in this we can pass either value or uuid of the same.
                     job.setJobStatusMaster(jobTaskExist.get().getJobStatusMaster());
                     job.setJobStatus(jobTaskExist.get().getName());
@@ -119,7 +114,7 @@ public class JobTransformer {
                 Documents document = new Documents();
                 document.setFileName(TextUtils.getFileNameFromFileUrl(documentUrl));
                 document.setFileType(TextUtils.getFileTypeFromFileUrl(documentUrl));
-                document.setDocumentUrl(awsS3BaseUrl+documentUrl);
+                document.setDocumentUrl(awsS3BaseUrl + documentUrl);
                 document.setAttachType("JOB");
                 document.setAttachTypeId(job.getJobId());
                 document.setUploadedByType(addJobDTO.getUploadedByType());

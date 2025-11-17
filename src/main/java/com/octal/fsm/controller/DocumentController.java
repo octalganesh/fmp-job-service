@@ -35,6 +35,7 @@ public class DocumentController extends BaseController {
             return handleException(e);
         }
     }
+
     @PostMapping("/upload-multiple")
     public ResponseEntity<ApiResponse> uploadMultipleDocument(@Valid @RequestBody List<DocumentDTO.Add> addJobDTO, HttpServletRequest request) {
         try {
@@ -59,11 +60,11 @@ public class DocumentController extends BaseController {
                                                     @RequestParam(defaultValue = "") String fileType,
                                                     @RequestParam(defaultValue = "") String documentTypeId,
 
-                                               HttpServletRequest request) {
+                                                    HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
             //Todo List Method to get all Job List.
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", documentService.getListOfDocument(type, typeId, uploadedByType, uploadByTypeId, fileType, page, size, sortBy, order, documentTypeId,userName), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", documentService.getListOfDocument(type, typeId, uploadedByType, uploadByTypeId, fileType, page, size, sortBy, order, documentTypeId, userName), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);

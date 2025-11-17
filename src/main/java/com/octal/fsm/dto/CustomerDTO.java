@@ -10,7 +10,7 @@ import java.time.LocalDate;
 public class CustomerDTO {
 
     @Data
-    public static class AddCustomer{
+    public static class AddCustomer {
         private String id;
         private String name;
         private String email;

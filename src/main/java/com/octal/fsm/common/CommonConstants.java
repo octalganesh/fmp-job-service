@@ -60,15 +60,15 @@ public class CommonConstants {
     public static final String FETCHED_SUCCESSFULLY = "fetched successfully!";
     public static final String DELIMETER = "/";
     public static final String LANGUAGE_MANAGER = "Language Manager";
-    public static final String LANGUAGE_NOT_FOUND="Language not found by id";
+    public static final String LANGUAGE_NOT_FOUND = "Language not found by id";
     public static final String STATE_MANAGER = "State Manager";
-    public static final String STATE_NOT_FOUND="State not found by id";
+    public static final String STATE_NOT_FOUND = "State not found by id";
     public static final String CITY_MANAGER = "City Manager";
-    public static final String CITY_NOT_FOUND="City not found by id";
+    public static final String CITY_NOT_FOUND = "City not found by id";
     public static final String DISTRICT_MANAGER = "District Manager";
-    public static final String DISTRICT_NOT_FOUND="District not found by id";
-    public static final String TECHNICIAN_MANAGER="Technician Manager";
-    public static final String HTML_PAGE_NOT_FOUND="Html page not found by id : ";
+    public static final String DISTRICT_NOT_FOUND = "District not found by id";
+    public static final String TECHNICIAN_MANAGER = "Technician Manager";
+    public static final String HTML_PAGE_NOT_FOUND = "Html page not found by id : ";
 
 
     private CommonConstants() {

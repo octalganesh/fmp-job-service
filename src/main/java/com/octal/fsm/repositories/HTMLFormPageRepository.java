@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface HTMLFormPageRepository extends JpaRepository<HTMLFormPage,Long>, JpaSpecificationExecutor<HTMLFormPage> {
+public interface HTMLFormPageRepository extends JpaRepository<HTMLFormPage, Long>, JpaSpecificationExecutor<HTMLFormPage> {
 
     Optional<HTMLFormPage> findByUuidAndDeletedFalse(String uuid);
 

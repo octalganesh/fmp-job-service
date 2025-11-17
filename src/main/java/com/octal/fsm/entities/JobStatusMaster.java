@@ -12,7 +12,7 @@ import javax.persistence.Table;
 @AllArgsConstructor
 @Table(name = "job_status_master")
 @Data
-public class JobStatusMaster extends AbstractPersistable{
+public class JobStatusMaster extends AbstractPersistable {
     private String name;
     private String description;
     private Integer sequenceOrder;

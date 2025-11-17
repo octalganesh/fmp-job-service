@@ -6,7 +6,7 @@ import com.octal.fsm.exceptions.CodeException;
 
 public interface JobReportService {
 
-    JobReportSummaryDTO.Detail getJobReportSummary(JobReportSummaryDTO.Search search,Long tenantId) throws CodeException;
+    JobReportSummaryDTO.Detail getJobReportSummary(JobReportSummaryDTO.Search search, Long tenantId) throws CodeException;
 
     JobDashboardResponseDTO.Detail getDashboardData(JobDashboardResponseDTO.Search search, Long tenantId) throws CodeException;
 

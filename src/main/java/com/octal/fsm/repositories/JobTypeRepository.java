@@ -8,8 +8,9 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface JobTypeRepository extends JpaRepository<JobType,Long>, JpaSpecificationExecutor<JobType> {
+public interface JobTypeRepository extends JpaRepository<JobType, Long>, JpaSpecificationExecutor<JobType> {
 
     Optional<JobType> findByUuid(String id);
-    Optional<JobType> findByUuidAndTenantId(String id,Long tenantId);
+
+    Optional<JobType> findByUuidAndTenantId(String id, Long tenantId);
 }

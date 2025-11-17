@@ -1,17 +1,12 @@
 package com.octal.fsm.service;
 
 import com.octal.fsm.common.ApiResponse;
-import com.octal.fsm.dto.JobDTO;
-import com.octal.fsm.dto.PageItem;
-import com.octal.fsm.dto.TechnicianDTO;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.exceptions.CodeException;
-import com.octal.fsm.models.request.PageRequest;
 import org.springframework.http.ResponseEntity;
 
 import javax.validation.Valid;
 import java.util.HashMap;
-import java.util.List;
 import java.util.List;
 
 public interface JobService {

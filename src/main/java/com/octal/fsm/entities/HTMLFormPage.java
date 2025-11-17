@@ -12,7 +12,7 @@ import javax.persistence.Table;
 @Setter
 @Entity
 @Table(name = "html_form_page")
-public class HTMLFormPage extends AbstractPersistable{
+public class HTMLFormPage extends AbstractPersistable {
 
     @Column(name = "name")
     private String name;

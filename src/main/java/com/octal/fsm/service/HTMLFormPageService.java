@@ -13,6 +13,6 @@ public interface HTMLFormPageService {
 
     HTMLFormDTO.Details getById(String id) throws CodeException;
 
-    Boolean changeStatus(String id,Long tenantId) throws CodeException;
+    Boolean changeStatus(String id, Long tenantId) throws CodeException;
 
 }

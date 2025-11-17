@@ -22,7 +22,7 @@ public class JobMappingTask extends AbstractPersistable {
     @Column(name = "task_id", nullable = false)
     private String taskId;
 
-    @Column(name= "task_show_id", nullable = false)
+    @Column(name = "task_show_id", nullable = false)
     private String taskShowId;
 
     @Column(name = "task_name", nullable = false)
@@ -35,7 +35,7 @@ public class JobMappingTask extends AbstractPersistable {
     @Column(name = "task_sequence")
     private Integer taskSequence;
 
-    @Column(name="job_task_status")
+    @Column(name = "job_task_status")
     private String jobTaskStatus; // todo job status when this task is the current task.
 
     @Column(name = "assign_type")

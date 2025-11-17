@@ -1,12 +1,9 @@
 package com.octal.fsm.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.octal.fsm.entities.HTMLFormPage;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
@@ -23,7 +20,7 @@ public class HTMLFormDTO {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class Details{
+    public static class Details {
         private String id;
         private Boolean active;
         private String name;

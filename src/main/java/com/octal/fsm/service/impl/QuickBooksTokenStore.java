@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class QuickBooksTokenStore {
@@ -44,7 +43,7 @@ public class QuickBooksTokenStore {
             token.setAccessToken(response.getAccessToken());
             token.setRefreshToken(response.getRefreshToken());
             token.setExpiresAt(LocalDateTime.now().plusHours(response.getExpiresIn()));
-            token=tokenRepository.save(token);
+            token = tokenRepository.save(token);
         }
         return token;
     }

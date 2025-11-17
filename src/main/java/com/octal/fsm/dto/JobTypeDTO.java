@@ -1,7 +1,6 @@
 package com.octal.fsm.dto;
 
 
-import com.octal.fsm.entities.JobTask;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,7 +30,7 @@ public class JobTypeDTO {
         private String updatedAt;
         private Boolean isActive;
         private String description;
-        private List<JobTaskDTO.Detail>jobTasks;
+        private List<JobTaskDTO.Detail> jobTasks;
     }
 
     @Data
@@ -45,7 +44,6 @@ public class JobTypeDTO {
         private Boolean isActive;
         private String description;
     }
-
 
 
 }

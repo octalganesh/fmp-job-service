@@ -15,7 +15,7 @@ import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/html-page")
-public class HTMLFormPageController extends BaseController{
+public class HTMLFormPageController extends BaseController {
 
     private static final Logger logger = LogManager.getLogger(HTMLFormPageController.class);
 
@@ -27,8 +27,8 @@ public class HTMLFormPageController extends BaseController{
         logger.info("HTMLFormPageController./getHtmlFormList");
         try {
             Long tenantId = getTenantId(request);
-            boolean isSuperAdmin=isSuperAdmin(request);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, CommonConstants.DETAILS_FETCHED, htmlFormPageService.getAllFormsPage(listRequest,tenantId), "200", HttpStatus.OK), HttpStatus.OK);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, CommonConstants.DETAILS_FETCHED, htmlFormPageService.getAllFormsPage(listRequest, tenantId), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return handleException(e);
         }
@@ -40,7 +40,7 @@ public class HTMLFormPageController extends BaseController{
         String userName = request.getHeader(CommonConstants.USER_NAME);
         try {
             Long tenantId = getTenantId(request);
-            boolean isSuperAdmin=isSuperAdmin(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "fetched successfully!", htmlFormPageService.getById(id), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return handleException(e);
@@ -53,8 +53,8 @@ public class HTMLFormPageController extends BaseController{
         String userName = request.getHeader(CommonConstants.USER_NAME);
         try {
             Long tenantId = getTenantId(request);
-            boolean isSuperAdmin=isSuperAdmin(request);
-            Boolean status = htmlFormPageService.changeStatus(id,tenantId);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            Boolean status = htmlFormPageService.changeStatus(id, tenantId);
             String messageResponse = Boolean.TRUE.equals(status) ? "HTML from page activated Successfully!" : "HTML from page deactivated Successfully!";
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, messageResponse, null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {

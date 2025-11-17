@@ -17,7 +17,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -44,7 +43,7 @@ public class HTMLFormPageServiceImpl implements HTMLFormPageService {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
         }
         prepareHTMLFormsTypeSearchFilter(listRequest, builder, tenantId);
-        Page<HTMLFormPage> pagedResult =  htmlFormPageRepository.findAll(builder.build(), pageable);
+        Page<HTMLFormPage> pagedResult = htmlFormPageRepository.findAll(builder.build(), pageable);
         List<HTMLFormDTO.Details> responseList = new ArrayList<>();
         for (HTMLFormPage forms : pagedResult.getContent()) {
             HTMLFormDTO.Details dto = new HTMLFormDTO.Details();
@@ -78,7 +77,7 @@ public class HTMLFormPageServiceImpl implements HTMLFormPageService {
     }
 
     @Override
-    public Boolean changeStatus(String id,Long tenantId) throws CodeException {
+    public Boolean changeStatus(String id, Long tenantId) throws CodeException {
         Optional<HTMLFormPage> formsManagement = htmlFormPageRepository.findByUuidAndDeletedFalse(id);
         if (formsManagement.isPresent()) {
             if (Boolean.TRUE.equals(formsManagement.get().getActive())) {

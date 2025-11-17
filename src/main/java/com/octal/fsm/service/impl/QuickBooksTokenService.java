@@ -1,11 +1,9 @@
 package com.octal.fsm.service.impl;
 
+import com.intuit.oauth2.client.OAuth2PlatformClient;
+import com.octal.fsm.configuration.OAuth2PlatformClientFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.intuit.oauth2.client.OAuth2PlatformClient;
-import com.intuit.oauth2.data.BearerTokenResponse;
-import com.intuit.oauth2.exception.OAuthException;
-import com.octal.fsm.configuration.OAuth2PlatformClientFactory;
 
 @Service
 public class QuickBooksTokenService {

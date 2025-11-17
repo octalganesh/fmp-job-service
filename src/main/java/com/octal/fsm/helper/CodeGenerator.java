@@ -1,12 +1,10 @@
 package com.octal.fsm.helper;
 
-import com.octal.fsm.entities.Job;
 import com.octal.fsm.repositories.JobMappingTaskRepository;
 import com.octal.fsm.repositories.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
 import java.util.Random;
 
 @Component
@@ -31,7 +29,8 @@ public class CodeGenerator {
         } while (job);
         return code;
     }
-    public String generateTaskId(){
+
+    public String generateTaskId() {
         String code = "";
         Boolean task;
         do {
@@ -51,7 +50,6 @@ public class CodeGenerator {
         String codePrefix = prefix;
         return codePrefix + id;
     }
-
 
 
 }
