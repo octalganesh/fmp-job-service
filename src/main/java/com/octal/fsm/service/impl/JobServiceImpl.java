@@ -527,12 +527,17 @@ public class JobServiceImpl implements JobService {
                         ApiResponse body = notificationSlugContent.getBody();
                         if (body != null) {
                             NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(),"#technicianName",getDetails.getName()));
                             sendBulkNotificationToUsers.setTitle(content.getTitle());
                             sendBulkNotificationToUsers.setBody(content.getMessage());
                             sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
-                            sendBulkNotificationToUsers.setTypeId(jobDetails.getJobTypeId());
-                            Set<MultiUserDeviceDetails> set = new HashSet<>();
-                            set.add(getDetails.getMultiUserDeviceDetails());
+                            sendBulkNotificationToUsers.setTypeId(jobTaskMappingToTechnician.get().getUuid());
+                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
+                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO=new MultiUserDeviceDetailsDTO();
+                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
+                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
+                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                            set.add(multiUserDeviceDetailsDTO);
                             sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
                             sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
                         }
@@ -585,12 +590,17 @@ public class JobServiceImpl implements JobService {
                         ApiResponse body = notificationSlugContent.getBody();
                         if (body != null) {
                             NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(),"#technicianName",getDetails.getName()));
                             sendBulkNotificationToUsers.setTitle(content.getTitle());
                             sendBulkNotificationToUsers.setBody(content.getMessage());
                             sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
-                            sendBulkNotificationToUsers.setTypeId(jobDetails.getJobTypeId());
-                            Set<MultiUserDeviceDetails> set = new HashSet<>();
-                            set.add(getDetails.getMultiUserDeviceDetails());
+                            sendBulkNotificationToUsers.setTypeId(JobTaskMappingTechnician.getUuid());
+                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
+                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO=new MultiUserDeviceDetailsDTO();
+                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
+                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
+                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                            set.add(multiUserDeviceDetailsDTO);
                             sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
                             sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
                         }
@@ -1389,9 +1399,9 @@ public class JobServiceImpl implements JobService {
             if (taskMappingOpt.isPresent()) {
                 Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuidWithJob(taskMappingOpt.get().getJobTaskMappingId());
                 if (jobMappingTask.isPresent()) {
-                    Optional<Job> job = jobRepository.findByUuidAndTenantIdAndDeletedFalse(jobMappingTask.get().getJob().getUuid(), tenantId);
+                    Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobMappingTask.get().getJob().getUuid());
                     if (job.isPresent()) {
-                        Optional<JobType> jobTask = jobTypeRepository.findByUuidAndTenantId(job.get().getJobTypeId(), tenantId);
+                        Optional<JobType> jobTask = jobTypeRepository.findByUuid(job.get().getJobTypeId());
                         if (jobTask.isPresent()) {
                             String jobTypeId = jobTask.get().getUuid();
                             List<FormsManagementDTO.Detail> formsDetails = getFormByJobType(jobTypeId, tenantId);

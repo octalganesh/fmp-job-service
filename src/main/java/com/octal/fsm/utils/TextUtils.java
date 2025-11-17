@@ -60,6 +60,19 @@ public class TextUtils {
         return fileType;
     }
 
+    public static String replacePlaceholderInMessage(String message, String placeholder, String replacement) {
+        try {
+            if (message.contains(placeholder)) {
+                message = message.replace(placeholder, replacement);
+            }
+            return message;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return message;
+        }
+    }
+
+
 
 
 }
