@@ -398,6 +398,7 @@ public class JobServiceImpl implements JobService {
             if (jobTagOptional.isPresent()) {
                 JobTagDTO.Detail jobTagDTO = new JobTagDTO.Detail();
                 jobTagDTO.setId(tag.getTagId());
+                jobTagDTO.setTagColor(jobTagOptional.get().getTagColor());
                 jobTagDTO.setName(jobTagOptional.get().getName());
                 jobTagList.add(jobTagDTO);
             }
@@ -1512,7 +1513,7 @@ public class JobServiceImpl implements JobService {
     public void updateJobTaskDetails(String jobId, JobDTO.UpdateJobTaskDetails updateJobTaskDetails, Long tenantId, String userName) throws CodeException{
         Optional<Job>jobOptional=jobRepository.findByUuidAndTenantIdAndDeletedFalse(jobId,tenantId);
         if(jobOptional.isEmpty())
-            throw new RuntimeException("Job not found");
+            throw new CodeException("Job not found", ErrorCode.BAD_REQUEST);
         if(updateJobTaskDetails.getAssignedType()==null)
             throw new CodeException("Assigned Type update is not allowed", ErrorCode.BAD_REQUEST);
         if(updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.SYSTEM)){
