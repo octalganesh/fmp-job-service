@@ -364,4 +364,18 @@ public class JobController extends BaseController {
             return handleException(e);
         }
     }
+    @PostMapping("/process-job-task/{jobId}")
+    public ResponseEntity<ApiResponse> updateJobTaskDetails(@PathVariable("jobId") String jobId,
+                                                            @RequestBody JobDTO.UpdateJobTaskDetails updateJobTaskDetails,
+                                                            HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            jobService.updateJobTaskDetails(jobId, updateJobTaskDetails,tenantId, userName);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Details Updated Successfully.", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error updating job task details: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
 }

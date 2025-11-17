@@ -1,6 +1,7 @@
 package com.octal.fsm.dto;
 
 import com.octal.fsm.dto.enums.JobUpdateType;
+import com.octal.fsm.entities.enums.TaskAssignedType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -344,5 +345,13 @@ public class JobDTO {
         private String colorCode; // todo need to discus
     }
 
-
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class UpdateJobTaskDetails {
+        private String taskId;
+        private String note;
+        private TaskAssignedType assignedType;
+        private List<Document>documents;
+    }
 }

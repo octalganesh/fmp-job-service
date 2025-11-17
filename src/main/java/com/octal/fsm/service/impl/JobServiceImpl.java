@@ -13,6 +13,7 @@ import com.octal.fsm.dto.enums.JobUpdateType;
 import com.octal.fsm.dto.enums.PushNotificationType;
 import com.octal.fsm.dto.JobDTO.JobStatusDetail;
 import com.octal.fsm.entities.*;
+import com.octal.fsm.entities.enums.TaskAssignedType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.listener.events.SendMailAndPushEvent;
@@ -1505,6 +1506,22 @@ public class JobServiceImpl implements JobService {
                 task.getDrawingImage(),
                 htmlForms
         );
+    }
+
+    @Override
+    public void updateJobTaskDetails(String jobId, JobDTO.UpdateJobTaskDetails updateJobTaskDetails, Long tenantId, String userName) throws CodeException{
+        Optional<Job>jobOptional=jobRepository.findByUuidAndTenantIdAndDeletedFalse(jobId,tenantId);
+        if(jobOptional.isEmpty())
+            throw new RuntimeException("Job not found");
+        if(updateJobTaskDetails.getAssignedType()==null)
+            throw new CodeException("Assigned Type update is not allowed", ErrorCode.BAD_REQUEST);
+        if(updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.SYSTEM)){
+            // todo need to perform related task automatically
+        }
+        else if(updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.CSR)){
+        }
+
+
     }
 
     @Override
