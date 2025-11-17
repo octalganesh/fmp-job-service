@@ -124,11 +124,6 @@ public class JobServiceImpl implements JobService {
     public String addJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
             addJobDTO.setTenantId(!isSuperAdmin?tenantId:1L);
-            if (!isSuperAdmin) {
-                addJobDTO.setTenantId(tenantId);
-            } else {
-                addJobDTO.setTenantId(1l);
-            }
             validatedJobDTO(addJobDTO);
             return jobTransformer.transformToEntity(addJobDTO, tenantId, isSuperAdmin); // Using getRecordId() instead of getId()
         } catch (Exception e) {

@@ -69,6 +69,7 @@ public class JobTransformer {
                 }
                 JobMappingTask task = new JobMappingTask();
                 task.setTaskId(jobTaskId);
+                task.setTaskName(jobTaskExist.get().getName());
                 task.setTaskShowId(codeGenerator.generateTaskId());
                 task.setTaskSequence(jobTaskExist.get().getSequence());
                 task.setJobTaskStatus(jobTaskExist.get().getJobStatusMaster().getName());
