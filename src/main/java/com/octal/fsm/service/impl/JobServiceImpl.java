@@ -31,6 +31,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -526,12 +527,17 @@ public class JobServiceImpl implements JobService {
                         ApiResponse body = notificationSlugContent.getBody();
                         if (body != null) {
                             NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(),"#technicianName",getDetails.getName()));
                             sendBulkNotificationToUsers.setTitle(content.getTitle());
                             sendBulkNotificationToUsers.setBody(content.getMessage());
                             sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
-                            sendBulkNotificationToUsers.setTypeId(jobDetails.getJobTypeId());
-                            Set<MultiUserDeviceDetails> set = new HashSet<>();
-                            set.add(getDetails.getMultiUserDeviceDetails());
+                            sendBulkNotificationToUsers.setTypeId(jobTaskMappingToTechnician.get().getUuid());
+                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
+                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO=new MultiUserDeviceDetailsDTO();
+                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
+                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
+                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                            set.add(multiUserDeviceDetailsDTO);
                             sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
                             sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
                         }
@@ -584,12 +590,17 @@ public class JobServiceImpl implements JobService {
                         ApiResponse body = notificationSlugContent.getBody();
                         if (body != null) {
                             NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(),"#technicianName",getDetails.getName()));
                             sendBulkNotificationToUsers.setTitle(content.getTitle());
                             sendBulkNotificationToUsers.setBody(content.getMessage());
                             sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
-                            sendBulkNotificationToUsers.setTypeId(jobDetails.getJobTypeId());
-                            Set<MultiUserDeviceDetails> set = new HashSet<>();
-                            set.add(getDetails.getMultiUserDeviceDetails());
+                            sendBulkNotificationToUsers.setTypeId(JobTaskMappingTechnician.getUuid());
+                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
+                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO=new MultiUserDeviceDetailsDTO();
+                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
+                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
+                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                            set.add(multiUserDeviceDetailsDTO);
                             sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
                             sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
                         }
@@ -1366,6 +1377,107 @@ public class JobServiceImpl implements JobService {
         return adminClient.getFrontOfficeDevices(id, tenantId);
     }
 
+
+    List<FormsManagementDTO.Detail> getFormByJobType(String formType, Long tenantId) {
+        ResponseEntity<ApiResponse> response = adminClient.getFormByJobTypeId(formType, tenantId);
+        ApiResponse body = response.getBody();
+        if (body != null) {
+            List<FormsManagementDTO.Detail> details = objectMapper.convertValue(
+                    body.getData(),
+                    new TypeReference<List<FormsManagementDTO.Detail>>() {
+                    }
+            );
+            return details;
+        }
+        return null;
+    }
+
+    @Override
+    public FormsResponseDTO getFormsWithTaskId(String taskId, Long tenantId) throws CodeException {
+        try {
+            Optional<JobTaskMappingTechnician> taskMappingOpt = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+            if (taskMappingOpt.isPresent()) {
+                Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuidWithJob(taskMappingOpt.get().getJobTaskMappingId());
+                if (jobMappingTask.isPresent()) {
+                    Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobMappingTask.get().getJob().getUuid());
+                    if (job.isPresent()) {
+                        Optional<JobType> jobTask = jobTypeRepository.findByUuid(job.get().getJobTypeId());
+                        if (jobTask.isPresent()) {
+                            String jobTypeId = jobTask.get().getUuid();
+                            List<FormsManagementDTO.Detail> formsDetails = getFormByJobType(jobTypeId, tenantId);
+                            FormsResponseDTO formsResponseDTO = new FormsResponseDTO();
+                            formsResponseDTO.setJobId(jobMappingTask.get().getJob().getUuid());
+                            formsResponseDTO.setJobTypeId(jobTypeId);
+                            formsResponseDTO.setTaskId(taskId);
+                            formsResponseDTO.setFormDetails(formsDetails);
+                            return formsResponseDTO;
+                        }
+                    }
+                }
+
+            }
+            return null;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> saveTechnicianHtmlForm(HTMLFormDTO.Add add, Long tenantId) throws CodeException {
+        if (add.getTaskId() == null) {
+            throw new CodeException("Task ID is required", ErrorCode.COMMON);
+        }
+        Optional<JobTaskMappingTechnician> taskMappingOpt = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(add.getTaskId());
+        if (taskMappingOpt.isEmpty()) {
+            throw new CodeException("JobTaskMappingTechnician not found for given Task ID", ErrorCode.COMMON);
+        }
+        JobTaskMappingTechnician technician = taskMappingOpt.get();
+        HTMLFormPage htmlFormPage = new HTMLFormPage();
+        htmlFormPage.setName(add.getName());
+        htmlFormPage.setContent(add.getContent());
+        htmlFormPage.setCreatedAt(LocalDateTime.now());
+        technician.getHtmlFormPages().add(htmlFormPage);
+        JobTaskMappingTechnician save = jobTaskMappingTechnicianRepository.save(technician);
+        return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job created successfully", save, "200", HttpStatus.OK), HttpStatus.OK);
+    }
+
+    @Override
+    public JobTaskMappingWithHTMLFormDTO getTechnicianHtmlForm(String taskId, Long tenantId) throws CodeException {
+        Optional<JobTaskMappingTechnician> taskOpt =
+                jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+
+        if (taskOpt.isEmpty()) {
+            throw new CodeException("Technician task not found", ErrorCode.COMMON);
+        }
+        JobTaskMappingTechnician task = taskOpt.get();
+        List<HTMLFormDTO.Details> htmlForms = task.getHtmlFormPages().stream()
+                .filter(f -> Boolean.TRUE.equals(f.getActive())) // only active ones
+                .map(f -> new HTMLFormDTO.Details(
+                        f.getUuid(),
+                        f.getActive(),
+                        f.getName(),
+                        f.getContent(),
+                        f.getCreatedAt().toString(),
+                        f.getUpdatedAt().toString()
+                ))
+                .collect(Collectors.toList());
+        return new JobTaskMappingWithHTMLFormDTO(
+                task.getUuid(),
+                task.getJobTaskMappingId(),
+                task.getTechnicianId(),
+                task.getTaskStatus(),
+                task.getNote(),
+                task.getTechnicianNote(),
+                task.getStartDate().toString(),
+                task.getEndDate().toString(),
+                task.getSignature(),
+                task.getCancelReason(),
+                task.getDrawingJson(),
+                task.getDrawingImage(),
+                htmlForms
+        );
+    }
+
     @Override
     public HashMap<String, TechnicianDTO.TaskStats> getTechnicianTaskSummary(List<String> technicianUuids, Long tenantId, boolean isSuperAdmin) {
         if (isSuperAdmin)
@@ -1385,7 +1497,7 @@ public class JobServiceImpl implements JobService {
                     .count();
             long allTasks = taskMappings.stream()
                     .filter(mapping -> mapping.getTechnicianId().equals(technicianUuid))
-                            .count();
+                    .count();
 
 
             TechnicianDTO.TaskStats summary = new TechnicianDTO.TaskStats();

@@ -38,4 +38,7 @@ public interface AdminClient {
     @GetMapping("/front-office/getFrontOfficeDevices/{id}")
     ResponseEntity<com.octal.fsm.common.ApiResponse> getFrontOfficeDevices(@PathVariable("id") String id, @RequestHeader("tenantId") Long tenantId);
 
+    @GetMapping("/formsManagement/get-form-byType/{formTypeId}")
+    ResponseEntity<ApiResponse>getFormByJobTypeId(@PathVariable("formTypeId") String formTypeId,@RequestHeader("tenantId") Long tenantId);
+
 }

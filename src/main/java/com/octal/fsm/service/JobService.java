@@ -4,6 +4,7 @@ import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.dto.JobDTO;
 import com.octal.fsm.dto.PageItem;
 import com.octal.fsm.dto.TechnicianDTO;
+import com.octal.fsm.dto.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.models.request.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -68,7 +69,14 @@ public interface JobService {
 //
 //    JobDTO.Detail completeJob(String jobId, String summary) throws CodeException;
 
+    FormsResponseDTO getFormsWithTaskId(String taskId, Long tenantId)throws CodeException;
+
+
     ResponseEntity<ApiResponse> getFrontOfficeDevices(String id, Long tenantId) throws CodeException;
 
     HashMap<String, TechnicianDTO.TaskStats> getTechnicianTaskSummary(List<String> technicianUuids, Long tenantId, boolean isSuperAdmin);
+    ResponseEntity<ApiResponse> saveTechnicianHtmlForm(HTMLFormDTO.Add add,Long tenantId)throws CodeException;
+
+    public JobTaskMappingWithHTMLFormDTO getTechnicianHtmlForm(String taskId, Long tenantId)throws CodeException;
+
 }
