@@ -1,5 +1,6 @@
 package com.octal.fsm.dto;
 
+import com.octal.fsm.entities.enums.TaskAssignedType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,6 +17,9 @@ public class JobTaskDTO {
         private String jobTypeId;
         private Boolean isActive;
         private String description;
+        private TaskAssignedType assignedType;
+        private Integer sequence;
+        private String statusMasterId;
     }
 
     @Data
@@ -28,6 +32,9 @@ public class JobTaskDTO {
         private String updatedAt;
         private Boolean isActive;
         private String description;
+        private TaskAssignedType assignedType;
+        private String statusMasterId;
+        private Integer sequence;
     }
 
 

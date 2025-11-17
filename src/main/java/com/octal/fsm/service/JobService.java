@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import javax.validation.Valid;
 import java.util.HashMap;
 import java.util.List;
+import java.util.List;
 
 public interface JobService {
 
@@ -38,6 +39,8 @@ public interface JobService {
 
     PageItem<JobDTO.DetailsForTechnician> getJobTasksForTechnician(JobDTO.JobFilterRequest filterRequest, String technicianId, String loggedInUserEmail) throws CodeException;
 
+
+    void addJobStatus(List<JobDTO.AddJobStatus> addJobStatus, Long tenantId, boolean isSuperAdmin, String userName);
 
     JobDTO.DetailsForTechnician getJobTaskDetailsForTechnician(String technicianId, String taskId, String userName) throws CodeException;
 
@@ -71,6 +74,8 @@ public interface JobService {
 
     FormsResponseDTO getFormsWithTaskId(String taskId, Long tenantId)throws CodeException;
 
+
+    List<JobDTO.JobStatusDetail> getAllJobStatus(Long tenantId, boolean isSuperAdmin);
 
     ResponseEntity<ApiResponse> getFrontOfficeDevices(String id, Long tenantId) throws CodeException;
 

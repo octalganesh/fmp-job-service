@@ -4,9 +4,12 @@ import com.intuit.oauth2.client.OAuth2PlatformClient;
 import com.intuit.oauth2.data.BearerTokenResponse;
 import com.intuit.oauth2.exception.OAuthException;
 import com.octal.fsm.configuration.OAuth2PlatformClientFactory;
+import com.octal.fsm.controller.JobTypeController;
 import com.octal.fsm.entities.QuickBooksToken;
 import com.octal.fsm.repositories.QuickBooksTokenRepository;
 import com.octal.fsm.service.impl.QuickBooksTokenStore;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,6 +20,7 @@ import java.util.List;
 
 @Component
 public class QuickBooksTokenScheduler {
+    private static final Logger LOGGER = LogManager.getLogger(QuickBooksTokenScheduler.class);
     @Value("${quickbooks.company-id}")
     private String realmId;
 
@@ -31,8 +35,10 @@ public class QuickBooksTokenScheduler {
 
     @Scheduled(cron = "0 */5 * * * *")
      public void refreshTokens() throws OAuthException {
-        QuickBooksToken token = tokenRepository.findByRealmId(realmId).orElseThrow(() -> new RuntimeException("No QuickBooks token found for realmId " + realmId));
-        
+        LOGGER.info("refresh token method called - "+ LocalDateTime.now());
+        try {
+            QuickBooksToken token = tokenRepository.findByRealmId(realmId).orElseThrow(() -> new RuntimeException("No QuickBooks token found for realmId " + realmId));
+
             OAuth2PlatformClient client = factory.getOAuth2PlatformClient();
             BearerTokenResponse response = client.refreshToken(token.getRefreshToken());
             token.setUpdatedAt(LocalDateTime.now());
@@ -40,6 +46,10 @@ public class QuickBooksTokenScheduler {
             token.setRefreshToken(response.getRefreshToken());
             token.setExpiresAt(LocalDateTime.now().plusMinutes(response.getExpiresIn()));
             token=tokenRepository.save(token);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
 
     }
 }

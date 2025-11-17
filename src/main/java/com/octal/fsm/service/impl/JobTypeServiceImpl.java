@@ -9,6 +9,7 @@ import com.octal.fsm.entities.JobType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
+import com.octal.fsm.repositories.JobStatusMasterRepository;
 import com.octal.fsm.repositories.JobTypeRepository;
 import com.octal.fsm.service.JobTypeService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
@@ -21,10 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +32,8 @@ public class JobTypeServiceImpl implements JobTypeService {
     private JobTypeRepository jobTypeRepository;
     @Autowired
     private SpecificationFactory<JobType> jobTypeSpecificationFactory;
+    @Autowired
+    private JobStatusMasterRepository jobStatusMasterRepository;
 
     @Override
     public String addJobType(JobTypeDTO.Add add,Long tenantId, Boolean isSuperAdmin) throws CodeException {
@@ -86,40 +86,45 @@ public class JobTypeServiceImpl implements JobTypeService {
 //                (newJobTypeRecord);
 //        return jobType.getUuid();
         if(isSuperAdmin)
-            tenantId=1L;
+            tenantId = 1L;
+
         if (TextUtils.isEmpty(add.getName())) {
             throw new CodeException("Type name is required", ErrorCode.COMMON);
         }
 
         JobType jobTypeRecord;
 
-//  CREATE case
+// CREATE case
         if (TextUtils.isEmpty(add.getId())) {
             jobTypeRecord = new JobType();
             jobTypeRecord.setCreatedAt(LocalDateTime.now());
             jobTypeRecord.setDeleted(false);
             jobTypeRecord.setTenantId(tenantId);
         }
-//  UPDATE case
+// UPDATE case
         else {
             jobTypeRecord = jobTypeRepository.findByUuid(add.getId())
                     .orElseThrow(() -> new CodeException("JobType not found!", ErrorCode.COMMON));
             jobTypeRecord.setUpdatedAt(LocalDateTime.now());
         }
 
-//  Update common fields
+// Update common fields
         jobTypeRecord.setName(add.getName());
         jobTypeRecord.setDescription(add.getDescription());
         jobTypeRecord.setActive(add.getIsActive());
         jobTypeRecord.setUpdatedAt(LocalDateTime.now());
 
-//  Handle job tasks update (preserve existing IDs)
+// Handle job tasks update (preserve, update, sequence, and back-reference)
         if (add.getJobTasks() != null) {
-            // Map existing tasks by UUID for easy lookup
             Map<String, JobTask> existingTasks = jobTypeRecord.getJobTasks().stream()
                     .collect(Collectors.toMap(JobTask::getUuid, t -> t));
 
             List<JobTask> updatedTasks = new ArrayList<>();
+
+            Set<String> incomingIds = add.getJobTasks().stream()
+                    .map(JobTaskDTO.Add::getId)
+                    .filter(id -> !TextUtils.isEmpty(id))
+                    .collect(Collectors.toSet());
 
             for (JobTaskDTO.Add dto : add.getJobTasks()) {
                 JobTask taskEntity;
@@ -140,10 +145,22 @@ public class JobTypeServiceImpl implements JobTypeService {
                     taskEntity.setUpdatedAt(LocalDateTime.now());
                 }
 
+                taskEntity.setSequence(dto.getSequence());
+                taskEntity.setAssignedType(dto.getAssignedType());
+                taskEntity.setJobStatusMaster(jobStatusMasterRepository.findByUuid(dto.getStatusMasterId()).
+                        orElseThrow(()-> new CodeException("Job Status Master not found!", ErrorCode.COMMON)));
+                // Set the back-reference for bidirectional mapping
+                taskEntity.setJobType(jobTypeRecord);
+
                 updatedTasks.add(taskEntity);
             }
 
-            // Replace with updated list
+            // Remove tasks not present in incoming DTO
+            jobTypeRecord.getJobTasks().removeIf(
+                    t -> t.getUuid() != null && !incomingIds.contains(t.getUuid())
+            );
+
+            // Clear/add updated tasks to preserve sequence/order
             jobTypeRecord.getJobTasks().clear();
             jobTypeRecord.getJobTasks().addAll(updatedTasks);
         }
@@ -264,6 +281,10 @@ public class JobTypeServiceImpl implements JobTypeService {
                         taskDto.setId(entity.getUuid());
                         taskDto.setName(entity.getName());
                         taskDto.setDescription(entity.getDescription());
+                        taskDto.setAssignedType(entity.getAssignedType());
+                        taskDto.setIsActive(entity.getActive());
+                        taskDto.setStatusMasterId(entity.getJobStatusMaster().getUuid());
+                        taskDto.setSequence(entity.getSequence());
                         taskDto.setCreatedAt(entity.getCreatedAt().toString());
                         taskDto.setUpdatedAt(entity.getUpdatedAt().toString());
                         return taskDto;

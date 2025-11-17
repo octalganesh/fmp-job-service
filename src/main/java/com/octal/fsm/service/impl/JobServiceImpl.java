@@ -11,6 +11,7 @@ import com.octal.fsm.clients.TechnicianClient;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.dto.enums.JobUpdateType;
 import com.octal.fsm.dto.enums.PushNotificationType;
+import com.octal.fsm.dto.JobDTO.JobStatusDetail;
 import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
@@ -108,6 +109,9 @@ public class JobServiceImpl implements JobService {
     private JobHistoryRepository jobHistoryRepository;
 
     @Autowired
+    private JobStatusMasterRepository jobStatusMasterRepository;
+
+    @Autowired
     private JobService jobService;
     @Autowired
     private DocumentsRepository documentsRepository;
@@ -119,11 +123,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public String addJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
-            if (!isSuperAdmin) {
-                addJobDTO.setTenantId(tenantId);
-            } else {
-                addJobDTO.setTenantId(1l);
-            }
+            addJobDTO.setTenantId(!isSuperAdmin?tenantId:1L);
             validatedJobDTO(addJobDTO);
             return jobTransformer.transformToEntity(addJobDTO, tenantId, isSuperAdmin); // Using getRecordId() instead of getId()
         } catch (Exception e) {
@@ -654,6 +654,21 @@ public class JobServiceImpl implements JobService {
         } else {
             throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
         }
+    }
+
+    @Override
+    public void addJobStatus(List<JobDTO.AddJobStatus> addJobStatus, Long tenantId, boolean isSuperAdmin, String userName) {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        List<JobStatusMaster>jobStatusMasterList=new ArrayList<>();
+        for(JobDTO.AddJobStatus dto : addJobStatus){
+            JobStatusMaster jobStatusMaster = new JobStatusMaster();
+            jobStatusMaster.setName(dto.getName());
+            jobStatusMaster.setTenantId(tenantId);
+            jobStatusMasterList.add(jobStatusMaster);
+        }
+
+        jobStatusMasterRepository.saveAll(jobStatusMasterList);
     }
 
 
@@ -1370,6 +1385,20 @@ public class JobServiceImpl implements JobService {
             logger.error("Error getting job tasks for technician: {}", e.getMessage(), e);
             throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
         }
+    }
+
+    @Override
+    public List<JobStatusDetail> getAllJobStatus(Long tenantId, boolean isSuperAdmin) {
+
+        List<JobStatusMaster> statusMasters;
+        Long tenantIdToUse = isSuperAdmin ? 1L : tenantId;
+        statusMasters = jobStatusMasterRepository.findAllByTenantIdAndDeletedFalse(tenantIdToUse);
+
+        List<JobStatusDetail> statusDetails = statusMasters.stream()
+                .map(statusMaster -> new JobStatusDetail(statusMaster.getUuid(),statusMaster.getName(), statusMaster.getColorCode()))
+                .collect(Collectors.toList());
+
+        return statusDetails;
     }
 
     @Override

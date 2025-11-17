@@ -18,12 +18,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.function.Function;
-import java.util.Objects;
 
 @Component
 public class JobTransformer {
@@ -59,15 +56,24 @@ public class JobTransformer {
         job.setServiceLocation(addJobDTO.getServiceLocation());
         job.setServiceLocationLat(addJobDTO.getServiceLocationLat());
         job.setServiceLocationLng(addJobDTO.getServiceLocationLng());
-        job.setJobStatus(addJobDTO.getJobStatus());
         job.setJobDescription(addJobDTO.getJobDescription());
         List<JobMappingTask> jobMappingTask = new ArrayList<>();
         for (String jobTaskId : addJobDTO.getJobTaskId()) {
-            Boolean jobTaskExist = jobTaskRepository.existsByUuid(jobTaskId);
-            if (jobTaskExist) {
+            //Boolean jobTaskExist = jobTaskRepository.existsByUuid(jobTaskId);
+            Optional<JobTask> jobTaskExist=jobTaskRepository.findByUuid(jobTaskId);
+            if (jobTaskExist.isPresent()) {
+                if(jobTaskExist.get().getSequence()==1){
+                    job.setCurrentTaskId(jobTaskId);  // todo rather than passing whole object of status master in this we can pass either value or uuid of the same.
+                    job.setJobStatusMaster(jobTaskExist.get().getJobStatusMaster());
+                    job.setJobStatus(jobTaskExist.get().getName());
+                }
                 JobMappingTask task = new JobMappingTask();
                 task.setTaskId(jobTaskId);
+                task.setTaskName(jobTaskExist.get().getName());
                 task.setTaskShowId(codeGenerator.generateTaskId());
+                task.setTaskSequence(jobTaskExist.get().getSequence());
+                task.setJobTaskStatus(jobTaskExist.get().getJobStatusMaster().getName());
+                task.setAssignType(jobTaskExist.get().getAssignedType());
                 task.setJob(job);
                 jobMappingTask.add(task);
             }

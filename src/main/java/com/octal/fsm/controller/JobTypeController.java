@@ -4,7 +4,7 @@ import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.common.CommonConstants;
 import com.octal.fsm.dto.JobTaskDTO;
 import com.octal.fsm.dto.JobTypeDTO;
-import com.octal.fsm.models.request.PageRequest;;
+import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.service.JobTypeService;
 import com.octal.fsm.utils.TextUtils;
 import org.apache.logging.log4j.LogManager;

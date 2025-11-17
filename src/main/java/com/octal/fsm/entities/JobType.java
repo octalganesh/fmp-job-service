@@ -15,19 +15,26 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "job_type")
-public class JobType extends AbstractPersistable{
+public class JobType extends AbstractPersistable {
 
     @Column(name = "name")
     private String name;
 
-    @Column(name = "description",length = 512)
+    @Column(name = "description", length = 512)
     private String description;
 
-    @OneToMany(cascade = CascadeType.ALL,orphanRemoval = false)
-    private List<JobTask> jobTasks=new ArrayList<>();
+    @OneToMany(
+            mappedBy = "jobType",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
+    @OrderBy("sequence ASC")
+    private List<JobTask> jobTasks = new ArrayList<>();
 
     @Column(name = "tenant_id")
     private Long tenantId;
 
 }
+
 
