@@ -1,5 +1,6 @@
 package com.octal.fsm.repositories;
 
+import com.octal.fsm.entities.JobInvoice;
 import com.octal.fsm.entities.JobTaskMappingTechnician;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -31,6 +32,10 @@ public interface JobTaskMappingTechnicianRepository extends JpaRepository<JobTas
             "WHERE j.startDate <= :today " +
             "AND j.endDate >= :today")
     List<JobTaskMappingTechnician> findActiveTasksForToday(@Param("today") LocalDate today);
+
+    @Query("SELECT i FROM JobTaskMappingTechnician i WHERE i.deleted = false AND i.jobTaskMappingId IN :jobIds")
+    List<JobTaskMappingTechnician> findByJobTaskIdAndDeletedFalse(@Param("jobIds") List<String> jobIds);
+
 
 
 

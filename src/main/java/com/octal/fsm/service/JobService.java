@@ -88,5 +88,7 @@ public interface JobService {
 
     PageItem<JobTaskListDTO> getJobTaskList(PageRequest.List listRequest ,Long tenantId, boolean isSuperAdmin);
 
+    PageItem<JobInvoiceListDTO> getJobCompletedInvoiceList(PageRequest.List listRequest ,Long tenantId, boolean isSuperAdmin);
+
 
 }
