@@ -5,8 +5,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -36,4 +39,7 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
     boolean existsByUuidAndFrontOfficeIdAndDeletedFalse(String uuid, String frontOfficeId);
 
     boolean existsByUuidAndTenantIdAndFrontOfficeIdAndDeletedFalse(String uuid, Long tenantId, String frontOfficeId);
+
+    @Query("SELECT j FROM Job j WHERE j.uuid IN :uuids")
+    List<Job> findByUuidIn(@Param("uuids") List<String> uuids);
 }

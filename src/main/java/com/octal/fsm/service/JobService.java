@@ -81,4 +81,8 @@ public interface JobService {
     public JobTaskMappingWithHTMLFormDTO getTechnicianHtmlForm(String taskId, Long tenantId) throws CodeException;
 
     void updateJobTaskDetails(String jobId, JobDTO.UpdateJobTaskDetails updateJobTaskDetails, Long tenantId, String userName) throws CodeException;
+    List<TechnicianJobSummaryDTO> getTechnicianAssociationNeeded(Long tenantId, boolean isSuperAdmin);
+
+    List<TodayScheduleDTO> getTodayScheduled(Long tenantId, boolean isSuperAdmin)throws CodeException;
+
 }

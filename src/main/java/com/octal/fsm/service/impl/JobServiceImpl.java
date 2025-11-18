@@ -1564,4 +1564,111 @@ public class JobServiceImpl implements JobService {
 
     }
 
+    @Override
+    public List<TechnicianJobSummaryDTO> getTechnicianAssociationNeeded(Long tenantId, boolean isSuperAdmin) {
+        try {
+            List<Object[]> stats = jobTaskMappingTechnicianRepository.getTechnicianJobStats();
+
+            Map<String, Long> completedMap = new HashMap<>();
+            List<String> availableIds = new ArrayList<>();
+
+            for (Object[] row : stats) {
+                String techId = (String) row[0];//techIds
+                Long completed = (Long) row[1];//how many task completed
+                Long active = (Long) row[2];//active task
+                completedMap.put(techId, completed);
+                if (active == 0) {
+                    availableIds.add(techId);
+                }
+            }
+            // If no available technicians
+            if (availableIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+            ApiResponse technicianResponse = technicianClient.getTechByIds(availableIds, tenantId).getBody();
+            if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
+                List<TechnicianDTO.GetDetails> techDetails = objectMapper.convertValue(
+                        technicianResponse.getData(),
+                        new TypeReference<List<TechnicianDTO.GetDetails>>() {
+                        }
+                );
+                return techDetails.stream()
+                        .map(t -> new TechnicianJobSummaryDTO(
+                                t.getId(),
+                                t.getName(),
+                                t.getEmail(),
+                                t.getMobileNumber(),
+                                t.getProfilePicture(),
+                                t.getIsActive(),
+                                completedMap.getOrDefault(t.getId(), 0L),
+                                t.getJoinedDate()
+                        ))
+                        .collect(Collectors.toList());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return List.of();
+    }
+
+    @Override
+    public List<TodayScheduleDTO> getTodayScheduled(Long tenantId, boolean isSuperAdmin) throws CodeException {
+        try {
+            LocalDate today = LocalDate.now();
+            List<JobTaskMappingTechnician> activeTasksForToday = jobTaskMappingTechnicianRepository.findActiveTasksForToday(today);
+            if (activeTasksForToday.isEmpty()) {
+                return Collections.emptyList();
+            }
+            Set<String> technicianIds = activeTasksForToday.stream()
+                    .map(JobTaskMappingTechnician::getTechnicianId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+            Set<String> jobMappingIds = activeTasksForToday.stream()
+                    .map(JobTaskMappingTechnician::getJobTaskMappingId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+            List<Job> byUuidIn = jobRepository.findByUuidIn(new ArrayList<>(jobMappingIds));
+            Map<String, Job> jobMap = byUuidIn.stream()
+                    .collect(Collectors.toMap(Job::getUuid, j -> j));
+
+            ApiResponse technicianResponse = technicianClient.getTechByIds(new ArrayList<>(technicianIds), tenantId).getBody();
+            List<TodayScheduleDTO> results = new ArrayList<>();
+            if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
+                List<TechnicianDTO.GetDetails> techDetails = objectMapper.convertValue(
+                        technicianResponse.getData(),
+                        new TypeReference<List<TechnicianDTO.GetDetails>>() {
+                        }
+                );
+                Map<String, TechnicianDTO.GetDetails> techMap = techDetails.stream()
+                        .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
+
+                for (JobTaskMappingTechnician task : activeTasksForToday) {
+                    TechnicianDTO.GetDetails tech = techMap.get(task.getTechnicianId());
+                    Job job = jobMap.get(task.getJobTaskMappingId());
+                    if (tech == null || job == null) continue;
+                    TodayScheduleDTO dto = new TodayScheduleDTO();
+                    dto.setTechnicianName(tech.getName());
+                    dto.setServiceLocation(job.getServiceLocation());
+                    dto.setStartDate(task.getStartDate());
+                    dto.setEndDate(task.getEndDate());
+                    results.add(dto);
+                }
+            }
+            return results;
+        } catch (Exception e) {
+            throw new CodeException("Failed to get today's schedule", ErrorCode.COMMON);
+        }
+    }
+
+
 }
+
+
+
+
+
+
+
+
