@@ -37,6 +37,7 @@ public class PageRequest {
         private String designation;
         private String sortBy;
         private String jobId;
+        private String jobStatus;
     }
 
 

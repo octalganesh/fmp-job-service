@@ -3,6 +3,7 @@ package com.octal.fsm.service;
 import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.exceptions.CodeException;
+import com.octal.fsm.models.request.PageRequest;
 import org.springframework.http.ResponseEntity;
 
 import javax.validation.Valid;
@@ -84,5 +85,8 @@ public interface JobService {
     List<TechnicianJobSummaryDTO> getTechnicianAssociationNeeded(Long tenantId, boolean isSuperAdmin);
 
     List<TodayScheduleDTO> getTodayScheduled(Long tenantId, boolean isSuperAdmin)throws CodeException;
+
+    PageItem<JobTaskListDTO> getJobTaskList(PageRequest.List listRequest ,Long tenantId, boolean isSuperAdmin);
+
 
 }

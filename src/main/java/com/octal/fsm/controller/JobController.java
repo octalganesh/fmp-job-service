@@ -404,5 +404,17 @@ public class JobController extends BaseController {
         }
     }
 
+    @PostMapping("/get-task-list")
+    public ResponseEntity<ApiResponse> getJobTaskList(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Details Updated Successfully.", jobService.getJobTaskList(listRequest, tenantId,  isSuperAdmin(request)), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error updating job task details: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 
 }

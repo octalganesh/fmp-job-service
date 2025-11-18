@@ -1662,6 +1662,123 @@ public class JobServiceImpl implements JobService {
         }
     }
 
+    @Override
+    public PageItem<JobTaskListDTO> getJobTaskList(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) {
+
+        String trimmedText = listRequest.getSearchText().trim();
+        listRequest.setSearchText(trimmedText);
+        GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
+        Pageable pageable = null;
+        if (Boolean.TRUE.equals(listRequest.getAsc())) {
+            pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
+        } else {
+            pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
+        }
+        prepareTaskListSearchFilter(listRequest, builder);
+        Page<JobTaskMappingTechnician> pagedResult = jobTaskMappingTechnicianRepository.findAll(builder.build(), pageable);
+
+        Set<String> technicianIds = pagedResult
+                .getContent()
+                .stream()
+                .map(JobTaskMappingTechnician::getTechnicianId)
+                .collect(Collectors.toSet());
+
+        Set<String> jobMappingIds = pagedResult
+                .getContent()
+                .stream()
+                .map(JobTaskMappingTechnician::getJobTaskMappingId)
+                .collect(Collectors.toSet());
+        List<Job> jobByUuidIn = jobRepository.findByUuidIn(new ArrayList<>(jobMappingIds));
+
+        Set<String> jobTypeIds = jobByUuidIn.stream()
+                .map(Job::getJobTypeId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        List<JobType> byUuidAndDeletedFalse = jobTypeRepository.findByUuidAndDeletedFalse(new ArrayList<>(jobTypeIds));
+
+        Map<String, JobType> jobTypeMap = byUuidAndDeletedFalse.stream()
+                .collect(Collectors.toMap(JobType::getUuid, j -> j));
+
+        ApiResponse technicianResponse = technicianClient.getTechByIds(new ArrayList<>(technicianIds), tenantId).getBody();
+        List<JobTaskListDTO> results = new ArrayList<>();
+        if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
+            List<TechnicianDTO.GetDetails> techDetails = objectMapper.convertValue(
+                    technicianResponse.getData(),
+                    new TypeReference<List<TechnicianDTO.GetDetails>>() {
+                    }
+            );
+            Map<String, TechnicianDTO.GetDetails> techMap = techDetails.stream()
+                    .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
+
+            for (JobTaskMappingTechnician record : pagedResult.getContent()) {
+
+                TechnicianDTO.GetDetails tech = techMap.get(record.getTechnicianId());
+                Job job = jobByUuidIn.stream()
+                        .filter(j -> j.getUuid().equals(record.getJobTaskMappingId()))
+                        .findFirst().orElse(null);
+
+                if (tech == null || job == null)
+                    continue;
+
+                JobType jobType = jobTypeMap.get(job.getJobTypeId());
+                if (jobType == null)
+                    continue;
+
+                JobTaskListDTO dto = new JobTaskListDTO();
+                dto.setTechnicianId(record.getTechnicianId());
+                dto.setTechnicianName(tech.getName());
+                dto.setStartDate(record.getStartDate().toString());
+                dto.setEndDate(record.getEndDate().toString());
+                dto.setTaskStatus(record.getTaskStatus());
+                dto.setTaskName(jobType.getName());
+                dto.setJobId(record.getJobTaskMappingId());
+
+                results.add(dto);
+            }
+        }
+        if (!TextUtils.isEmpty(trimmedText)) {
+            String search = trimmedText.toLowerCase().replaceAll("\\s+", "");
+            results = results.stream()
+                    .filter(r -> {
+                        if (r.getTechnicianName() == null) return false;
+                        String tech = r.getTechnicianName()
+                                .trim()
+                                .toLowerCase()
+                                .replaceAll("\\s+", "");
+                        return tech.contains(search);
+                    })
+                    .collect(Collectors.toList());
+        }
+        return new PageItem<>(
+                pagedResult.getTotalPages(),
+                pagedResult.getTotalElements(),
+                results,
+                listRequest.getPageNumber(),
+                listRequest.getPageSize()
+        );
+    }
+
+    private void prepareTaskListSearchFilter(com.octal.fsm.models.request.PageRequest.List listRequest, GenericSpecificationsBuilder<JobTaskMappingTechnician> builder) {
+        builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("deleted", false));
+
+        if (listRequest.getIsActive() != null) {
+            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
+        }
+        if (!TextUtils.isEmpty(listRequest.getJobStatus())) {
+            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("taskStatus", listRequest.getJobStatus()));
+        }
+        if (listRequest.getStartDate() != null) {
+            builder.with(jobTaskMappingTechnicianSpecificationFactory.isGreaterThanOrEquals("startDate", listRequest.getStartDate()));
+        }
+
+        if (listRequest.getEndDate() != null) {
+            builder.with(jobTaskMappingTechnicianSpecificationFactory.isLessThanOrEquals("endDate", listRequest.getEndDate()));
+        }
+
+    }
+
+
 
 }
 
