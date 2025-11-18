@@ -4,7 +4,7 @@ import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.common.CommonConstants;
 import com.octal.fsm.dto.JobTaskDTO;
 import com.octal.fsm.dto.JobTypeDTO;
-import com.octal.fsm.models.request.PageRequest;;
+import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.service.JobTypeService;
 import com.octal.fsm.utils.TextUtils;
 import org.apache.logging.log4j.LogManager;
@@ -33,10 +33,10 @@ public class JobTypeController extends BaseController {
         logger.info("JobTypeController.addJobType");
         String userName = request.getHeader(CommonConstants.USER_NAME);
         try {
-            Long tenantId=getTenantId(request);
-            boolean isSuperAdmin=isSuperAdmin(request);
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
             String messageResponse = TextUtils.isEmpty(jobTypeDTO.getId()) ? "jobType added Successfully!" : "jobType updated Successfully!";
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, messageResponse, jobTypeService.addJobType(jobTypeDTO,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, messageResponse, jobTypeService.addJobType(jobTypeDTO, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return handleException(e);
         }
@@ -59,10 +59,10 @@ public class JobTypeController extends BaseController {
     public ResponseEntity<ApiResponse> JobTypeList(@Valid @RequestBody PageRequest.List listRequest, HttpServletRequest request) {
         logger.info("JobTypeController./list");
         try {
-            Long tenantId=getTenantId(request);
-            boolean isSuperAdmin=isSuperAdmin(request);
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, CommonConstants.DETAILS_FETCHED, jobTypeService.getAllJobTypes(listRequest,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, CommonConstants.DETAILS_FETCHED, jobTypeService.getAllJobTypes(listRequest, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return handleException(e);
         }
@@ -72,10 +72,10 @@ public class JobTypeController extends BaseController {
     public ResponseEntity<ApiResponse> JobTypeListForTechnician(@Valid @RequestBody PageRequest.List listRequest, HttpServletRequest request) {
         logger.info("JobTypeController./list-for-technician");
         try {
-            Long tenantId=getTenantId(request);
-            boolean isSuperAdmin=isSuperAdmin(request);
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, CommonConstants.DETAILS_FETCHED, jobTypeService.getAllJobTypesForTechnician(listRequest,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, CommonConstants.DETAILS_FETCHED, jobTypeService.getAllJobTypesForTechnician(listRequest, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return handleException(e);
         }
@@ -99,9 +99,9 @@ public class JobTypeController extends BaseController {
         logger.info("JobTypeController./by/id");
         String userName = request.getHeader(CommonConstants.USER_NAME);
         try {
-            Long tenantId=getTenantId(request);
-            boolean isSuperAdmin=isSuperAdmin(request);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "fetched successfully!", jobTypeService.getJobTypeByUuid(id,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "fetched successfully!", jobTypeService.getJobTypeByUuid(id, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return handleException(e);
         }

@@ -1,14 +1,22 @@
 package com.octal.fsm.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.octal.fsm.clients.AdminClient;
+import com.octal.fsm.clients.NotificationClient;
 import com.octal.fsm.clients.TechnicianClient;
 import com.octal.fsm.dto.*;
+import com.octal.fsm.dto.JobDTO.JobStatusDetail;
+import com.octal.fsm.dto.enums.JobUpdateType;
+import com.octal.fsm.dto.enums.PushNotificationType;
 import com.octal.fsm.entities.*;
+import com.octal.fsm.entities.enums.TaskAssignedType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
+import com.octal.fsm.listener.events.SendMailAndPushEvent;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.repositories.*;
 import com.octal.fsm.service.JobService;
@@ -25,10 +33,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.validation.Valid;
 import java.lang.reflect.Type;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -65,6 +75,10 @@ public class JobServiceImpl implements JobService {
     private SpecificationFactory<JobTaskMappingTechnician> jobTaskMappingTechnicianSpecificationFactory;
 
     @Autowired
+    private SpecificationFactory<JobHistory> jobHistorySpecificationFactory;
+
+
+    @Autowired
     private SpecificationFactory<JobMappingTask> jobMappingTaskSpecificationFactory;
 
     @Autowired
@@ -87,6 +101,16 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
+    @Autowired
+    private NotificationClient notificationClient;
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private JobHistoryRepository jobHistoryRepository;
+
+    @Autowired
+    private JobStatusMasterRepository jobStatusMasterRepository;
 
     @Autowired
     private JobService jobService;
@@ -100,11 +124,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public String addJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
-            if (!isSuperAdmin) {
-                addJobDTO.setTenantId(tenantId);
-            } else {
-                addJobDTO.setTenantId(1l);
-            }
+            addJobDTO.setTenantId(!isSuperAdmin ? tenantId : 1L);
             validatedJobDTO(addJobDTO);
             return jobTransformer.transformToEntity(addJobDTO, tenantId, isSuperAdmin); // Using getRecordId() instead of getId()
         } catch (Exception e) {
@@ -234,7 +254,7 @@ public class JobServiceImpl implements JobService {
 
 
     @Override
-    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String location, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+    public PageItem<JobDTO.JobListResponse> getAllJobs(String txt, int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String location, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin, String frontOfficeId) throws CodeException {
 
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
@@ -281,6 +301,9 @@ public class JobServiceImpl implements JobService {
         if (!TextUtils.isEmpty(location)) {
             builder.with(jobSpecificationFactory.like("serviceLocation", location));
         }
+        if (!TextUtils.isEmpty(frontOfficeId)) {
+            builder.with(jobSpecificationFactory.like("frontOfficeId", frontOfficeId));
+        }
         Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageable);
         List<JobDTO.JobListResponse> responseList = new ArrayList<>();
         for (Job job : pagedResult.getContent()) {
@@ -293,7 +316,7 @@ public class JobServiceImpl implements JobService {
             dto.setJobStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
             dto.setJobEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
             try {
-                ApiResponse apiResponse = adminClient.getJobDetailsWithLeadAndCustomerDetails(job.getCustomerId(), job.getLeadSourceId(), loggedInUserEmail).getBody();
+                ApiResponse apiResponse = adminClient.getJobDetailsWithLeadAndCustomerDetails(job.getCustomerId(), job.getLeadSourceId(), loggedInUserEmail, tenantId, isSuperAdmin).getBody();
                 if (apiResponse != null && apiResponse.getData() != null) {
                     Gson gson = new Gson();
                     Type customerDetailsStr = new TypeToken<Map<String, String>>() {
@@ -341,7 +364,7 @@ public class JobServiceImpl implements JobService {
         }
         if (!TextUtils.isEmpty(job.getLeadSourceId()) || !TextUtils.isEmpty(job.getCustomerTypeId()) || !TextUtils.isEmpty(job.getCustomerId())) {
             try {
-                ApiResponse apiResponse = adminClient.getJobDetailsForCustomerInfo(job.getCustomerId(), job.getLeadSourceId(), job.getCustomerTypeId(), loggedInUserEmail).getBody();
+                ApiResponse apiResponse = adminClient.getJobDetailsForCustomerInfo(job.getCustomerId(), job.getLeadSourceId(), job.getCustomerTypeId(), loggedInUserEmail, tenantId, isSuperAdmin).getBody();
                 if (apiResponse != null && apiResponse.getData() != null) {
                     Gson gson = new Gson();
                     Type customerDetailsStr = new TypeToken<Map<String, String>>() {
@@ -375,6 +398,7 @@ public class JobServiceImpl implements JobService {
             if (jobTagOptional.isPresent()) {
                 JobTagDTO.Detail jobTagDTO = new JobTagDTO.Detail();
                 jobTagDTO.setId(tag.getTagId());
+                jobTagDTO.setTagColor(jobTagOptional.get().getTagColor());
                 jobTagDTO.setName(jobTagOptional.get().getName());
                 jobTagList.add(jobTagDTO);
             }
@@ -500,7 +524,26 @@ public class JobServiceImpl implements JobService {
                     TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
 
                     if (getDetails != null && getDetails.getEmail() != null) {
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail));
+                        PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
+                        ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
+                        ApiResponse body = notificationSlugContent.getBody();
+                        if (body != null) {
+                            NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", getDetails.getName()));
+                            sendBulkNotificationToUsers.setTitle(content.getTitle());
+                            sendBulkNotificationToUsers.setBody(content.getMessage());
+                            sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
+                            sendBulkNotificationToUsers.setTypeId(jobTaskMappingToTechnician.get().getUuid());
+                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
+                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
+                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
+                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
+                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                            set.add(multiUserDeviceDetailsDTO);
+                            sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
+                            sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
+                        }
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail, tenantId, isSuperAdmin, sendBulkNotificationToUsers));
                     }
                 }
 
@@ -544,7 +587,26 @@ public class JobServiceImpl implements JobService {
                     TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
 
                     if (getDetails != null && getDetails.getEmail() != null) {
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail));
+                        PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
+                        ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
+                        ApiResponse body = notificationSlugContent.getBody();
+                        if (body != null) {
+                            NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", getDetails.getName()));
+                            sendBulkNotificationToUsers.setTitle(content.getTitle());
+                            sendBulkNotificationToUsers.setBody(content.getMessage());
+                            sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
+                            sendBulkNotificationToUsers.setTypeId(JobTaskMappingTechnician.getUuid());
+                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
+                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
+                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
+                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
+                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                            set.add(multiUserDeviceDetailsDTO);
+                            sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
+                            sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
+                        }
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail, tenantId, isSuperAdmin, sendBulkNotificationToUsers));
                     }
                 }
             }
@@ -594,6 +656,121 @@ public class JobServiceImpl implements JobService {
         } else {
             throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
         }
+    }
+
+    @Override
+    public void addJobStatus(List<JobDTO.AddJobStatus> addJobStatus, Long tenantId, boolean isSuperAdmin, String userName) {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        List<JobStatusMaster> jobStatusMasterList = new ArrayList<>();
+        for (JobDTO.AddJobStatus dto : addJobStatus) {
+            JobStatusMaster jobStatusMaster = new JobStatusMaster();
+            jobStatusMaster.setName(dto.getName());
+            jobStatusMaster.setTenantId(tenantId);
+            jobStatusMasterList.add(jobStatusMaster);
+        }
+
+        jobStatusMasterRepository.saveAll(jobStatusMasterList);
+    }
+
+
+    @Override
+    public void leaveOrReAssignJob(JobDTO.@Valid LeaveJob leaveJob, Long tenantId, boolean isSuperAdmin, String userName) throws CodeException {
+
+        if (leaveJob.getJobUpdateType().equals(JobUpdateType.CANCEL) && TextUtils.isEmpty(leaveJob.getReasonForLeave())) {
+            throw new CodeException("Please provide a cancel Reason", ErrorCode.COMMON);
+        }
+
+        if (!TextUtils.isEmpty(leaveJob.getJobId())) {
+            Job job = new Job();
+            if (leaveJob.getJobUpdateType().equals(JobUpdateType.CANCEL)) {
+                Optional<Job> jobOptional = jobRepository.findByUuidAndTenantIdAndFrontOfficeIdAndDeletedFalse(leaveJob.getJobId(), tenantId, leaveJob.getFrontOfficeUserId());
+                if (jobOptional.isPresent()) {
+                    job = jobOptional.get();
+                    job.setFrontOfficeId("");
+                } else {
+                    throw new CodeException("Job not found", ErrorCode.COMMON);
+                }
+                jobRepository.save(job);
+                JobHistory jobHistory = new JobHistory();
+                jobHistory.setJobId(leaveJob.getJobId());
+                jobHistory.setReason(leaveJob.getReasonForLeave());
+                jobHistory.setFrontOfficeId(leaveJob.getFrontOfficeUserId());
+                jobHistory.setTenantId(tenantId);
+                jobHistory.setActive(false);
+                jobHistory.setFrontOfficeName(leaveJob.getFrontOfficeUserName());
+                jobHistory.setUpdatedAt(LocalDateTime.now());
+                jobHistoryRepository.save(jobHistory);
+            } else {
+
+                Optional<Job> jobOptional = jobRepository.findByUuidAndTenantIdAndFrontOfficeIdAndDeletedFalse(leaveJob.getJobId(), tenantId, "");
+                if (jobOptional.isPresent()) {
+                    job = jobOptional.get();
+                    job.setFrontOfficeId(leaveJob.getFrontOfficeUserId());
+                } else {
+                    throw new CodeException("Job not found", ErrorCode.COMMON);
+                }
+                jobRepository.save(job);
+                JobHistory jobHistory = new JobHistory();
+                jobHistory.setJobId(leaveJob.getJobId());
+                jobHistory.setReason(leaveJob.getReasonForLeave());
+                jobHistory.setFrontOfficeId(leaveJob.getFrontOfficeUserId());
+                jobHistory.setFrontOfficeName(leaveJob.getFrontOfficeUserName());
+                jobHistory.setTenantId(tenantId);
+                jobHistory.setActive(true);
+                jobHistory.setUpdatedAt(LocalDateTime.now());
+                jobHistoryRepository.save(jobHistory);
+
+
+            }
+        } else {
+            throw new CodeException("Job id cannot be empty", ErrorCode.COMMON);
+
+        }
+    }
+
+    @Override
+    public PageItem<JobDTO.JobHistoryDTO> jobLeaveReassignHistory(int page, int size, String sortBy, Boolean order, String fromStartDate, String toStartDate, String jobId, String userName, Long tenantId, boolean isSuperAdmin) {
+
+        GenericSpecificationsBuilder<JobHistory> builder = new GenericSpecificationsBuilder<>();
+        Pageable pageable = null;
+        if (Boolean.TRUE.equals(order)) {
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).ascending());
+        } else {
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).descending());
+        }
+        builder.with(jobHistorySpecificationFactory.isEqual("deleted", false));
+
+        builder.with(jobHistorySpecificationFactory.isEqual("tenantId", tenantId));
+        if (!TextUtils.isEmpty(jobId)) {
+            builder.with(jobHistorySpecificationFactory.isEqual("jobId", jobId));
+        }
+        if (!TextUtils.isEmpty(fromStartDate)) {
+            builder.with(jobHistorySpecificationFactory.isGreaterThanOrEquals("jobStartDate", LocalDate.parse(fromStartDate)));
+        }
+        if (!TextUtils.isEmpty(toStartDate)) {
+            builder.with(jobHistorySpecificationFactory.isLessThanOrEquals("jobEndDate", LocalDate.parse(toStartDate)));
+        }
+
+        Page<JobHistory> pagedResult = jobHistoryRepository.findAll(builder.build(), pageable);
+        List<JobDTO.JobHistoryDTO> responseList = new ArrayList<>();
+        for (JobHistory jobHistory : pagedResult.getContent()) {
+            JobDTO.JobHistoryDTO dto = new JobDTO.JobHistoryDTO();
+            dto.setId(jobHistory.getUuid());
+            dto.setJobId(jobHistory.getJobId());
+            dto.setJobId(jobHistory.getJobId());
+            dto.setReason(jobHistory.getReason());
+            dto.setTenantId(jobHistory.getTenantId());
+            dto.setCreatedAt(jobHistory.getCreatedAt());
+            dto.setFrontOfficeId(jobHistory.getFrontOfficeId());
+            dto.setUpdatedAt(jobHistory.getUpdatedAt());
+            dto.setIsActive(jobHistory.getActive());
+            dto.setFrontOfficeName(jobHistory.getFrontOfficeName());
+            responseList.add(dto);
+        }
+
+        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, page,
+                size);
     }
 
 //    @Override
@@ -873,7 +1050,8 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public JobDTO.DetailsForTechnician getJobTaskDetailsForTechnician(String technicianId, String taskId, String userName) throws CodeException {
+    public JobDTO.DetailsForTechnician getJobTaskDetailsForTechnician(String technicianId, String taskId, String
+            userName) throws CodeException {
         Optional<JobTaskMappingTechnician> taskMappingOpt = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
 //        if (taskMappingOpt.isEmpty()) {
 //            return new PageItem<>()
@@ -884,7 +1062,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public void updateJobTaskStatus(String technicianId, String taskId, String status, String note, String signature, String userName) throws CodeException {
+    public void updateJobTaskStatus(String technicianId, String taskId, String status, String note, String signature, String userName, Long tenantId) throws CodeException {
         Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
         if (jobTaskMappingTechnician.isPresent()) {
             JobTaskMappingTechnician taskMappingTechnician = jobTaskMappingTechnician.get();
@@ -907,13 +1085,71 @@ public class JobServiceImpl implements JobService {
                 taskMappingTechnician.setSignatureDateTime(LocalDateTime.now());
             }
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
+            PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToFront = new PushNotificationRequest.SendBulkNotificationToUsers();
+            ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.TASK_STATUS_CHANGE.toString());
+            ApiResponse body = notificationSlugContent.getBody();
+            if (body != null) {
+                NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                sendBulkNotificationToFront.setTitle(content.getTitle());
+                sendBulkNotificationToFront.setBody(content.getMessage());
+                sendBulkNotificationToFront.setType(PushNotificationType.TASK_STATUS_CHANGE);
+                Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(taskMappingTechnician.getJobTaskMappingId());
+                CustomerDTO.GetDetails customerDetails = new CustomerDTO.GetDetails();
+                JobDTO.Detail jobDetails = new JobDTO.Detail();
+                if (jobMappingTask.isPresent()) {
+                    sendBulkNotificationToFront.setTypeId(jobMappingTask.get().getJob().getJobTypeId());
+                    String customerId = jobMappingTask.get().getJob().getCustomerId();
+                    Job job = jobMappingTask.get().getJob();
+
+                    jobDetails.setJobId(job.getJobId());
+                    jobDetails.setJobTypeId(job.getJobTypeId());
+                    jobDetails.setCustomerTypeId(job.getCustomerTypeId());
+                    jobDetails.setLeadSourceId(job.getLeadSourceId());
+                    jobDetails.setJobDescription(job.getJobDescription());
+                    jobDetails.setAdditionalNotes(job.getAdditionalNotes());
+                    jobDetails.setJobStatus(job.getJobStatus());
+                    jobDetails.setServiceLocation(job.getServiceLocation());
+                    jobDetails.setServiceLocationLat(job.getServiceLocationLat());
+                    jobDetails.setServiceLocationLng(job.getServiceLocationLng());
+                    jobDetails.setJobStartDate(job.getJobStartDate().toString());
+                    jobDetails.setJobEndDate(job.getJobEndDate().toString());
+
+                    ApiResponse customerResponse = adminClient.getCustomerById(customerId, userName).getBody();
+                    if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
+                        Gson gson = new Gson();
+                        customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
+                    }
+                }
+                com.octal.fsm.common.ApiResponse frontOfficeDevices = jobService.getFrontOfficeDevices(null, tenantId).getBody();
+                Set<MultiUserDeviceDetails> frontOfficeDeviceDetails = new HashSet<>();
+                if (frontOfficeDevices != null) {
+                    List<MultiUserDeviceDetails> frontOfficedeviceList = objectMapper.convertValue(
+                            frontOfficeDevices.getData(),
+                            new TypeReference<List<MultiUserDeviceDetails>>() {
+                            }
+                    );
+                    if (frontOfficedeviceList != null && !frontOfficedeviceList.isEmpty()) {
+                        for (MultiUserDeviceDetails multiUserDeviceDetails : frontOfficedeviceList) {
+                            MultiUserDeviceDetails dto = new MultiUserDeviceDetails();
+                            dto.setDeviceToken(multiUserDeviceDetails.getDeviceToken());
+                            dto.setDeviceType(multiUserDeviceDetails.getDeviceType());
+                            dto.setAppVersion(multiUserDeviceDetails.getAppVersion());
+                            dto.setDeviceId(multiUserDeviceDetails.getDeviceId());
+                            frontOfficeDeviceDetails.add(dto);
+                        }
+                    }
+                    sendBulkNotificationToFront.setTechnicianFcmTokenList(new HashSet<>());
+                    sendBulkNotificationToFront.setFrontOfficeFcmTokenList(frontOfficeDeviceDetails);
+                }
+                applicationEventPublisher.publishEvent(new SendMailAndPushEvent(customerDetails, jobDetails, userName, sendBulkNotificationToFront));
+            }
         } else {
             throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
         }
-
     }
 
-    private List<JobDTO.DetailsForTechnician> buildTechnicianJobTaskDetails(List<JobTaskMappingTechnician> taskMappings, String txt, String loggedInUserEmail) {
+    private List<JobDTO.DetailsForTechnician> buildTechnicianJobTaskDetails
+            (List<JobTaskMappingTechnician> taskMappings, String txt, String loggedInUserEmail) {
         List<JobDTO.DetailsForTechnician> responseList = new ArrayList<>();
 
         for (JobTaskMappingTechnician taskMapping : taskMappings) {
@@ -1151,6 +1387,181 @@ public class JobServiceImpl implements JobService {
             logger.error("Error getting job tasks for technician: {}", e.getMessage(), e);
             throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
         }
+    }
+
+    @Override
+    public List<JobStatusDetail> getAllJobStatus(Long tenantId, boolean isSuperAdmin) {
+
+        List<JobStatusMaster> statusMasters;
+        Long tenantIdToUse = isSuperAdmin ? 1L : tenantId;
+        statusMasters = jobStatusMasterRepository.findAllByTenantIdAndDeletedFalse(tenantIdToUse);
+
+        List<JobStatusDetail> statusDetails = statusMasters.stream()
+                .map(statusMaster -> new JobStatusDetail(statusMaster.getUuid(), statusMaster.getName(), statusMaster.getColorCode()))
+                .collect(Collectors.toList());
+
+        return statusDetails;
+    }
+
+    @Override
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> getFrontOfficeDevices(String id, Long tenantId) throws CodeException {
+        return adminClient.getFrontOfficeDevices(id, tenantId);
+    }
+
+
+    List<FormsManagementDTO.Detail> getFormByJobType(String formType, Long tenantId) {
+        ResponseEntity<ApiResponse> response = adminClient.getFormByJobTypeId(formType, tenantId);
+        ApiResponse body = response.getBody();
+        if (body != null) {
+            List<FormsManagementDTO.Detail> details = objectMapper.convertValue(
+                    body.getData(),
+                    new TypeReference<List<FormsManagementDTO.Detail>>() {
+                    }
+            );
+            return details;
+        }
+        return null;
+    }
+
+    @Override
+    public FormsResponseDTO getFormsWithTaskId(String taskId, Long tenantId) throws CodeException {
+        try {
+            Optional<JobTaskMappingTechnician> taskMappingOpt = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+            if (taskMappingOpt.isPresent()) {
+                Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuidWithJob(taskMappingOpt.get().getJobTaskMappingId());
+                if (jobMappingTask.isPresent()) {
+                    Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobMappingTask.get().getJob().getUuid());
+                    if (job.isPresent()) {
+                        Optional<JobType> jobTask = jobTypeRepository.findByUuid(job.get().getJobTypeId());
+                        if (jobTask.isPresent()) {
+                            String jobTypeId = jobTask.get().getUuid();
+                            List<FormsManagementDTO.Detail> formsDetails = getFormByJobType(jobTypeId, tenantId);
+                            FormsResponseDTO formsResponseDTO = new FormsResponseDTO();
+                            formsResponseDTO.setJobId(jobMappingTask.get().getJob().getUuid());
+                            formsResponseDTO.setJobTypeId(jobTypeId);
+                            formsResponseDTO.setTaskId(taskId);
+                            formsResponseDTO.setFormDetails(formsDetails);
+                            return formsResponseDTO;
+                        }
+                    }
+                }
+
+            }
+            return null;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> saveTechnicianHtmlForm(HTMLFormDTO.Add add, Long tenantId) throws CodeException {
+        if (add.getTaskId() == null) {
+            throw new CodeException("Task ID is required", ErrorCode.COMMON);
+        }
+        Optional<JobTaskMappingTechnician> taskMappingOpt = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(add.getTaskId());
+        if (taskMappingOpt.isEmpty()) {
+            throw new CodeException("JobTaskMappingTechnician not found for given Task ID", ErrorCode.COMMON);
+        }
+        JobTaskMappingTechnician technician = taskMappingOpt.get();
+        HTMLFormPage htmlFormPage = new HTMLFormPage();
+        htmlFormPage.setName(add.getName());
+        htmlFormPage.setContent(add.getContent());
+        htmlFormPage.setCreatedAt(LocalDateTime.now());
+        technician.getHtmlFormPages().add(htmlFormPage);
+        JobTaskMappingTechnician save = jobTaskMappingTechnicianRepository.save(technician);
+        return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job created successfully", save, "200", HttpStatus.OK), HttpStatus.OK);
+    }
+
+    @Override
+    public JobTaskMappingWithHTMLFormDTO getTechnicianHtmlForm(String taskId, Long tenantId) throws CodeException {
+        Optional<JobTaskMappingTechnician> taskOpt =
+                jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(taskId);
+
+        if (taskOpt.isEmpty()) {
+            throw new CodeException("Technician task not found", ErrorCode.COMMON);
+        }
+        JobTaskMappingTechnician task = taskOpt.get();
+        List<HTMLFormDTO.Details> htmlForms = task.getHtmlFormPages().stream()
+                .filter(f -> Boolean.TRUE.equals(f.getActive())) // only active ones
+                .map(f -> new HTMLFormDTO.Details(
+                        f.getUuid(),
+                        f.getActive(),
+                        f.getName(),
+                        f.getContent(),
+                        f.getCreatedAt().toString(),
+                        f.getUpdatedAt().toString()
+                ))
+                .collect(Collectors.toList());
+        return new JobTaskMappingWithHTMLFormDTO(
+                task.getUuid(),
+                task.getJobTaskMappingId(),
+                task.getTechnicianId(),
+                task.getTaskStatus(),
+                task.getNote(),
+                task.getTechnicianNote(),
+                task.getStartDate().toString(),
+                task.getEndDate().toString(),
+                task.getSignature(),
+                task.getCancelReason(),
+                task.getDrawingJson(),
+                task.getDrawingImage(),
+                htmlForms
+        );
+    }
+
+    @Override
+    public void updateJobTaskDetails(String jobId, JobDTO.UpdateJobTaskDetails updateJobTaskDetails, Long tenantId, String userName) throws CodeException {
+        Optional<Job> jobOptional = jobRepository.findByUuidAndTenantIdAndDeletedFalse(jobId, tenantId);
+        if (jobOptional.isEmpty())
+            throw new CodeException("Job not found", ErrorCode.BAD_REQUEST);
+        if (updateJobTaskDetails.getAssignedType() == null)
+            throw new CodeException("Assigned Type update is not allowed", ErrorCode.BAD_REQUEST);
+        if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.SYSTEM)) {
+            // todo need to perform related task automatically for example BOM generation and quickbooks related stuff.
+        } else if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.CSR)) {
+            if (TextUtils.isEmpty(updateJobTaskDetails.getTaskId()))
+                throw new CodeException("Task Id is required to update the task details", ErrorCode.BAD_REQUEST);
+            Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
+            if (jobMappingTask.isEmpty())
+                throw new CodeException("Job Task mapping not found", ErrorCode.BAD_REQUEST);
+            JobMappingTask mappingTask = jobMappingTask.get();
+
+
+        }
+
+
+    }
+
+    @Override
+    public HashMap<String, TechnicianDTO.TaskStats> getTechnicianTaskSummary(List<String> technicianUuids, Long tenantId, boolean isSuperAdmin) {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        List<JobTaskMappingTechnician> taskMappings = jobTaskMappingTechnicianRepository.findByTechnicianIdInAndDeletedFalse(technicianUuids);
+        HashMap<String, TechnicianDTO.TaskStats> technicianTaskSummary = new HashMap<>();
+        for (String technicianUuid : technicianUuids) {
+            long assignedTasks = taskMappings.stream()
+                    .filter(mapping -> mapping.getTechnicianId().equals(technicianUuid))
+                    .filter(mapping -> !mapping.getTaskStatus().equalsIgnoreCase("COMPLETED")
+                            && !mapping.getTaskStatus().equalsIgnoreCase("CANCELLED"))
+                    .count();
+
+            long completedTasks = taskMappings.stream()
+                    .filter(mapping -> mapping.getTechnicianId().equals(technicianUuid)
+                            && mapping.getTaskStatus().equalsIgnoreCase("COMPLETED"))
+                    .count();
+            long allTasks = taskMappings.stream()
+                    .filter(mapping -> mapping.getTechnicianId().equals(technicianUuid))
+                    .count();
+
+
+            TechnicianDTO.TaskStats summary = new TechnicianDTO.TaskStats();
+            summary.setAssignedTasks(assignedTasks);
+            summary.setCompletedTasks(completedTasks);
+            summary.setAllTasks(allTasks);
+            technicianTaskSummary.put(technicianUuid, summary);
+        }
+        return technicianTaskSummary;
+
     }
 
 }

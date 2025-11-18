@@ -1,11 +1,12 @@
 package com.octal.fsm.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.octal.fsm.dto.enums.JobUpdateType;
+import com.octal.fsm.entities.enums.TaskAssignedType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.fasterxml.jackson.annotation.JsonFormat;
 
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,6 +22,7 @@ public class JobDTO {
     public static class Add {
 
         private CustomerDetails customerDetails;
+        private String frontOfficeId;
 
         private String jobTypeId;
         private String serviceLocation;
@@ -58,7 +60,7 @@ public class JobDTO {
     }
 
     @Data
-    public static class CreateUpFrontInvoiceRequest{
+    public static class CreateUpFrontInvoiceRequest {
         private String jobId;
         private Double amount;
         private String email;
@@ -68,16 +70,27 @@ public class JobDTO {
     }
 
     @Data
-    public static class UpdateJobTags{
+    public static class LeaveJob {
+        private String jobId;
+        private String frontOfficeUserId;
+        private String frontOfficeUserName;
+        private String reasonForLeave;
+        private JobUpdateType jobUpdateType;
+
+    }
+
+    @Data
+    public static class UpdateJobTags {
         private List<String> jobTags;
     }
+
     @Data
-    public static class UpdateAssignedTaskWithDocumentType{
+    public static class UpdateAssignedTaskWithDocumentType {
         private List<String> documentTypeId;
     }
 
     @Data
-    public static class InvoiceListResponse{
+    public static class InvoiceListResponse {
         private String id;
         private String invoiceId;
         private String invoiceType;
@@ -222,6 +235,25 @@ public class JobDTO {
         private String endDate;
     }
 
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class JobHistoryDTO {
+
+        private Long recordId;
+        private String id;
+        private Long tenantId;
+        private String frontOfficeId;
+        private String reason;
+        private String jobId;
+        private String frontOfficeName;
+        private Boolean isActive;
+        private boolean deleted;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+    }
+
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -252,7 +284,7 @@ public class JobDTO {
         private String jobStartDate;
         private String jobEndDate;
         private String jobNote;
-        private List<Document> jobUploadedDocuments=new ArrayList<>();
+        private List<Document> jobUploadedDocuments = new ArrayList<>();
         // Tags, Documents, Description
         private List<String> jobTags;
         private List<Document> uploadedDocuments;
@@ -296,5 +328,31 @@ public class JobDTO {
         private String drawingFileUrl;
     }
 
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class AddJobStatus {
+        private String name;
+        private Integer sequenceOrder;
+        private String colorCode; // todo need to discus
+    }
 
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class JobStatusDetail {
+        private String id;
+        private String name;
+        private String colorCode; // todo need to discus
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class UpdateJobTaskDetails {
+        private String taskId;
+        private String note;
+        private TaskAssignedType assignedType;
+        private List<Document> documents;
+    }
 }

@@ -8,7 +8,7 @@ import javax.mail.MessagingException;
 @Component
 public interface EmailService /*extends DefaultEmailService<User>*/ {
 
-    void sendMail(EmailDTO mail, String loggedInuser) throws MessagingException;
+    void sendMail(EmailDTO mail, String loggedInuser, Long tenantId, boolean isSuperAdmin) throws MessagingException;
 
 
 }

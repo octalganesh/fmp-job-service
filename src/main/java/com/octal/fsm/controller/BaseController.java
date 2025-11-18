@@ -25,7 +25,8 @@ public class BaseController {
             return new ResponseEntity<>(new ApiResponse(Boolean.FALSE, e.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
         }
     }
-    public static Long getTenantId(HttpServletRequest request) throws CodeException{
+
+    public static Long getTenantId(HttpServletRequest request) throws CodeException {
         String tenantIdHeader = request.getHeader("tenantId");
         if (tenantIdHeader == null || tenantIdHeader.isEmpty()) {
             return null;
@@ -37,6 +38,7 @@ public class BaseController {
             return null;
         }
     }
+
     public static boolean isSuperAdmin(HttpServletRequest request) {
         String superAdminHeader = request.getHeader("superAdmin");
         if (superAdminHeader == null || superAdminHeader.isEmpty()) {
@@ -44,7 +46,6 @@ public class BaseController {
         }
         return Boolean.parseBoolean(superAdminHeader);
     }
-
 
 
 }

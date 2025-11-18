@@ -12,20 +12,20 @@ import java.util.List;
 
 public interface JobTypeService {
 
-    String addJobType(JobTypeDTO.Add add,Long tenantId, Boolean isSuperAdmin) throws CodeException;
+    String addJobType(JobTypeDTO.Add add, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
     void addJobTaskByJobTypeId(JobTaskDTO.Add add) throws CodeException;
 
     Boolean deleteById(String id) throws CodeException;
 
-    JobTypeDTO.Detail getJobTypeByUuid(String id,Long tenantId, Boolean isSuperAdmin) throws CodeException;
+    JobTypeDTO.Detail getJobTypeByUuid(String id, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
     Boolean changeStatus(String id) throws CodeException;
 
-    PageItem<JobTypeDTO.Detail> getAllJobTypes(PageRequest.List listRequest,Long tenantId, Boolean isSuperAdmin);
+    PageItem<JobTypeDTO.Detail> getAllJobTypes(PageRequest.List listRequest, Long tenantId, Boolean isSuperAdmin);
 
 
     List<JobTypeDTO.Detail> getAllJobs();
 
-    PageItem<JobTypeDTO.DetailWithoutJobTasks> getAllJobTypesForTechnician(PageRequest.@Valid List listRequest,Long tenantId, Boolean isSuperAdmin);
+    PageItem<JobTypeDTO.DetailWithoutJobTasks> getAllJobTypesForTechnician(PageRequest.@Valid List listRequest, Long tenantId, Boolean isSuperAdmin);
 }

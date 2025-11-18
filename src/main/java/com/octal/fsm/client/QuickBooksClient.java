@@ -1,6 +1,5 @@
 package com.octal.fsm.client;
 
-import com.octal.fsm.dto.CustomerRequest;
 import feign.Headers;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;

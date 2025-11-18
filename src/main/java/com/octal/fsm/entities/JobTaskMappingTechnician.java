@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @NoArgsConstructor
@@ -55,8 +57,13 @@ public class JobTaskMappingTechnician extends AbstractPersistable {
     private String drawingJson;
 
     @Lob
-    @Column(name="drawing_image")
+    @Column(name = "drawing_image")
     private String drawingImage;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = false)
+    @JoinColumn(name = "job_task_mapping_technician_id")
+    private List<HTMLFormPage> htmlFormPages = new ArrayList<>();
+
 
 }
 

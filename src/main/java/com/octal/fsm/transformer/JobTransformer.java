@@ -2,13 +2,9 @@ package com.octal.fsm.transformer;
 
 
 import com.octal.fsm.clients.AdminClient;
-import com.octal.fsm.dto.ApiResponse;
-import com.octal.fsm.dto.CustomerDTO;
 import com.octal.fsm.dto.JobDTO;
 import com.octal.fsm.entities.*;
-import com.octal.fsm.entities.enums.Gender;
 import com.octal.fsm.exceptions.CodeException;
-import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.helper.CodeGenerator;
 import com.octal.fsm.repositories.*;
 import com.octal.fsm.utils.TextUtils;
@@ -17,13 +13,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.function.Function;
-import java.util.Objects;
+import java.util.Optional;
 
 @Component
 public class JobTransformer {
@@ -59,15 +51,24 @@ public class JobTransformer {
         job.setServiceLocation(addJobDTO.getServiceLocation());
         job.setServiceLocationLat(addJobDTO.getServiceLocationLat());
         job.setServiceLocationLng(addJobDTO.getServiceLocationLng());
-        job.setJobStatus(addJobDTO.getJobStatus());
         job.setJobDescription(addJobDTO.getJobDescription());
         List<JobMappingTask> jobMappingTask = new ArrayList<>();
         for (String jobTaskId : addJobDTO.getJobTaskId()) {
-            Boolean jobTaskExist = jobTaskRepository.existsByUuid(jobTaskId);
-            if (jobTaskExist) {
+            //Boolean jobTaskExist = jobTaskRepository.existsByUuid(jobTaskId);
+            Optional<JobTask> jobTaskExist = jobTaskRepository.findByUuid(jobTaskId);
+            if (jobTaskExist.isPresent()) {
+                if (jobTaskExist.get().getSequence() == 1) {
+                    job.setCurrentTaskId(jobTaskId);  // todo rather than passing whole object of status master in this we can pass either value or uuid of the same.
+                    job.setJobStatusMaster(jobTaskExist.get().getJobStatusMaster());
+                    job.setJobStatus(jobTaskExist.get().getName());
+                }
                 JobMappingTask task = new JobMappingTask();
                 task.setTaskId(jobTaskId);
+                task.setTaskName(jobTaskExist.get().getName());
                 task.setTaskShowId(codeGenerator.generateTaskId());
+                task.setTaskSequence(jobTaskExist.get().getSequence());
+                task.setJobTaskStatus(jobTaskExist.get().getJobStatusMaster().getName());
+                task.setAssignType(jobTaskExist.get().getAssignedType());
                 task.setJob(job);
                 jobMappingTask.add(task);
             }
@@ -113,7 +114,7 @@ public class JobTransformer {
                 Documents document = new Documents();
                 document.setFileName(TextUtils.getFileNameFromFileUrl(documentUrl));
                 document.setFileType(TextUtils.getFileTypeFromFileUrl(documentUrl));
-                document.setDocumentUrl(awsS3BaseUrl+documentUrl);
+                document.setDocumentUrl(awsS3BaseUrl + documentUrl);
                 document.setAttachType("JOB");
                 document.setAttachTypeId(job.getJobId());
                 document.setUploadedByType(addJobDTO.getUploadedByType());
@@ -129,6 +130,7 @@ public class JobTransformer {
             documentsRepository.saveAll(documentsList);
             job.setJobMappingDocuments(documents);
         }
+        job.setFrontOfficeId(addJobDTO.getFrontOfficeId());
         job.setTenantId(tenantId);
         jobRepository.save(job);
         return job.getUuid();

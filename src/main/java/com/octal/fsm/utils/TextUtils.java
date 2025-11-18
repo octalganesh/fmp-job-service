@@ -33,7 +33,7 @@ public class TextUtils {
         return value < 0;
     }
 
-    public static String getFileNameFromFileUrl(String documentUrl){
+    public static String getFileNameFromFileUrl(String documentUrl) {
         // Extract file name with extension
         String fileNameWithExtension = documentUrl.substring(documentUrl.lastIndexOf('/') + 1);
 
@@ -46,7 +46,8 @@ public class TextUtils {
         }
         return fileName;
     }
-    public static String getFileTypeFromFileUrl(String documentUrl){
+
+    public static String getFileTypeFromFileUrl(String documentUrl) {
         // Extract file name with extension
         String fileNameWithExtension = documentUrl.substring(documentUrl.lastIndexOf('/') + 1);
 
@@ -60,6 +61,17 @@ public class TextUtils {
         return fileType;
     }
 
+    public static String replacePlaceholderInMessage(String message, String placeholder, String replacement) {
+        try {
+            if (message.contains(placeholder)) {
+                message = message.replace(placeholder, replacement);
+            }
+            return message;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return message;
+        }
+    }
 
 
 }
