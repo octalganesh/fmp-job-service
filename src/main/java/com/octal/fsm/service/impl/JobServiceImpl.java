@@ -1740,18 +1740,33 @@ public class JobServiceImpl implements JobService {
                     })
                     .collect(Collectors.toList());
         }
+
+        int totalElements = results.size();
+        int pageSize = listRequest.getPageSize();
+        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
+
+        int page = listRequest.getPageNumber();
+
+        int fromIndex = page * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, totalElements);
+
+        List<JobTaskListDTO> pagedResults = new ArrayList<>();
+        if (fromIndex < totalElements) {
+            pagedResults = results.subList(fromIndex, toIndex);
+        }
+
         return new PageItem<>(
-                pagedResult.getTotalPages(),
-                pagedResult.getTotalElements(),
-                results,
-                listRequest.getPageNumber(),
-                listRequest.getPageSize()
+                totalPages,
+                totalElements,
+                pagedResults,
+                page,
+                pageSize
         );
     }
 
     @Override
     public PageItem<JobInvoiceListDTO> getJobCompletedInvoiceList(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) {
-        Page<Job> pagedResult = getJobMappingData(listRequest, 1l, isSuperAdmin);
+        Page<Job> pagedResult = getJobMappingData(listRequest, tenantId, isSuperAdmin);
         List<Job> jobs = pagedResult.getContent();
 
         Set<String> customerIds = jobs.stream()
@@ -1857,12 +1872,26 @@ public class JobServiceImpl implements JobService {
                     .collect(Collectors.toList());
         }
 
+        int totalElements = results.size();
+        int pageSize = listRequest.getPageSize();
+        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
+
+        int page = listRequest.getPageNumber();
+
+        int fromIndex = page * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, totalElements);
+
+        List<JobInvoiceListDTO> pagedResults = new ArrayList<>();
+        if (fromIndex < totalElements) {
+            pagedResults = results.subList(fromIndex, toIndex);
+        }
+
         return new PageItem<>(
-                pagedResult.getTotalPages(),
-                pagedResult.getTotalElements(),
-                results,
-                listRequest.getPageNumber(),
-                listRequest.getPageSize()
+                totalPages,
+                totalElements,
+                pagedResults,
+                page,
+                pageSize
         );
     }
 
@@ -1896,7 +1925,9 @@ public class JobServiceImpl implements JobService {
 
     private void prepareTaskListSearchFilter(com.octal.fsm.models.request.PageRequest.List listRequest, GenericSpecificationsBuilder<JobTaskMappingTechnician> builder,Long tenantId) {
         builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("deleted", false));
-        builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("tenantId", tenantId));
+        if(!TextUtils.isEmpty(tenantId)){
+            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("tenantId", tenantId));
+        }
         if (listRequest.getIsActive() != null) {
             builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
         }
@@ -1914,7 +1945,9 @@ public class JobServiceImpl implements JobService {
 
     private void prepareJobListSearchFilter(com.octal.fsm.models.request.PageRequest.List listRequest, GenericSpecificationsBuilder<Job> builder,Long tenantId) {
         builder.with(jobSpecificationFactory.isEqual("deleted", false));
-        builder.with(jobSpecificationFactory.isEqual("tenantId", tenantId));
+        if(!TextUtils.isEmpty(tenantId)){
+            builder.with(jobSpecificationFactory.isEqual("tenantId", tenantId));
+        }
 
         if (listRequest.getIsActive() != null) {
             builder.with(jobSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
