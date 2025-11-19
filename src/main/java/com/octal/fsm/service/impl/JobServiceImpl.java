@@ -670,6 +670,7 @@ public class JobServiceImpl implements JobService {
         for (JobDTO.AddJobStatus dto : addJobStatus) {
             JobStatusMaster jobStatusMaster = new JobStatusMaster();
             jobStatusMaster.setName(dto.getName());
+            jobStatusMaster.setSequenceOrder(dto.getSequenceOrder());
             jobStatusMaster.setTenantId(tenantId);
             jobStatusMasterList.add(jobStatusMaster);
         }

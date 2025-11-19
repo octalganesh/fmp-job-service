@@ -38,6 +38,7 @@ public class JobMappingTask extends AbstractPersistable {
     @Column(name = "job_task_status")
     private String jobTaskStatus; // todo job status when this task is the current task.
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "assign_type")
     private TaskAssignedType assignType;
 
