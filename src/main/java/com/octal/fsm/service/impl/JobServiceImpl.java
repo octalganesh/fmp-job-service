@@ -122,6 +122,9 @@ public class JobServiceImpl implements JobService {
     @Value("${client.feedback.link}")
     private String clientFeedbackLink;
 
+    @Value("${custom.api.task-id}")
+    private String baseApiUrl;
+
     @Override
     public String addJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
@@ -1298,7 +1301,18 @@ public class JobServiceImpl implements JobService {
                         }
                     }
                     details.setUploadedDocuments(documents);
-
+                    if(!taskMapping.getHtmlFormPages().isEmpty()){
+                        List<HTMLFormDTO.Details> list = new ArrayList<>();
+                        for(HTMLFormPage htmlFormPage : taskMapping.getHtmlFormPages()){
+                            HTMLFormDTO.Details htmlFormDTO = new HTMLFormDTO.Details();
+                            htmlFormDTO.setId(htmlFormPage.getUuid());
+                            htmlFormDTO.setContent(htmlFormPage.getContent());
+                            htmlFormDTO.setActive(htmlFormPage.getActive());
+                            htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt().toString());
+                            list.add(htmlFormDTO);
+                        }
+                        details.setFormList(list);
+                    }
                     responseList.add(details);
                 }
             }
@@ -1437,6 +1451,15 @@ public class JobServiceImpl implements JobService {
                         if (jobTask.isPresent()) {
                             String jobTypeId = jobTask.get().getUuid();
                             List<FormsManagementDTO.Detail> formsDetails = getFormByJobType(jobTypeId, tenantId);
+                            // Replace {{API_URL}} inside content for each form detail
+                            String finalApiUrl = baseApiUrl + taskId;
+                            formsDetails.forEach(detail -> {
+                                if (detail.getContent() != null) {
+                                    detail.setContent(
+                                            detail.getContent().replace("{{API_URL}}", finalApiUrl)
+                                    );
+                                }
+                            });
                             FormsResponseDTO formsResponseDTO = new FormsResponseDTO();
                             formsResponseDTO.setJobId(jobMappingTask.get().getJob().getUuid());
                             formsResponseDTO.setJobTypeId(jobTypeId);

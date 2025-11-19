@@ -294,6 +294,7 @@ public class JobDTO {
         private Double serviceLocationLng;
         // response for customer feedback on the task
         private CustomerFeedbackResponse customerFeedbackResponse;
+        private List<HTMLFormDTO.Details> formList;
     }
 
     @Data
