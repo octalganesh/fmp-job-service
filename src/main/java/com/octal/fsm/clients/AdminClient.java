@@ -7,6 +7,8 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 import static com.octal.fsm.common.CommonConstants.USER_NAME;
 
 @FeignClient(name = "admin-service")
@@ -36,5 +38,9 @@ public interface AdminClient {
 
     @GetMapping("/formsManagement/get-form-byType/{formTypeId}")
     ResponseEntity<ApiResponse> getFormByJobTypeId(@PathVariable("formTypeId") String formTypeId, @RequestHeader("tenantId") Long tenantId);
+
+    @PostMapping("/customer-profile/customer-by-ids")
+    ResponseEntity<ApiResponse> getCustomerByIds(@RequestBody List<String> ids, @RequestHeader("tenantId") Long tenantId,
+                                                 @RequestHeader("superAdmin") boolean superAdmin);
 
 }

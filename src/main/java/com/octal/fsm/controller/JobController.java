@@ -3,6 +3,7 @@ package com.octal.fsm.controller;
 import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.common.CommonConstants;
 import com.octal.fsm.dto.*;
+import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.service.JobReportService;
 import com.octal.fsm.service.JobService;
 import org.apache.logging.log4j.LogManager;
@@ -379,4 +380,54 @@ public class JobController extends BaseController {
             return handleException(e);
         }
     }
+
+    @GetMapping("/get-technician-for-front-dashboard")
+    public ResponseEntity<ApiResponse> getTechForFrontDashboard(HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Technician Details retrieved successfully", jobService.getTechnicianAssociationNeeded(tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/get-current-day-task")
+    public ResponseEntity<ApiResponse> getCurrentDaysTask(HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Technician Details retrieved successfully", jobService.getTodayScheduled(tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/get-task-list")
+    public ResponseEntity<ApiResponse> getJobTaskList(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Details Updated Successfully.", jobService.getJobTaskList(listRequest, tenantId,  isSuperAdmin(request)), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error updating job task details: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/get-job-completed-invoice")
+    public ResponseEntity<ApiResponse> getJobCompletedInvoiceList(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Details Updated Successfully.", jobService.getJobCompletedInvoiceList(listRequest, tenantId,  isSuperAdmin(request)), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error updating job task details: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+
 }
