@@ -254,7 +254,7 @@ public class JobServiceImpl implements JobService {
 
 
     @Override
-    public PageItem<JobDTO.JobListResponse> getAllJobs(int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String location, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin, String frontOfficeId) throws CodeException {
+    public PageItem<JobDTO.JobListResponse> getAllJobs(String txt, int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String location, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin, String frontOfficeId) throws CodeException {
 
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;

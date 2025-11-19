@@ -46,7 +46,8 @@ public class JobController extends BaseController {
     }
 
     @GetMapping("/list")
-    public ResponseEntity<ApiResponse> jobList(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<ApiResponse> jobList(@RequestParam(value = "searchText", defaultValue = "") String searchText,
+                                               @RequestParam(defaultValue = "0") int page,
                                                @RequestParam(defaultValue = "10") int size,
                                                @RequestParam(defaultValue = "createdAt") String sortBy,
                                                @RequestParam(defaultValue = "true") Boolean order,
@@ -66,7 +67,7 @@ public class JobController extends BaseController {
             boolean isSuperAdmin = isSuperAdmin(request);
             String userName = request.getHeader(CommonConstants.USER_NAME);
             //Todo List Method to get all Job List.
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getAllJobs(page, size, sortBy, order, jobType, jobStatus, jobTag, serviceLocationLat, serviceLocationLng, customerType, fromStartDate, toStartDate, location, userName, tenantId, isSuperAdmin, frontOfficeId), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getAllJobs(searchText,page, size, sortBy, order, jobType, jobStatus, jobTag, serviceLocationLat, serviceLocationLng, customerType, fromStartDate, toStartDate, location, userName, tenantId, isSuperAdmin, frontOfficeId), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);
