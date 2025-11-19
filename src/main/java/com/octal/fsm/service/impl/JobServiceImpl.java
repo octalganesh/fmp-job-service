@@ -1297,7 +1297,18 @@ public class JobServiceImpl implements JobService {
                         }
                     }
                     details.setUploadedDocuments(documents);
-
+                    if(!taskMapping.getHtmlFormPages().isEmpty()){
+                        List<HTMLFormDTO.Details> list = new ArrayList<>();
+                        for(HTMLFormPage htmlFormPage : taskMapping.getHtmlFormPages()){
+                            HTMLFormDTO.Details htmlFormDTO = new HTMLFormDTO.Details();
+                            htmlFormDTO.setId(htmlFormPage.getUuid());
+                            htmlFormDTO.setContent(htmlFormPage.getContent());
+                            htmlFormDTO.setActive(htmlFormPage.getActive());
+                            htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt().toString());
+                            list.add(htmlFormDTO);
+                        }
+                        details.setFormList(list);
+                    }
                     responseList.add(details);
                 }
             }
