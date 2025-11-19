@@ -353,6 +353,7 @@ public class JobDTO {
         private String taskId;
         private String note;
         private TaskAssignedType assignedType;
-        private List<Document> documents;
+        private List<DocumentDTO.Add> documents;
+        private Boolean isDone;
     }
 }
