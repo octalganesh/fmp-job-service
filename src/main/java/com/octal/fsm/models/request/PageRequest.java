@@ -38,6 +38,10 @@ public class PageRequest {
         private String sortBy;
         private String jobId;
         private String jobStatus;
+        private String userType;//FRONTOFFICE,TECHNICIAN
+        private String technicianId;
+        private String frontOfficeId;
+        private String taskStatus;
     }
 
 

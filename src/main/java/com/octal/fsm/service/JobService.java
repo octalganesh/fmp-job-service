@@ -90,5 +90,7 @@ public interface JobService {
 
     PageItem<JobInvoiceListDTO> getJobCompletedInvoiceList(PageRequest.List listRequest ,Long tenantId, boolean isSuperAdmin) throws CodeException ;
 
+    PageItem<TaskManagerDTO> getTaskManagerList(PageRequest.List listRequest ,Long tenantId, boolean isSuperAdmin) throws CodeException ;
 
+    TaskManagerDTO getTaskByTaskId(String taskId ,Long tenantId, boolean isSuperAdmin) throws CodeException ;
 }
