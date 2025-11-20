@@ -19,6 +19,7 @@ import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.listener.events.SendMailAndPushEvent;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.repositories.*;
+import com.octal.fsm.service.DocumentService;
 import com.octal.fsm.service.JobService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
@@ -112,6 +113,9 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private JobStatusMasterRepository jobStatusMasterRepository;
+
+    @Autowired
+    private DocumentService documentService;
 
     @Autowired
     private JobService jobService;
@@ -1549,12 +1553,27 @@ public class JobServiceImpl implements JobService {
             Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
             if (jobMappingTask.isEmpty())
                 throw new CodeException("Job Task mapping not found", ErrorCode.BAD_REQUEST);
-            JobMappingTask mappingTask = jobMappingTask.get();
-
-
+            if (!updateJobTaskDetails.getDocuments().isEmpty()) {
+                try {
+                    documentService.uploadMultipleDocument(updateJobTaskDetails.getDocuments());
+                } catch (Exception e) {
+                    throw new CodeException("Error while uploading documents: " + e.getMessage(), ErrorCode.EXCEPTION_OCCUR);
+                }
+            }
+            if (TextUtils.isEmpty(updateJobTaskDetails.getNote()))
+                throw new CodeException("Note is required to update the task details", ErrorCode.BAD_REQUEST);
+            jobMappingTask.get().setNote(updateJobTaskDetails.getNote());
+            jobMappingTaskRepository.save(jobMappingTask.get());
         }
+        if(updateJobTaskDetails.getIsDone()){
+            Optional<JobMappingTask>jobMappingTask=jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
+            if(jobMappingTask.isPresent()){
+                List<JobMappingTask>jobMappingTasks=jobMappingTaskRepository.findByJobAndTaskSequence(jobOptional.get());
+                if(!jobMappingTasks.isEmpty()){
 
-
+                }
+            }
+        }
     }
 
     @Override
