@@ -1,6 +1,6 @@
 package com.octal.fsm.service;
 
-import com.octal.fsm.common.ApiResponse;
+
 import com.octal.fsm.dto.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.models.request.PageRequest;
@@ -77,7 +77,7 @@ public interface JobService {
 
     HashMap<String, TechnicianDTO.TaskStats> getTechnicianTaskSummary(List<String> technicianUuids, Long tenantId, boolean isSuperAdmin);
 
-    ResponseEntity<ApiResponse> saveTechnicianHtmlForm(HTMLFormDTO.Add add, Long tenantId) throws CodeException;
+    ResponseEntity<com.octal.fsm.common.ApiResponse> saveTechnicianHtmlForm(HTMLFormDTO.Add add, Long tenantId) throws CodeException;
 
     JobTaskMappingWithHTMLFormDTO getTechnicianHtmlForm(String taskId, Long tenantId) throws CodeException;
 

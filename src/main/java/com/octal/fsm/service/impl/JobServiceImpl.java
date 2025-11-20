@@ -1113,6 +1113,7 @@ public class JobServiceImpl implements JobService {
                     jobDetails.setJobId(job.getJobId());
                     jobDetails.setJobTypeId(job.getJobTypeId());
                     jobDetails.setCustomerTypeId(job.getCustomerTypeId());
+                    job.setFrontOfficeId(job.getFrontOfficeId());
                     jobDetails.setLeadSourceId(job.getLeadSourceId());
                     jobDetails.setJobDescription(job.getJobDescription());
                     jobDetails.setAdditionalNotes(job.getAdditionalNotes());
@@ -1129,7 +1130,7 @@ public class JobServiceImpl implements JobService {
                         customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
                     }
                 }
-                com.octal.fsm.common.ApiResponse frontOfficeDevices = jobService.getFrontOfficeDevices(null, tenantId).getBody();
+                ApiResponse frontOfficeDevices = jobService.getFrontOfficeDevices(jobDetails.getFrontOfficeId(), tenantId).getBody();
                 Set<MultiUserDeviceDetails> frontOfficeDeviceDetails = new HashSet<>();
                 if (frontOfficeDevices != null) {
                     List<MultiUserDeviceDetails> frontOfficedeviceList = objectMapper.convertValue(
@@ -1240,7 +1241,7 @@ public class JobServiceImpl implements JobService {
 
                     // Get customer details
                     try {
-                        ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId(), loggedInUserEmail).getBody();
+                        ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId(),loggedInUserEmail).getBody();
                         if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
                             Gson gson = new Gson();
                             CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
@@ -1424,7 +1425,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public ResponseEntity<com.octal.fsm.common.ApiResponse> getFrontOfficeDevices(String id, Long tenantId) throws CodeException {
+    public ResponseEntity<ApiResponse> getFrontOfficeDevices(String id, Long tenantId) throws CodeException {
         return adminClient.getFrontOfficeDevices(id, tenantId);
     }
 
@@ -1568,7 +1569,7 @@ public class JobServiceImpl implements JobService {
         if(updateJobTaskDetails.getIsDone()){
             Optional<JobMappingTask>jobMappingTask=jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
             if(jobMappingTask.isPresent()){
-                List<JobMappingTask>jobMappingTasks=jobMappingTaskRepository.findByJobAndTaskSequence(jobOptional.get());
+                List<JobMappingTask>jobMappingTasks=jobMappingTaskRepository.findByJobOrderByTaskSequenceAsc(jobOptional.get());
                 if(!jobMappingTasks.isEmpty()){
 
                 }
