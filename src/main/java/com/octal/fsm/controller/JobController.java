@@ -429,5 +429,28 @@ public class JobController extends BaseController {
         }
     }
 
+    @PostMapping("/task/manager-list")
+    public ResponseEntity<ApiResponse> getTaskManagerList(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Details Updated Successfully.", jobService.getTaskManagerList(listRequest, tenantId,  isSuperAdmin(request)), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error updating job task details: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/task/by-task-id/{taskId}")
+    public ResponseEntity<ApiResponse> getTaskByTaskId(@PathVariable("taskId") String taskId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Task Details retrieved successfully", jobService.getTaskByTaskId(taskId,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
 
 }
