@@ -1130,7 +1130,7 @@ public class JobServiceImpl implements JobService {
                         customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
                     }
                 }
-                com.octal.fsm.common.ApiResponse frontOfficeDevices = jobService.getFrontOfficeDevices(jobDetails.getFrontOfficeId(), tenantId).getBody();
+                ApiResponse frontOfficeDevices = jobService.getFrontOfficeDevices(jobDetails.getFrontOfficeId(), tenantId).getBody();
                 Set<MultiUserDeviceDetails> frontOfficeDeviceDetails = new HashSet<>();
                 if (frontOfficeDevices != null) {
                     List<MultiUserDeviceDetails> frontOfficedeviceList = objectMapper.convertValue(
@@ -1425,7 +1425,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public ResponseEntity<com.octal.fsm.common.ApiResponse> getFrontOfficeDevices(String id, Long tenantId) throws CodeException {
+    public ResponseEntity<ApiResponse> getFrontOfficeDevices(String id, Long tenantId) throws CodeException {
         return adminClient.getFrontOfficeDevices(id, tenantId);
     }
 
