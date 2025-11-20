@@ -1113,7 +1113,7 @@ public class JobServiceImpl implements JobService {
                     jobDetails.setJobId(job.getJobId());
                     jobDetails.setJobTypeId(job.getJobTypeId());
                     jobDetails.setCustomerTypeId(job.getCustomerTypeId());
-                    job.setFrontOfficeId(job.getFrontOfficeId());
+                    jobDetails.setFrontOfficeId(job.getFrontOfficeId());
                     jobDetails.setLeadSourceId(job.getLeadSourceId());
                     jobDetails.setJobDescription(job.getJobDescription());
                     jobDetails.setAdditionalNotes(job.getAdditionalNotes());
@@ -1124,7 +1124,7 @@ public class JobServiceImpl implements JobService {
                     jobDetails.setJobStartDate(job.getJobStartDate().toString());
                     jobDetails.setJobEndDate(job.getJobEndDate().toString());
 
-                    ApiResponse customerResponse = adminClient.getCustomerById(customerId, userName).getBody();
+                    ApiResponse customerResponse = adminClient.getCustomerById(customerId).getBody();
                     if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
                         Gson gson = new Gson();
                         customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
@@ -1241,7 +1241,7 @@ public class JobServiceImpl implements JobService {
 
                     // Get customer details
                     try {
-                        ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId(),loggedInUserEmail).getBody();
+                        ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId()).getBody();
                         if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
                             Gson gson = new Gson();
                             CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
