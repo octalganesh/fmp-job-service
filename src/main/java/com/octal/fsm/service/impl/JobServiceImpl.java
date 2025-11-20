@@ -1090,63 +1090,80 @@ public class JobServiceImpl implements JobService {
                 taskMappingTechnician.setSignatureDateTime(LocalDateTime.now());
             }
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
-            PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToFront = new PushNotificationRequest.SendBulkNotificationToUsers();
-            ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.TASK_STATUS_CHANGE.toString());
-            ApiResponse body = notificationSlugContent.getBody();
-            if (body != null) {
-                NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
-                sendBulkNotificationToFront.setTitle(content.getTitle());
-                sendBulkNotificationToFront.setBody(content.getMessage());
-                sendBulkNotificationToFront.setType(PushNotificationType.TASK_STATUS_CHANGE);
-                Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(taskMappingTechnician.getJobTaskMappingId());
-                CustomerDTO.GetDetails customerDetails = new CustomerDTO.GetDetails();
-                JobDTO.Detail jobDetails = new JobDTO.Detail();
-                if (jobMappingTask.isPresent()) {
-                    sendBulkNotificationToFront.setTypeId(jobMappingTask.get().getJob().getJobTypeId());
-                    String customerId = jobMappingTask.get().getJob().getCustomerId();
-                    Job job = jobMappingTask.get().getJob();
-
-                    jobDetails.setJobId(job.getJobId());
-                    jobDetails.setJobTypeId(job.getJobTypeId());
-                    jobDetails.setCustomerTypeId(job.getCustomerTypeId());
-                    jobDetails.setLeadSourceId(job.getLeadSourceId());
-                    jobDetails.setJobDescription(job.getJobDescription());
-                    jobDetails.setAdditionalNotes(job.getAdditionalNotes());
-                    jobDetails.setJobStatus(job.getJobStatus());
-                    jobDetails.setServiceLocation(job.getServiceLocation());
-                    jobDetails.setServiceLocationLat(job.getServiceLocationLat());
-                    jobDetails.setServiceLocationLng(job.getServiceLocationLng());
-                    jobDetails.setJobStartDate(job.getJobStartDate().toString());
-                    jobDetails.setJobEndDate(job.getJobEndDate().toString());
-
-                    ApiResponse customerResponse = adminClient.getCustomerById(customerId, userName).getBody();
-                    if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
-                        Gson gson = new Gson();
-                        customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
-                    }
-                }
-                com.octal.fsm.common.ApiResponse frontOfficeDevices = jobService.getFrontOfficeDevices(null, tenantId).getBody();
-                Set<MultiUserDeviceDetails> frontOfficeDeviceDetails = new HashSet<>();
-                if (frontOfficeDevices != null) {
-                    List<MultiUserDeviceDetails> frontOfficedeviceList = objectMapper.convertValue(
-                            frontOfficeDevices.getData(),
-                            new TypeReference<List<MultiUserDeviceDetails>>() {
-                            }
-                    );
-                    if (frontOfficedeviceList != null && !frontOfficedeviceList.isEmpty()) {
-                        for (MultiUserDeviceDetails multiUserDeviceDetails : frontOfficedeviceList) {
-                            MultiUserDeviceDetails dto = new MultiUserDeviceDetails();
-                            dto.setDeviceToken(multiUserDeviceDetails.getDeviceToken());
-                            dto.setDeviceType(multiUserDeviceDetails.getDeviceType());
-                            dto.setAppVersion(multiUserDeviceDetails.getAppVersion());
-                            dto.setDeviceId(multiUserDeviceDetails.getDeviceId());
-                            frontOfficeDeviceDetails.add(dto);
+            try{
+                PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToFront = new PushNotificationRequest.SendBulkNotificationToUsers();
+                ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.TASK_STATUS_CHANGE.toString());
+                ApiResponse body = notificationSlugContent.getBody();
+                if (body != null) {
+                    NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                    ApiResponse technicianResponse = technicianClient.getTechnicianById(jobTaskMappingTechnician.get().getTechnicianId(), userName).getBody();
+                    if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
+                        try {
+                            Gson gson = new Gson();
+                            TechnicianDTO.GetDetails technicianDetails = gson.fromJson(gson.toJson(technicianResponse.getData()), TechnicianDTO.GetDetails.class);
+                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", technicianDetails.getName()));
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
-                    sendBulkNotificationToFront.setTechnicianFcmTokenList(new HashSet<>());
-                    sendBulkNotificationToFront.setFrontOfficeFcmTokenList(frontOfficeDeviceDetails);
+
+                    sendBulkNotificationToFront.setTitle(content.getTitle());
+                    sendBulkNotificationToFront.setType(PushNotificationType.TASK_STATUS_CHANGE);
+                    Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(taskMappingTechnician.getJobTaskMappingId());
+                    CustomerDTO.GetDetails customerDetails = new CustomerDTO.GetDetails();
+                    JobDTO.Detail jobDetails = new JobDTO.Detail();
+                    if (jobMappingTask.isPresent()) {
+                        sendBulkNotificationToFront.setTypeId(jobMappingTask.get().getJob().getJobTypeId());
+                        String customerId = jobMappingTask.get().getJob().getCustomerId();
+                        Job job = jobMappingTask.get().getJob();
+
+                        jobDetails.setJobId(job.getJobId());
+                        jobDetails.setJobTypeId(job.getJobTypeId());
+                        jobDetails.setCustomerTypeId(job.getCustomerTypeId());
+                        jobDetails.setLeadSourceId(job.getLeadSourceId());
+                        jobDetails.setJobDescription(job.getJobDescription());
+                        jobDetails.setAdditionalNotes(job.getAdditionalNotes());
+                        jobDetails.setJobStatus(job.getJobStatus());
+                        jobDetails.setServiceLocation(job.getServiceLocation());
+                        jobDetails.setServiceLocationLat(job.getServiceLocationLat());
+                        jobDetails.setServiceLocationLng(job.getServiceLocationLng());
+                        jobDetails.setJobStartDate(job.getJobStartDate().toString());
+                        jobDetails.setJobEndDate(job.getJobEndDate().toString());
+                        ApiResponse customerResponse = adminClient.getCustomerById(customerId, userName).getBody();
+                        if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
+                            Gson gson = new Gson();
+                            customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
+                        }
+                        content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#status", jobMappingTask.get().getJobTaskStatus()));
+                        content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#jobId", job.getJobId()));
+                        sendBulkNotificationToFront.setTitle(TextUtils.replacePlaceholderInMessage(content.getTitle(), "#jobID", job.getJobId()));
+                    }
+                    com.octal.fsm.common.ApiResponse frontOfficeDevices = jobService.getFrontOfficeDevices(null, tenantId).getBody();
+                    Set<MultiUserDeviceDetails> frontOfficeDeviceDetails = new HashSet<>();
+                    if (frontOfficeDevices != null) {
+                        List<MultiUserDeviceDetails> frontOfficedeviceList = objectMapper.convertValue(
+                                frontOfficeDevices.getData(),
+                                new TypeReference<List<MultiUserDeviceDetails>>() {
+                                }
+                        );
+                        if (frontOfficedeviceList != null && !frontOfficedeviceList.isEmpty()) {
+                            for (MultiUserDeviceDetails multiUserDeviceDetails : frontOfficedeviceList) {
+                                MultiUserDeviceDetails dto = new MultiUserDeviceDetails();
+                                dto.setDeviceToken(multiUserDeviceDetails.getDeviceToken());
+                                dto.setDeviceType(multiUserDeviceDetails.getDeviceType());
+                                dto.setAppVersion(multiUserDeviceDetails.getAppVersion());
+                                dto.setDeviceId(multiUserDeviceDetails.getDeviceId());
+                                frontOfficeDeviceDetails.add(dto);
+                            }
+                        }
+                        sendBulkNotificationToFront.setBody(content.getMessage());
+                        sendBulkNotificationToFront.setTechnicianFcmTokenList(new HashSet<>());
+                        sendBulkNotificationToFront.setFrontOfficeFcmTokenList(frontOfficeDeviceDetails);
+                    }
+                    applicationEventPublisher.publishEvent(new SendMailAndPushEvent(customerDetails, jobDetails, userName, sendBulkNotificationToFront));
                 }
-                applicationEventPublisher.publishEvent(new SendMailAndPushEvent(customerDetails, jobDetails, userName, sendBulkNotificationToFront));
+            }catch (Exception exception){
+                throw new CodeException("Error while sending mail and notification", ErrorCode.COMMON);
             }
         } else {
             throw new CodeException("Task Not Found", ErrorCode.BAD_REQUEST);
