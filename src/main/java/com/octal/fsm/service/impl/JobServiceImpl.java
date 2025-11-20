@@ -1113,6 +1113,7 @@ public class JobServiceImpl implements JobService {
                     jobDetails.setJobId(job.getJobId());
                     jobDetails.setJobTypeId(job.getJobTypeId());
                     jobDetails.setCustomerTypeId(job.getCustomerTypeId());
+                    job.setFrontOfficeId(job.getFrontOfficeId());
                     jobDetails.setLeadSourceId(job.getLeadSourceId());
                     jobDetails.setJobDescription(job.getJobDescription());
                     jobDetails.setAdditionalNotes(job.getAdditionalNotes());
@@ -1129,7 +1130,7 @@ public class JobServiceImpl implements JobService {
                         customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
                     }
                 }
-                com.octal.fsm.common.ApiResponse frontOfficeDevices = jobService.getFrontOfficeDevices(null, tenantId).getBody();
+                com.octal.fsm.common.ApiResponse frontOfficeDevices = jobService.getFrontOfficeDevices(jobDetails.getFrontOfficeId(), tenantId).getBody();
                 Set<MultiUserDeviceDetails> frontOfficeDeviceDetails = new HashSet<>();
                 if (frontOfficeDevices != null) {
                     List<MultiUserDeviceDetails> frontOfficedeviceList = objectMapper.convertValue(

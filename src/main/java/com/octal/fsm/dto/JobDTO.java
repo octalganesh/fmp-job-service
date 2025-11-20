@@ -202,6 +202,7 @@ public class JobDTO {
         private String jobStatus;
         private String customerType;
         private String customerTypeId;
+        private String frontOfficeId;
     }
 
     @Data
