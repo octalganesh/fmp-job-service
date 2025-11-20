@@ -28,5 +28,5 @@ public interface JobMappingTaskRepository extends JpaRepository<JobMappingTask, 
 
     List<JobMappingTask> findByJob(Job job);
 
-    List<JobMappingTask> findByJobAndTaskSequence(Job job);
+    List<JobMappingTask> findByJobOrderByTaskSequenceAsc(Job job);
 }

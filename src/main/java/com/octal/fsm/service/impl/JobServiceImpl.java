@@ -1568,7 +1568,7 @@ public class JobServiceImpl implements JobService {
         if(updateJobTaskDetails.getIsDone()){
             Optional<JobMappingTask>jobMappingTask=jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
             if(jobMappingTask.isPresent()){
-                List<JobMappingTask>jobMappingTasks=jobMappingTaskRepository.findByJobAndTaskSequence(jobOptional.get());
+                List<JobMappingTask>jobMappingTasks=jobMappingTaskRepository.findByJobOrderByTaskSequenceAsc(jobOptional.get());
                 if(!jobMappingTasks.isEmpty()){
 
                 }
