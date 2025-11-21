@@ -363,6 +363,7 @@ public class JobServiceImpl implements JobService {
         response.setId(id);
         response.setJobStatusMaster(job.getJobStatusMaster());
         response.setJobId(job.getJobId());
+        response.setCurrentTaskId(job.getCurrentTaskId());
         Optional<JobType> jobType = jobTypeRepository.findByUuid(job.getJobTypeId());
         if (jobType.isPresent()) {
             response.setJobTypeId(jobType.get().getUuid());
