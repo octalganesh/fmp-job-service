@@ -15,7 +15,7 @@ import static com.octal.fsm.common.CommonConstants.USER_NAME;
 public interface AdminClient {
 
     @GetMapping(value = "/customer-profile/get/by-for-technician/{id}")
-    ResponseEntity<ApiResponse> getCustomerById(@PathVariable("id") String id,@RequestHeader("userName") String userName);
+    ResponseEntity<ApiResponse> getCustomerById(@PathVariable("id") String id);
 
     @GetMapping(value = "/customer-profile/job-details-lead-customer-details")
     ResponseEntity<ApiResponse> getJobDetailsWithLeadAndCustomerDetails(@RequestParam("customerId") String customerId, @RequestParam("leadSourceId") String leadSourceId, @RequestHeader(USER_NAME) String userName, @RequestHeader("tenantId") Long tenantId,
