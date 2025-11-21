@@ -1566,9 +1566,29 @@ public class JobServiceImpl implements JobService {
         if(updateJobTaskDetails.getIsDone()){
             Optional<JobMappingTask>jobMappingTask=jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
             if(jobMappingTask.isPresent()){
+                JobMappingTask currentTask = jobMappingTask.get();
+                int currentSeq = currentTask.getTaskSequence();
                 List<JobMappingTask>jobMappingTasks=jobMappingTaskRepository.findByJobOrderByTaskSequenceAsc(jobOptional.get());
                 if(!jobMappingTasks.isEmpty()){
+                    JobMappingTask nextTask = null;
+                    for (JobMappingTask task : jobMappingTasks) {
+                        if (task.getTaskSequence() > currentSeq) {
+                            nextTask = task;
+                            break;
+                        }
+                    }
+                    if (nextTask != null) {
+                        jobOptional.get().setCurrentTaskId(nextTask.getUuid());
+                        Optional<JobStatusMaster> jobStatus = jobStatusMasterRepository.findBySequenceOrderAndTenantId(nextTask.getTaskSequence(),tenantId);
+                        if(jobStatus.isPresent()){
+                            jobOptional.get().setJobStatusMaster(jobStatus.get());
+                            jobOptional.get().setJobStatus(jobStatus.get().getName());
+                        }
 
+                    } else {
+                        jobOptional.get().setCurrentTaskId(null);
+                    }
+                    jobRepository.save(jobOptional.get());
                 }
             }
         }
