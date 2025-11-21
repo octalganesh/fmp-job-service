@@ -30,10 +30,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -2014,9 +2011,9 @@ public class JobServiceImpl implements JobService {
 
     private void prepareTaskListSearchFilter(com.octal.fsm.models.request.PageRequest.List listRequest, GenericSpecificationsBuilder<JobTaskMappingTechnician> builder, Long tenantId) {
         builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("deleted", false));
-        if (!TextUtils.isEmpty(tenantId)) {
-            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("tenantId", tenantId));
-        }
+//        if (!TextUtils.isEmpty(tenantId)) {
+//            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("tenantId", tenantId));
+//        }
         if (listRequest.getIsActive() != null) {
             builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
         }
@@ -2067,10 +2064,16 @@ public class JobServiceImpl implements JobService {
             } else {
                 pageable = org.springframework.data.domain.PageRequest.of(listReq.getPageNumber(), listReq.getPageSize(), Sort.by(listReq.getShortingField()).descending());
             }
+            Page<JobMappingTask> pageData = new PageImpl<>(Collections.emptyList(), pageable, 0);
+            if(!TextUtils.isEmpty(technicianId)&&!jobTaskMappingTechnicians.isEmpty()){
+                prepareTechnicianTaskFilters(listReq, builder, technicianId, tenantId, new ArrayList<>(mappingIds));
+                pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
+            }
+            if(TextUtils.isEmpty(technicianId)){
+                prepareTechnicianTaskFilters(listReq, builder, technicianId, tenantId, new ArrayList<>(mappingIds));
+                pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
+            }
 
-            prepareTechnicianTaskFilters(listReq, builder, technicianId, tenantId, new ArrayList<>(mappingIds));
-
-            Page<JobMappingTask> pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
 
             List<TaskManagerDTO> responseList = new ArrayList<>();
             for (JobMappingTask department : pageData.getContent()) {
@@ -2098,7 +2101,7 @@ public class JobServiceImpl implements JobService {
         builder.with(jobMappingTaskSpecificationFactory.joinEqualsLong("job", "tenantId", tenantId));
 
         builder.with(
-                jobMappingTaskSpecificationFactory.isNotEqual("assignType", 0)
+                jobMappingTaskSpecificationFactory.isEqual("assignType", TaskAssignedType.TECHNICIAN)
         );
 
         builder.with(jobMappingTaskSpecificationFactory.isEqual("deleted", false));
@@ -2175,7 +2178,7 @@ public class JobServiceImpl implements JobService {
         builder.with(jobMappingTaskSpecificationFactory.joinEqualsLong("job", "tenantId", tenantId));
         builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "frontOfficeId", frontOfficeId));
 
-        builder.with(jobMappingTaskSpecificationFactory.isEqual("assignType", 1));//for CSR
+        builder.with(jobMappingTaskSpecificationFactory.isEqual("assignType", TaskAssignedType.CSR));//for CSR
 
         builder.with(jobMappingTaskSpecificationFactory.isEqual("deleted", false));
 
