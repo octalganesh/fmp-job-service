@@ -449,7 +449,7 @@ public class JobServiceImpl implements JobService {
                 dto.setTaskName(jobTask.get().getName());
                 dto.setTaskDescription(jobTask.get().getDescription());
                 dto.setAssignedType(jobMappingTask.getAssignType());
-                dto.setJobStatusMaster(jobTask.get().getJobStatusMaster());
+                dto.setSequenceNumber(jobTask.get().getSequence());
                 Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.getUuid());
                 if (jobTaskMappingTechnician.isPresent()) {
                     dto.setCreatedAt(jobTaskMappingTechnician.get().getCreatedAt() != null ? jobTaskMappingTechnician.get().getCreatedAt().toString() : null);
@@ -2013,7 +2013,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public List<DispatchBoardTechnicianWrapper> getDataForDispatchBoard(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) {
+    public PageItem<DispatchBoardTechnicianWrapper> getDataForDispatchBoard(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) {
         GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
         prepareDispatchSearchFilter(listRequest, builder);
 
@@ -2030,13 +2030,13 @@ public class JobServiceImpl implements JobService {
 
         List<TechnicianDTO.GetDetails>  techDetailsList= new ArrayList<>();
         if(listRequest.getTechnicianId() == null){
-            ApiResponse technicianResponse = technicianClient.getAllTechnician(tenantId, false).getBody();
+            ApiResponse technicianResponse = technicianClient.getAllTechnician(listRequest,tenantId, false).getBody();
             if (technicianResponse != null && "200".equalsIgnoreCase(technicianResponse.getStatus()) && technicianResponse.getData() != null) {
-                techDetailsList = objectMapper.convertValue(
+                PageItem<TechnicianDTO.GetDetails> pageItem = objectMapper.convertValue(
                         technicianResponse.getData(),
-                        new TypeReference<List<TechnicianDTO.GetDetails>>() {
-                        }
+                        new TypeReference<PageItem<TechnicianDTO.GetDetails>>() {}
                 );
+                techDetailsList = pageItem.getItems();
             }
         }else{
             ApiResponse technicianResponse = technicianClient.getTechnicianByUuid(listRequest.getTechnicianId(),tenantId,isSuperAdmin).getBody();
@@ -2046,7 +2046,27 @@ public class JobServiceImpl implements JobService {
                 techDetailsList.add(technicianDetails);
             }
         }
-        return buildDispatchBoardData(all, techMappings,techDetailsList, tenantId);
+        List<DispatchBoardTechnicianWrapper> dispatchBoardTechnicianWrappers = buildDispatchBoardData(all, techMappings, techDetailsList, tenantId);
+        int totalElements = dispatchBoardTechnicianWrappers.size();
+        int pageSize = listRequest.getPageSize();
+        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
+
+        int page = listRequest.getPageNumber();
+
+        int fromIndex = page * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, totalElements);
+
+        List<DispatchBoardTechnicianWrapper> pagedResults = new ArrayList<>();
+        if (fromIndex < totalElements) {
+            pagedResults = dispatchBoardTechnicianWrappers.subList(fromIndex, toIndex);
+        }
+        return new PageItem<>(
+                totalPages,
+                totalElements,
+                pagedResults,
+                page,
+                pageSize
+        );
     }
 
     public List<DispatchBoardTechnicianWrapper> buildDispatchBoardData(List<JobMappingTask> tasks, List<JobTaskMappingTechnician> techMappings,List<TechnicianDTO.GetDetails>  techDetailsList, Long tenantId) {

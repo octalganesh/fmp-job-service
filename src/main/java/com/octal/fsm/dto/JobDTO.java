@@ -180,7 +180,7 @@ public class JobDTO {
         private String taskStatus;
         private String technicianName;
         private TaskAssignedType assignedType;
-        private JobStatusMaster jobStatusMaster;
+        private Integer sequenceNumber;
     }
 
     @Data

@@ -1,6 +1,7 @@
 package com.octal.fsm.clients;
 
 import com.octal.fsm.dto.ApiResponse;
+import com.octal.fsm.models.request.PageRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,9 +24,11 @@ public interface TechnicianClient {
     @PostMapping("/technician/get-by-ids")
     ResponseEntity<ApiResponse> getTechByIds(@RequestBody List<String> ids, @RequestHeader("tenantId") Long tenantId);
 
-    @GetMapping("/technician/get-all")
-    ResponseEntity<ApiResponse> getAllTechnician(@RequestHeader("tenantId") Long tenantId,@RequestHeader("superAdmin") boolean superAdmin);
+    @PostMapping("/technician/get-all")
+    ResponseEntity<ApiResponse> getAllTechnician(@RequestBody PageRequest.List listRequest,@RequestHeader("tenantId") Long tenantId, @RequestHeader("superAdmin") boolean superAdmin);
 
     @GetMapping("/technician/get-by-uuid/{id}")
     ResponseEntity<ApiResponse> getTechnicianByUuid(@PathVariable("id") String id,@RequestHeader("tenantId") Long tenantId,@RequestHeader("superAdmin") boolean superAdmin);
+
+
 }
