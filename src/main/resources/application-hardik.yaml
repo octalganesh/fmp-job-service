@@ -87,4 +87,4 @@ aws:
 
 custom:
   api:
-    task-id: http://localhost:8765/api/technician-service/jobs/forms/by-task/
+    task-id: http://localhost:8765/api/job-service/jobs/forms/save-form/
