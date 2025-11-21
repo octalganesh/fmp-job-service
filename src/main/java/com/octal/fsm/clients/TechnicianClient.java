@@ -22,4 +22,10 @@ public interface TechnicianClient {
 
     @PostMapping("/technician/get-by-ids")
     ResponseEntity<ApiResponse> getTechByIds(@RequestBody List<String> ids, @RequestHeader("tenantId") Long tenantId);
+
+    @GetMapping("/technician/get-all")
+    ResponseEntity<ApiResponse> getAllTechnician(@RequestHeader("tenantId") Long tenantId,@RequestHeader("superAdmin") boolean superAdmin);
+
+    @GetMapping("/technician/get-by-uuid/{id}")
+    ResponseEntity<ApiResponse> getTechnicianByUuid(@PathVariable("id") String id,@RequestHeader("tenantId") Long tenantId,@RequestHeader("superAdmin") boolean superAdmin);
 }

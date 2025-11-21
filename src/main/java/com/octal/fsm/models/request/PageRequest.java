@@ -42,6 +42,9 @@ public class PageRequest {
         private String technicianId;
         private String frontOfficeId;
         private String taskStatus;
+        private String locationName;
+        private String jobTypeId;
+
     }
 
 

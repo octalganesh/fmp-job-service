@@ -453,4 +453,17 @@ public class JobController extends BaseController {
         }
     }
 
+    @PostMapping("/get-data-for/dispatch")
+    public ResponseEntity<ApiResponse> getDataForDispatch(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Task Details retrieved successfully", jobService.getDataForDispatchBoard(listRequest,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+
 }
