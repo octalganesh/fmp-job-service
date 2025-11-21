@@ -14,8 +14,8 @@ import static com.octal.fsm.common.CommonConstants.USER_NAME;
 @FeignClient(name = "admin-service")
 public interface AdminClient {
 
-    @GetMapping(value = "/customer-profile/get/by/{id}")
-    ResponseEntity<ApiResponse> getCustomerById(@PathVariable("id") String id, @RequestHeader("userName") String userName);
+    @GetMapping(value = "/customer-profile/get/by-for-technician/{id}")
+    ResponseEntity<ApiResponse> getCustomerById(@PathVariable("id") String id);
 
     @GetMapping(value = "/customer-profile/job-details-lead-customer-details")
     ResponseEntity<ApiResponse> getJobDetailsWithLeadAndCustomerDetails(@RequestParam("customerId") String customerId, @RequestParam("leadSourceId") String leadSourceId, @RequestHeader(USER_NAME) String userName, @RequestHeader("tenantId") Long tenantId,
@@ -34,7 +34,7 @@ public interface AdminClient {
     ResponseEntity<ApiResponse> getFeedbackByJobTaskId(@PathVariable("jobTaskId") String jobTaskId, @RequestHeader(USER_NAME) String userName);
 
     @GetMapping("/front-office/getFrontOfficeDevices/{id}")
-    ResponseEntity<com.octal.fsm.common.ApiResponse> getFrontOfficeDevices(@PathVariable("id") String id, @RequestHeader("tenantId") Long tenantId);
+    ResponseEntity<ApiResponse> getFrontOfficeDevices(@PathVariable("id") String id, @RequestHeader("tenantId") Long tenantId);
 
     @GetMapping("/formsManagement/get-form-byType/{formTypeId}")
     ResponseEntity<ApiResponse> getFormByJobTypeId(@PathVariable("formTypeId") String formTypeId, @RequestHeader("tenantId") Long tenantId);

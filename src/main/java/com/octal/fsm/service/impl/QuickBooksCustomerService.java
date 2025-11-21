@@ -6,9 +6,7 @@ import com.google.gson.Gson;
 import com.octal.fsm.client.QuickBooksClient;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.entities.QuickBooksToken;
-import com.octal.fsm.exceptions.QuickBooksClientException;
-import com.octal.fsm.exceptions.QuickBooksDuplicateCustomerException;
-import com.octal.fsm.exceptions.QuickBooksErrorInfo;
+import com.octal.fsm.exceptions.*;
 import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,8 +68,8 @@ public class QuickBooksCustomerService {
                     info = new QuickBooksErrorInfo(code, message, detail, responseBody);
                 }
             } catch (Exception ex) {
-                info = new QuickBooksErrorInfo(null, "Unable to parse QuickBooks error", null, responseBody);
-            }
+                throw new CodeException("Unable to parse QuickBooks error", ErrorCode.COMMON);
+             }
 
             if ("6240".equals(info.getCode())) {
                 QuickBooksErrorInfo errorInfo = new QuickBooksErrorInfo();
@@ -79,14 +77,14 @@ public class QuickBooksCustomerService {
                 errorInfo.setCode(info.getCode());
                 errorInfo.setDetail(info.getDetail());
                 errorInfo.setRaw(info.getRaw());
-                throw new QuickBooksDuplicateCustomerException(errorInfo);
-            } else {
-                throw new QuickBooksClientException(info);
-            }
+                throw new CodeException(errorInfo.getMessage(), ErrorCode.COMMON);
+             } else {
+                throw new CodeException(info.getMessage(), ErrorCode.COMMON);
+             }
 
         } catch (Exception e) {
-            throw new RuntimeException("Customer creation failed: " + e.getMessage(), e);
-        }
+            throw new CodeException("Customer creation failed: " +e.getMessage(), ErrorCode.COMMON);
+         }
     }
 
     public CreateInvoiceDTO createInvoice(InvoiceRequest invoiceRequest) throws Exception {

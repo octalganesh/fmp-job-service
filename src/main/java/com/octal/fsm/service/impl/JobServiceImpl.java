@@ -19,6 +19,7 @@ import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.listener.events.SendMailAndPushEvent;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.repositories.*;
+import com.octal.fsm.service.DocumentService;
 import com.octal.fsm.service.JobService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
@@ -29,10 +30,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -112,6 +110,9 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private JobStatusMasterRepository jobStatusMasterRepository;
+
+    @Autowired
+    private DocumentService documentService;
 
     @Autowired
     private JobService jobService;
@@ -1253,7 +1254,7 @@ public class JobServiceImpl implements JobService {
 
                     // Get customer details
                     try {
-                        ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId(), loggedInUserEmail).getBody();
+                        ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId()).getBody();
                         if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
                             Gson gson = new Gson();
                             CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
@@ -1437,7 +1438,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public ResponseEntity<com.octal.fsm.common.ApiResponse> getFrontOfficeDevices(String id, Long tenantId) throws CodeException {
+    public ResponseEntity<ApiResponse> getFrontOfficeDevices(String id, Long tenantId) throws CodeException {
         return adminClient.getFrontOfficeDevices(id, tenantId);
     }
 
@@ -1566,12 +1567,27 @@ public class JobServiceImpl implements JobService {
             Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
             if (jobMappingTask.isEmpty())
                 throw new CodeException("Job Task mapping not found", ErrorCode.BAD_REQUEST);
-            JobMappingTask mappingTask = jobMappingTask.get();
-
-
+            if (!updateJobTaskDetails.getDocuments().isEmpty()) {
+                try {
+                    documentService.uploadMultipleDocument(updateJobTaskDetails.getDocuments());
+                } catch (Exception e) {
+                    throw new CodeException("Error while uploading documents: " + e.getMessage(), ErrorCode.EXCEPTION_OCCUR);
+                }
+            }
+            if (TextUtils.isEmpty(updateJobTaskDetails.getNote()))
+                throw new CodeException("Note is required to update the task details", ErrorCode.BAD_REQUEST);
+            jobMappingTask.get().setNote(updateJobTaskDetails.getNote());
+            jobMappingTaskRepository.save(jobMappingTask.get());
         }
+        if(updateJobTaskDetails.getIsDone()){
+            Optional<JobMappingTask>jobMappingTask=jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
+            if(jobMappingTask.isPresent()){
+                List<JobMappingTask>jobMappingTasks=jobMappingTaskRepository.findByJobOrderByTaskSequenceAsc(jobOptional.get());
+                if(!jobMappingTasks.isEmpty()){
 
-
+                }
+            }
+        }
     }
 
     @Override
@@ -2011,9 +2027,9 @@ public class JobServiceImpl implements JobService {
 
     private void prepareTaskListSearchFilter(com.octal.fsm.models.request.PageRequest.List listRequest, GenericSpecificationsBuilder<JobTaskMappingTechnician> builder, Long tenantId) {
         builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("deleted", false));
-        if (!TextUtils.isEmpty(tenantId)) {
-            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("tenantId", tenantId));
-        }
+//        if (!TextUtils.isEmpty(tenantId)) {
+//            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("tenantId", tenantId));
+//        }
         if (listRequest.getIsActive() != null) {
             builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
         }
@@ -2064,10 +2080,16 @@ public class JobServiceImpl implements JobService {
             } else {
                 pageable = org.springframework.data.domain.PageRequest.of(listReq.getPageNumber(), listReq.getPageSize(), Sort.by(listReq.getShortingField()).descending());
             }
+            Page<JobMappingTask> pageData = new PageImpl<>(Collections.emptyList(), pageable, 0);
+            if(!TextUtils.isEmpty(technicianId)&&!jobTaskMappingTechnicians.isEmpty()){
+                prepareTechnicianTaskFilters(listReq, builder, technicianId, tenantId, new ArrayList<>(mappingIds));
+                pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
+            }
+            if(TextUtils.isEmpty(technicianId)){
+                prepareTechnicianTaskFilters(listReq, builder, technicianId, tenantId, new ArrayList<>(mappingIds));
+                pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
+            }
 
-            prepareTechnicianTaskFilters(listReq, builder, technicianId, tenantId, new ArrayList<>(mappingIds));
-
-            Page<JobMappingTask> pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
 
             List<TaskManagerDTO> responseList = new ArrayList<>();
             for (JobMappingTask department : pageData.getContent()) {
@@ -2095,7 +2117,7 @@ public class JobServiceImpl implements JobService {
         builder.with(jobMappingTaskSpecificationFactory.joinEqualsLong("job", "tenantId", tenantId));
 
         builder.with(
-                jobMappingTaskSpecificationFactory.isNotEqual("assignType", 0)
+                jobMappingTaskSpecificationFactory.isEqual("assignType", TaskAssignedType.TECHNICIAN)
         );
 
         builder.with(jobMappingTaskSpecificationFactory.isEqual("deleted", false));
@@ -2172,7 +2194,7 @@ public class JobServiceImpl implements JobService {
         builder.with(jobMappingTaskSpecificationFactory.joinEqualsLong("job", "tenantId", tenantId));
         builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "frontOfficeId", frontOfficeId));
 
-        builder.with(jobMappingTaskSpecificationFactory.isEqual("assignType", 1));//for CSR
+        builder.with(jobMappingTaskSpecificationFactory.isEqual("assignType", TaskAssignedType.CSR));//for CSR
 
         builder.with(jobMappingTaskSpecificationFactory.isEqual("deleted", false));
 
