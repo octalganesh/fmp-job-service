@@ -1557,7 +1557,7 @@ public class JobServiceImpl implements JobService {
                 throw new CodeException("Job Task mapping not found", ErrorCode.BAD_REQUEST);
             if (!updateJobTaskDetails.getDocuments().isEmpty()) {
                 try {
-                    documentService.uploadMultipleDocument(updateJobTaskDetails.getDocuments());
+                    documentService.uploadMultipleDocumentForCSR(updateJobTaskDetails.getDocuments());
                 } catch (Exception e) {
                     throw new CodeException("Error while uploading documents: " + e.getMessage(), ErrorCode.EXCEPTION_OCCUR);
                 }
