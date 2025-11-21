@@ -361,6 +361,7 @@ public class JobServiceImpl implements JobService {
         Job job = jobOpt.get();
         JobDTO.Detail response = new JobDTO.Detail();
         response.setId(id);
+        response.setJobStatusMaster(job.getJobStatusMaster());
         response.setJobId(job.getJobId());
         Optional<JobType> jobType = jobTypeRepository.findByUuid(job.getJobTypeId());
         if (jobType.isPresent()) {
@@ -447,6 +448,8 @@ public class JobServiceImpl implements JobService {
                 dto.setTaskShowId(jobMappingTask.getTaskShowId());
                 dto.setTaskName(jobTask.get().getName());
                 dto.setTaskDescription(jobTask.get().getDescription());
+                dto.setAssignedType(jobMappingTask.getAssignType());
+                dto.setJobStatusMaster(jobTask.get().getJobStatusMaster());
                 Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.getUuid());
                 if (jobTaskMappingTechnician.isPresent()) {
                     dto.setCreatedAt(jobTaskMappingTechnician.get().getCreatedAt() != null ? jobTaskMappingTechnician.get().getCreatedAt().toString() : null);
@@ -2013,6 +2016,7 @@ public class JobServiceImpl implements JobService {
     public List<DispatchBoardTechnicianWrapper> getDataForDispatchBoard(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) {
         GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
         prepareDispatchSearchFilter(listRequest, builder);
+
         List<JobTaskMappingTechnician> techMappings = jobTaskMappingTechnicianRepository.findAll(builder.build());
 
         List<String> uniqueIds = techMappings.stream()
