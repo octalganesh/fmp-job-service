@@ -1238,7 +1238,7 @@ public class JobServiceImpl implements JobService {
 
                     // Get customer details
                     try {
-                        ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId(), loggedInUserEmail).getBody();
+                        ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId()).getBody();
                         if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
                             Gson gson = new Gson();
                             CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
