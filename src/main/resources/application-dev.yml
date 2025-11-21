@@ -87,4 +87,4 @@ aws:
 
 custom:
   api:
-    task-id: https://getiphonedeveloper.com/api/technician-service/jobs/forms/by-task/
+    task-id: https://getiphonedeveloper.com/api/job-service/jobs/forms/save-form/
