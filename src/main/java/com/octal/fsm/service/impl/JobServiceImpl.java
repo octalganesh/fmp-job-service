@@ -1130,7 +1130,7 @@ public class JobServiceImpl implements JobService {
                         jobDetails.setServiceLocationLng(job.getServiceLocationLng());
                         jobDetails.setJobStartDate(job.getJobStartDate().toString());
                         jobDetails.setJobEndDate(job.getJobEndDate().toString());
-                        ApiResponse customerResponse = adminClient.getCustomerById(customerId, userName).getBody();
+                        ApiResponse customerResponse = adminClient.getCustomerById(customerId).getBody();
                         if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
                             Gson gson = new Gson();
                             customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
@@ -1139,7 +1139,7 @@ public class JobServiceImpl implements JobService {
                         content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#jobId", job.getJobId()));
                         sendBulkNotificationToFront.setTitle(TextUtils.replacePlaceholderInMessage(content.getTitle(), "#jobID", job.getJobId()));
                     }
-                    com.octal.fsm.common.ApiResponse frontOfficeDevices = jobService.getFrontOfficeDevices(null, tenantId).getBody();
+                    ApiResponse frontOfficeDevices = jobService.getFrontOfficeDevices(null, tenantId).getBody();
                     Set<MultiUserDeviceDetails> frontOfficeDeviceDetails = new HashSet<>();
                     if (frontOfficeDevices != null) {
                         List<MultiUserDeviceDetails> frontOfficedeviceList = objectMapper.convertValue(
