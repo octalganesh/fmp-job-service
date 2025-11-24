@@ -1093,6 +1093,36 @@ public class JobServiceImpl implements JobService {
                     throw new CodeException("Customer Signature is required to complete the task", ErrorCode.BAD_REQUEST);
                 taskMappingTechnician.setSignature(awsS3BaseUrl + signature);
                 taskMappingTechnician.setSignatureDateTime(LocalDateTime.now());
+                Optional<JobMappingTask>jobMappingTask=jobMappingTaskRepository.findByUuid(jobTaskMappingTechnician.get().getJobTaskMappingId());
+
+                if(jobMappingTask.isPresent()){
+                    JobMappingTask currentTask = jobMappingTask.get();
+                    int currentSeq = currentTask.getTaskSequence();
+                    Optional<Job> jobOptional = jobRepository.findByUuidAndDeletedFalse(jobMappingTask.get().getJob().getUuid());
+                    List<JobMappingTask>jobMappingTasks=jobMappingTaskRepository.findByJobOrderByTaskSequenceAsc(jobOptional.get());
+                    if(!jobMappingTasks.isEmpty()){
+                        JobMappingTask nextTask = null;
+                        for (JobMappingTask task : jobMappingTasks) {
+                            if (task.getTaskSequence() > currentSeq) {
+                                nextTask = task;
+                                break;
+                            }
+                        }
+                        if (nextTask != null) {
+                            jobOptional.get().setCurrentTaskId(nextTask.getUuid());
+                            List<JobStatusMaster> jobStatus = jobStatusMasterRepository.findByName(nextTask.getJobTaskStatus());
+                            if(!jobStatus.isEmpty()){
+                                jobOptional.get().setJobStatusMaster(jobStatus.get(0));
+                                jobOptional.get().setJobStatus(jobStatus.get(0).getName());
+                            }
+
+                        } else {
+                            jobOptional.get().setCurrentTaskId(null);
+                        }
+                        jobRepository.save(jobOptional.get());
+                    }
+                }
+
             }
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
             PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToFront = new PushNotificationRequest.SendBulkNotificationToUsers();
@@ -1583,10 +1613,10 @@ public class JobServiceImpl implements JobService {
                     }
                     if (nextTask != null) {
                         jobOptional.get().setCurrentTaskId(nextTask.getUuid());
-                        Optional<JobStatusMaster> jobStatus = jobStatusMasterRepository.findBySequenceOrderAndTenantId(nextTask.getTaskSequence(),tenantId);
-                        if(jobStatus.isPresent()){
-                            jobOptional.get().setJobStatusMaster(jobStatus.get());
-                            jobOptional.get().setJobStatus(jobStatus.get().getName());
+                        List<JobStatusMaster> jobStatus = jobStatusMasterRepository.findByName(nextTask.getJobTaskStatus());
+                        if(!jobStatus.isEmpty()){
+                            jobOptional.get().setJobStatusMaster(jobStatus.get(0));
+                            jobOptional.get().setJobStatus(jobStatus.get(0).getName());
                         }
 
                     } else {
