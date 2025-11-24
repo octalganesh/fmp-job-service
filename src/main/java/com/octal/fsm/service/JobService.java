@@ -93,4 +93,6 @@ public interface JobService {
     PageItem<TaskManagerDTO> getTaskManagerList(PageRequest.List listRequest ,Long tenantId, boolean isSuperAdmin) throws CodeException ;
 
     TaskManagerDTO getTaskByTaskId(String taskId ,Long tenantId, boolean isSuperAdmin) throws CodeException ;
+
+    PageItem<DispatchBoardTechnicianWrapper> getDataForDispatchBoard(PageRequest.List listRequest,Long tenantId, boolean isSuperAdmin);
 }

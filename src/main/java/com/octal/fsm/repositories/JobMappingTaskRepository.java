@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface JobMappingTaskRepository extends JpaRepository<JobMappingTask, Long>, JpaSpecificationExecutor<JobMappingTask> {
+public interface JobMappingTaskRepository extends JpaRepository<JobMappingTask, Long>, JpaSpecificationExecutor<JobMappingTask>,JobMappingTaskCustomRepository  {
     Optional<JobMappingTask> findByUuid(String uuid);
 
     Boolean existsByTaskShowId(String newCode);

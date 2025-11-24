@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -63,6 +64,12 @@ public class JobTaskMappingTechnician extends AbstractPersistable {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = false)
     @JoinColumn(name = "job_task_mapping_technician_id")
     private List<HTMLFormPage> htmlFormPages = new ArrayList<>();
+
+    @Column(name = "start_time")
+    private Time startTime;
+
+    @Column(name = "end_time")
+    private Time endTime;
 
 
 }

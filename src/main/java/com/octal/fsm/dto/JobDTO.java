@@ -2,6 +2,8 @@ package com.octal.fsm.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.octal.fsm.dto.enums.JobUpdateType;
+import com.octal.fsm.entities.JobMappingTask;
+import com.octal.fsm.entities.JobStatusMaster;
 import com.octal.fsm.entities.enums.TaskAssignedType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -177,6 +179,8 @@ public class JobDTO {
         private String createdAt;
         private String taskStatus;
         private String technicianName;
+        private TaskAssignedType assignedType;
+        private Integer sequenceNumber;
     }
 
     @Data
@@ -203,6 +207,8 @@ public class JobDTO {
         private String customerType;
         private String customerTypeId;
         private String frontOfficeId;
+        private JobStatusMaster jobStatusMaster;
+        private String currentTaskId;
     }
 
     @Data

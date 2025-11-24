@@ -1,5 +1,6 @@
 package com.octal.fsm.repositories;
 
+import com.octal.fsm.entities.JobMappingTask;
 import com.octal.fsm.entities.JobStatusMaster;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -13,5 +14,7 @@ public interface JobStatusMasterRepository extends JpaRepository<JobStatusMaster
     Optional<JobStatusMaster> findByUuid(String statusMasterId);
 
     List<JobStatusMaster> findAllByTenantIdAndDeletedFalse(Long tenantIdToUse);
+
+    Optional<JobStatusMaster> findBySequenceOrderAndTenantId(Integer sequenceOrder,Long tenant);
 
 }
