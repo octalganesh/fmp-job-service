@@ -478,4 +478,28 @@ public class JobController extends BaseController {
         }
     }
 
+    @GetMapping("/get-notes-by/{jobId}")
+    public ResponseEntity<ApiResponse> getNotes(@PathVariable("jobId") String jobId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.getNotesByJobId(jobId, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/get-forms-by/{jobId}")
+    public ResponseEntity<ApiResponse> getFormsByJobId(@PathVariable("jobId") String jobId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.getFormsByJobId(jobId, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 }
