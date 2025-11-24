@@ -466,5 +466,16 @@ public class JobController extends BaseController {
         }
     }
 
+    @GetMapping("/task-view/{taskId}")
+    public ResponseEntity<ApiResponse> getTaskView(@PathVariable("taskId") String taskId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.getTaskView(taskId, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
 
 }
