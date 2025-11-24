@@ -16,7 +16,7 @@ public class DispatchBoardDataResponseDTO {
     private String endTime;
     private String taskMappingId;
     private String jobId;
-    private List<String> jobTag;
+    private List<JobTagDTO.Detail> jobTag;
     private String serviceLocation;
     private String jobTaskMappingTechnicianId;
     private String technicianName;

@@ -167,6 +167,8 @@ public class JobDTO {
         private List<String> documents; // Optional
         private String startDate;
         private String endDate;
+        private String startDateTime;
+        private String endDateTime;
     }
 
     @Data

@@ -39,8 +39,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.validation.Valid;
 import java.lang.reflect.Type;
+import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -516,6 +518,19 @@ public class JobServiceImpl implements JobService {
                     Gson gson = new Gson();
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 }
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+                if (assignJobToTechnician.getStartDateTime() != null) {
+                    LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), formatter);
+                    Time sqlTime = Time.valueOf(ldt.toLocalTime());
+                    jobTaskMappingToTechnician.get().setStartTime(sqlTime);
+                }
+
+                if (assignJobToTechnician.getEndDateTime() != null) {
+                    LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), formatter);
+                    Time sqlTime = Time.valueOf(ldt.toLocalTime());
+                    jobTaskMappingToTechnician.get().setEndTime(sqlTime);
+                }
                 jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
 
                 Gson gson = new Gson();
@@ -529,62 +544,82 @@ public class JobServiceImpl implements JobService {
 
                 // Convert response data to TechnicianDTO.GetDetails
                 if (jobDetails != null) {
-                    String jsonResponse = gson.toJson(technicianResponse.getData());
-                    TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
+                    try {
 
-                    if (getDetails != null && getDetails.getEmail() != null) {
-                        PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
-                        ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
-                        ApiResponse body = notificationSlugContent.getBody();
-                        if (body != null) {
-                            NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
-                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", getDetails.getName()));
-                            sendBulkNotificationToUsers.setTitle(content.getTitle());
-                            sendBulkNotificationToUsers.setBody(content.getMessage());
-                            sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
-                            sendBulkNotificationToUsers.setTypeId(jobTaskMappingToTechnician.get().getUuid());
-                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
-                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
-                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
-                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
-                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
-                            set.add(multiUserDeviceDetailsDTO);
-                            sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
-                            sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
+                        String jsonResponse = gson.toJson(technicianResponse.getData());
+                        TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
+
+                        if (getDetails != null && getDetails.getEmail() != null) {
+                            PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
+                            ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
+                            ApiResponse body = notificationSlugContent.getBody();
+                            if (body != null) {
+                                NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                                content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", getDetails.getName()));
+                                sendBulkNotificationToUsers.setTitle(content.getTitle());
+                                sendBulkNotificationToUsers.setBody(content.getMessage());
+                                sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
+                                sendBulkNotificationToUsers.setTypeId(jobTaskMappingToTechnician.get().getUuid());
+                                Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
+                                MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
+                                multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
+                                multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
+                                multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                                set.add(multiUserDeviceDetailsDTO);
+                                sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
+                                sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
+                            }
+                            applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail, tenantId, isSuperAdmin, sendBulkNotificationToUsers));
                         }
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail, tenantId, isSuperAdmin, sendBulkNotificationToUsers));
+
+                    }catch (Exception e){
+                        e.printStackTrace();
                     }
                 }
 
             } else {
-                jobTaskMappingTechnician.setJobTaskMappingId(jobMappingTask.get().getUuid());
-                jobTaskMappingTechnician.setTechnicianId(assignJobToTechnician.getTechnicianId());
-                jobTaskMappingTechnician.setTaskStatus("ASSIGNED");
-                jobTaskMappingTechnician.setNote(assignJobToTechnician.getNote());
-                if (!TextUtils.isEmpty(assignJobToTechnician.getStartDate())) {
-                    try {
-                        LocalDate startDate = LocalDate.parse(assignJobToTechnician.getStartDate());
-                        jobTaskMappingTechnician.setStartDate(startDate);
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                try {
+                    jobTaskMappingTechnician.setJobTaskMappingId(jobMappingTask.get().getUuid());
+                    jobTaskMappingTechnician.setTechnicianId(assignJobToTechnician.getTechnicianId());
+                    jobTaskMappingTechnician.setTaskStatus("ASSIGNED");
+                    jobTaskMappingTechnician.setNote(assignJobToTechnician.getNote());
+                    if (!TextUtils.isEmpty(assignJobToTechnician.getStartDate())) {
+                        try {
+                            LocalDate startDate = LocalDate.parse(assignJobToTechnician.getStartDate());
+                            jobTaskMappingTechnician.setStartDate(startDate);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
-                }
-                if (!TextUtils.isEmpty(assignJobToTechnician.getEndDate())) {
-                    try {
-                        LocalDate endDate = LocalDate.parse(assignJobToTechnician.getEndDate());
-                        jobTaskMappingTechnician.setEndDate(endDate);
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    if (!TextUtils.isEmpty(assignJobToTechnician.getEndDate())) {
+                        try {
+                            LocalDate endDate = LocalDate.parse(assignJobToTechnician.getEndDate());
+                            jobTaskMappingTechnician.setEndDate(endDate);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
-                }
-                Gson gson = new Gson();
-                if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
-                    List<String> documentsWithUrl = assignJobToTechnician.getDocuments().stream()
-                            .map(doc -> awsS3BaseUrl + doc)  // Prepending AWS base URL
-                            .collect(Collectors.toList());
-                    jobTaskMappingTechnician.setDocuments(gson.toJson(documentsWithUrl));
-                }
-                JobTaskMappingTechnician JobTaskMappingTechnician = jobTaskMappingTechnicianRepository.save(jobTaskMappingTechnician);
+                    Gson gson = new Gson();
+                    if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
+                        List<String> documentsWithUrl = assignJobToTechnician.getDocuments().stream()
+                                .map(doc -> awsS3BaseUrl + doc)  // Prepending AWS base URL
+                                .collect(Collectors.toList());
+                        jobTaskMappingTechnician.setDocuments(gson.toJson(documentsWithUrl));
+                    }
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+                    if (assignJobToTechnician.getStartDateTime() != null) {
+                        LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), formatter);
+                        Time sqlTime = Time.valueOf(ldt.toLocalTime());
+                        jobTaskMappingTechnician.setStartTime(sqlTime);
+                    }
+
+                    if (assignJobToTechnician.getEndDateTime() != null) {
+                        LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), formatter);
+                        Time sqlTime = Time.valueOf(ldt.toLocalTime());
+                        jobTaskMappingTechnician.setEndTime(sqlTime);
+                    }
+                    JobTaskMappingTechnician JobTaskMappingTechnician = jobTaskMappingTechnicianRepository.save(jobTaskMappingTechnician);
 
                 // Save attached documents in DB
                 JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
@@ -595,28 +630,32 @@ public class JobServiceImpl implements JobService {
                     String jsonResponse = gson.toJson(technicianResponse.getData());
                     TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
 
-                    if (getDetails != null && getDetails.getEmail() != null) {
-                        PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
-                        ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
-                        ApiResponse body = notificationSlugContent.getBody();
-                        if (body != null) {
-                            NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
-                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", getDetails.getName()));
-                            sendBulkNotificationToUsers.setTitle(content.getTitle());
-                            sendBulkNotificationToUsers.setBody(content.getMessage());
-                            sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
-                            sendBulkNotificationToUsers.setTypeId(JobTaskMappingTechnician.getUuid());
-                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
-                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
-                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
-                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
-                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
-                            set.add(multiUserDeviceDetailsDTO);
-                            sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
-                            sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
+                        if (getDetails != null && getDetails.getEmail() != null) {
+                            PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
+                            ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
+                            ApiResponse body = notificationSlugContent.getBody();
+                            if (body != null) {
+                                NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                                content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", getDetails.getName()));
+                                sendBulkNotificationToUsers.setTitle(content.getTitle());
+                                sendBulkNotificationToUsers.setBody(content.getMessage());
+                                sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
+                                sendBulkNotificationToUsers.setTypeId(JobTaskMappingTechnician.getUuid());
+                                Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
+                                MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
+                                multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
+                                multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
+                                multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                                set.add(multiUserDeviceDetailsDTO);
+                                sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
+                                sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
+                            }
+                            applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail, tenantId, isSuperAdmin, sendBulkNotificationToUsers));
                         }
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail, tenantId, isSuperAdmin, sendBulkNotificationToUsers));
                     }
+
+                }catch (Exception e){
+                    e.printStackTrace();
                 }
             }
 //                throw new CodeException("Job Task Already Assigned to Technician", ErrorCode.COMMON);
@@ -2080,6 +2119,7 @@ public class JobServiceImpl implements JobService {
         List<JobMappingTask> all = jobMappingTaskRepository.findAllWithJobAndTags(builder1.build());
 
         List<TechnicianDTO.GetDetails>  techDetailsList= new ArrayList<>();
+        PageItem<TechnicianDTO.GetDetails> technicanPageItem=new PageItem<>();
         if(listRequest.getTechnicianId() == null){
             ApiResponse technicianResponse = technicianClient.getAllTechnician(listRequest,tenantId, false).getBody();
             if (technicianResponse != null && "200".equalsIgnoreCase(technicianResponse.getStatus()) && technicianResponse.getData() != null) {
@@ -2088,6 +2128,7 @@ public class JobServiceImpl implements JobService {
                         new TypeReference<PageItem<TechnicianDTO.GetDetails>>() {}
                 );
                 techDetailsList = pageItem.getItems();
+                technicanPageItem=pageItem;
             }
         }else{
             ApiResponse technicianResponse = technicianClient.getTechnicianByUuid(listRequest.getTechnicianId(),tenantId,isSuperAdmin).getBody();
@@ -2099,8 +2140,8 @@ public class JobServiceImpl implements JobService {
         }
         List<DispatchBoardTechnicianWrapper> dispatchBoardTechnicianWrappers = buildDispatchBoardData(all, techMappings, techDetailsList, tenantId);
         int totalElements = dispatchBoardTechnicianWrappers.size();
-        int pageSize = listRequest.getPageSize();
-        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
+        int pageSize = technicanPageItem.getPageSize();
+        int totalPages = technicanPageItem.getTotalPages();
 
         int page = listRequest.getPageNumber();
 
@@ -2110,6 +2151,8 @@ public class JobServiceImpl implements JobService {
         List<DispatchBoardTechnicianWrapper> pagedResults = new ArrayList<>();
         if (fromIndex < totalElements) {
             pagedResults = dispatchBoardTechnicianWrappers.subList(fromIndex, toIndex);
+        }else {
+            pagedResults = dispatchBoardTechnicianWrappers.subList(0, toIndex);
         }
         return new PageItem<>(
                 totalPages,
@@ -2156,8 +2199,8 @@ public class JobServiceImpl implements JobService {
             // 3. Fetch Tag Master Data
             List<JobTag> jobTags = jobTagRepository.findByUuidIn(new ArrayList<>(allTagIds));
 
-            final Map<String, String> tagIdToNameMap = jobTags.stream()
-                    .collect(Collectors.toMap(JobTag::getUuid, JobTag::getName));
+            final Map<String, JobTag> tagIdToNameMap = jobTags.stream()
+                    .collect(Collectors.toMap(JobTag::getUuid, jt -> jt));
 
             List<DispatchBoardDataResponseDTO> collect = techMappings.stream()
                     .map(tech -> {
@@ -2179,19 +2222,25 @@ public class JobServiceImpl implements JobService {
 
                         dto.setStartDate(tech.getStartDate() != null ? tech.getStartDate().toString() : null);
                         dto.setEndDate(tech.getEndDate() != null ? tech.getEndDate().toString() : null);
+                        dto.setStartTime(tech.getStartTime() != null ? tech.getStartTime().toString() : null);
+                        dto.setEndTime(tech.getEndTime() != null ? tech.getEndTime().toString() : null);
                         dto.setJobId(job.getJobId());
                         dto.setCustomerId(job.getCustomerId());
                         dto.setServiceLocation(job.getServiceLocation());
                         dto.setJobTypeId(job.getJobTypeId());
                         dto.setJobStatus(job.getJobStatus());
 
-                        List<String> tagNames = job.getJobMappingTags().stream()
+                        List<JobTagDTO.Detail> tagDetails = job.getJobMappingTags().stream()
                                 .map(JobMappingTags::getTagId)
                                 .map(tagIdToNameMap::get)
                                 .filter(Objects::nonNull)
+                                .map(tag -> JobTagDTO.Detail.builder()
+                                        .id(tag.getUuid())
+                                        .name(tag.getName())
+                                        .tagColor(tag.getTagColor())
+                                        .build())
                                 .collect(Collectors.toList());
-
-                        dto.setJobTag(tagNames);
+                        dto.setJobTag(tagDetails);
                         return dto;
 
                     })
@@ -2225,17 +2274,46 @@ public class JobServiceImpl implements JobService {
     private void prepareDispatchSearchFilter(com.octal.fsm.models.request.PageRequest.List listRequest, GenericSpecificationsBuilder<JobTaskMappingTechnician> builder) {
         builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("deleted", false));
 
-        LocalDate start = listRequest.getStartDate();
-        LocalDate end = listRequest.getEndDate();
+        LocalDate start = listRequest.getStartDate(); // user start date
+        LocalDate end = listRequest.getEndDate();     // user end date
 
         if (start != null && end != null) {
-            builder.with(jobTaskMappingTechnicianSpecificationFactory.isGreaterThanOrEquals("startDate", start));
-            builder.with(jobTaskMappingTechnicianSpecificationFactory.isLessThanOrEquals("endDate", end));
+
+            // Overlap condition:
+            // task.startDate <= userEnd   AND   task.endDate >= userStart
+
+            builder.with(jobTaskMappingTechnicianSpecificationFactory
+                    .isLessThanOrEquals("startDate", end));   // task.startDate <= userEnd
+
+            builder.with(jobTaskMappingTechnicianSpecificationFactory
+                    .isGreaterThanOrEquals("endDate", start)); // task.endDate >= userStart
+
         } else if (start != null) {
-            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("startDate", start));
+
+
+            // selectedDate >= task.startDate
+            builder.with(jobTaskMappingTechnicianSpecificationFactory
+                    .isLessThanOrEquals("startDate", start));
+
+            // selectedDate <= task.endDate
+            builder.with(jobTaskMappingTechnicianSpecificationFactory
+                    .isGreaterThanOrEquals("endDate", start));
+
         } else if (end != null) {
-            builder.with(jobTaskMappingTechnicianSpecificationFactory.isLessThanOrEquals("endDate", end));
+
+            // user selected only end → get tasks starting on or before the end
+            builder.with(jobTaskMappingTechnicianSpecificationFactory
+                    .isLessThanOrEquals("startDate", end));
         }
+
+//        if (start != null && end != null) {
+//            builder.with(jobTaskMappingTechnicianSpecificationFactory.isGreaterThanOrEquals("startDate", start));
+//            builder.with(jobTaskMappingTechnicianSpecificationFactory.isLessThanOrEquals("endDate", end));
+//        } else if (start != null) {
+//            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("startDate", start));
+//        } else if (end != null) {
+//            builder.with(jobTaskMappingTechnicianSpecificationFactory.isLessThanOrEquals("endDate", end));
+//        }
     }
 
     private void prepareTaskListSearchFilter(com.octal.fsm.models.request.PageRequest.List listRequest, GenericSpecificationsBuilder<JobTaskMappingTechnician> builder, Long tenantId) {
