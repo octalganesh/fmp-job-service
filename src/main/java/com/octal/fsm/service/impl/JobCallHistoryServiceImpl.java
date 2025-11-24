@@ -1,8 +1,11 @@
 package com.octal.fsm.service.impl;
 
 import com.octal.fsm.dto.JobCallDTO;
+import com.octal.fsm.dto.JobNotesDTO;
 import com.octal.fsm.dto.PageItem;
+import com.octal.fsm.dto.SystemEventLogDTO;
 import com.octal.fsm.entities.JobCallHistory;
+import com.octal.fsm.entities.enums.SystemEventType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.repositories.JobCallHistoryRepository;
@@ -20,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -34,6 +38,9 @@ public class JobCallHistoryServiceImpl implements JobCallHistoryService {
     @Autowired
     private SpecificationFactory<JobCallHistory> jobCallHistorySpecificationFactory;
 
+    @Autowired
+    private EventPublisherService eventPublisherService;
+
     @Override
     public void saveJobCallHistory(JobCallDTO.Add addJobDTO) throws CodeException {
         if (TextUtils.isEmpty(addJobDTO.getJobId()))
@@ -47,6 +54,14 @@ public class JobCallHistoryServiceImpl implements JobCallHistoryService {
         jobCallHistory.setCreatedById(addJobDTO.getCreatedById());
         jobCallHistory.setCreatedByName(addJobDTO.getCreatedByName());
         jobCallHistoryRepository.save(jobCallHistory);
+        //trigger event log
+        SystemEventLogDTO systemEventLogDTO = new SystemEventLogDTO();
+        systemEventLogDTO.setEventType(SystemEventType.JOB_CALL_LOG_CREATED);
+        systemEventLogDTO.setDescription("A new job call log is created for job id: " + addJobDTO.getJobId());
+        systemEventLogDTO.setPerformedBy(addJobDTO.getCreatedByName());
+        systemEventLogDTO.setReferenceId(addJobDTO.getJobId());
+        systemEventLogDTO.setProfileUrl("");
+        eventPublisherService.publish(systemEventLogDTO);
     }
 
     @Override
@@ -75,4 +90,21 @@ public class JobCallHistoryServiceImpl implements JobCallHistoryService {
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, page,
                 size);
     }
+
+    @Override
+    public List<JobCallDTO.ListResponse> getAllJobCallHistoriesByJobId(String jobId) throws CodeException {
+        List<JobCallHistory> byJobId = jobCallHistoryRepository.findByJobIdOrderByCreatedAtDesc(jobId);
+        return byJobId.stream().map(f -> {
+            JobCallDTO.ListResponse dto = new JobCallDTO.ListResponse();
+            dto.setId(f.getUuid());
+            dto.setJobId(f.getJobId());
+            dto.setCallNote(f.getCallNote());
+            dto.setCreatedById(f.getCreatedById());
+            dto.setCreatedByName(f.getCreatedByName());
+            dto.setCreatedAt(f.getCreatedAt());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+
 }
