@@ -233,4 +233,32 @@ public class DocumentServiceImpl implements DocumentService {
         documentsRepository.saveAll(documentsList);
     }
 
+    @Override
+    public List<DocumentDTO.ListResponse> getJobDocuments(String jobId, Long tenantId, boolean isSuperAdmin) throws CodeException {
+        try {
+            List<Documents> documents =  documentsRepository.findByAttachTypeIdOrderByCreatedAtDesc(jobId);//here get all documents by job id
+            List<DocumentDTO.ListResponse> documentDTO = documents
+                    .stream()
+                    .map(this::convertDocumentToDto)
+                    .collect(Collectors.toList());
+            return documentDTO;
+        } catch (Exception exception) {
+            throw new CodeException("Failed to get Documents: " + exception.getMessage(), ErrorCode.COMMON);
+        }
+    }
+
+    private DocumentDTO.ListResponse convertDocumentToDto(Documents doc) {
+        DocumentDTO.ListResponse dto = new DocumentDTO.ListResponse();
+        dto.setId(doc.getUuid());
+        dto.setFileName(doc.getFileName());
+        dto.setDocumentUrl(doc.getDocumentUrl());
+        dto.setDocumentTypeId(doc.getDocumentTypeId());
+        dto.setUploadedByType(doc.getUploadedByType());
+        dto.setFileType(doc.getFileType());
+        dto.setCreatedAt(doc.getCreatedAt().toString());
+        dto.setUploadedByTypeId(doc.getUploadedByTypeId());
+        dto.setCreatedAtInDate(doc.getCreatedAt());
+        return dto;
+    }
+
 }

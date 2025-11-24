@@ -71,4 +71,16 @@ public class DocumentController extends BaseController {
         }
     }
 
+    @GetMapping("/get-documents-by/{jobId}")
+    public ResponseEntity<ApiResponse> getDocumentByJobId(@PathVariable("jobId") String jobId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", documentService.getJobDocuments(jobId, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 }
