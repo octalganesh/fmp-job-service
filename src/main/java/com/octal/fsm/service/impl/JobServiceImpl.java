@@ -516,7 +516,7 @@ public class JobServiceImpl implements JobService {
                     Gson gson = new Gson();
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 }
-                jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
+                JobTaskMappingTechnician save = jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
 
                 Gson gson = new Gson();
                 if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
@@ -524,38 +524,11 @@ public class JobServiceImpl implements JobService {
                             .map(doc -> awsS3BaseUrl + doc)  // Prepending AWS base URL
                             .collect(Collectors.toList());
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(documentsWithUrl));
+                }try{
+                    applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician,save, loggedInUserEmail, tenantId, isSuperAdmin));
+                } catch (Exception e){
+                    e.printStackTrace();
                 }
-                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail, tenantId, isSuperAdmin);
-
-                // Convert response data to TechnicianDTO.GetDetails
-                if (jobDetails != null) {
-                    String jsonResponse = gson.toJson(technicianResponse.getData());
-                    TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
-
-                    if (getDetails != null && getDetails.getEmail() != null) {
-                        PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
-                        ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
-                        ApiResponse body = notificationSlugContent.getBody();
-                        if (body != null) {
-                            NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
-                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", getDetails.getName()));
-                            sendBulkNotificationToUsers.setTitle(content.getTitle());
-                            sendBulkNotificationToUsers.setBody(content.getMessage());
-                            sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
-                            sendBulkNotificationToUsers.setTypeId(jobTaskMappingToTechnician.get().getUuid());
-                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
-                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
-                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
-                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
-                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
-                            set.add(multiUserDeviceDetailsDTO);
-                            sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
-                            sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
-                        }
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail, tenantId, isSuperAdmin, sendBulkNotificationToUsers));
-                    }
-                }
-
             } else {
                 jobTaskMappingTechnician.setJobTaskMappingId(jobMappingTask.get().getUuid());
                 jobTaskMappingTechnician.setTechnicianId(assignJobToTechnician.getTechnicianId());
@@ -588,35 +561,10 @@ public class JobServiceImpl implements JobService {
 
                 // Save attached documents in DB
                 JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
-                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail, tenantId, isSuperAdmin);
-
-                // Convert response data to TechnicianDTO.GetDetails
-                if (jobDetails != null) {
-                    String jsonResponse = gson.toJson(technicianResponse.getData());
-                    TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
-
-                    if (getDetails != null && getDetails.getEmail() != null) {
-                        PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
-                        ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
-                        ApiResponse body = notificationSlugContent.getBody();
-                        if (body != null) {
-                            NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
-                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", getDetails.getName()));
-                            sendBulkNotificationToUsers.setTitle(content.getTitle());
-                            sendBulkNotificationToUsers.setBody(content.getMessage());
-                            sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
-                            sendBulkNotificationToUsers.setTypeId(JobTaskMappingTechnician.getUuid());
-                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
-                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
-                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
-                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
-                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
-                            set.add(multiUserDeviceDetailsDTO);
-                            sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
-                            sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
-                        }
-                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(getDetails, jobDetails, loggedInUserEmail, tenantId, isSuperAdmin, sendBulkNotificationToUsers));
-                    }
+                try{
+                    applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician,JobTaskMappingTechnician, loggedInUserEmail, tenantId, isSuperAdmin));
+                }catch (Exception e){
+                    e.printStackTrace();
                 }
             }
 //                throw new CodeException("Job Task Already Assigned to Technician", ErrorCode.COMMON);
