@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
 
 public class DocumentDTO {
 
@@ -44,5 +45,6 @@ public class DocumentDTO {
         private String uploadedByTypeId;
         private String createdAt;
         private String documentTypeId;
+        private LocalDateTime createdAtInDate;
     }
 }

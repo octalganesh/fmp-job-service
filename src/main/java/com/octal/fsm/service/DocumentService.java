@@ -15,4 +15,6 @@ public interface DocumentService {
     void uploadMultipleDocument(List<DocumentDTO.Add> list) throws CodeException;
 
     void uploadMultipleDocumentForCSR(List<DocumentDTO.Add> list) throws CodeException;
+
+    List<DocumentDTO.ListResponse> getJobDocuments(String jobId, Long tenantId, boolean isSuperAdmin) throws CodeException;
 }

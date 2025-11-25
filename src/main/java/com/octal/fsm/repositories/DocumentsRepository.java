@@ -10,4 +10,6 @@ import java.util.List;
 @Repository
 public interface DocumentsRepository extends JpaRepository<Documents, Long>, JpaSpecificationExecutor<Documents> {
     List<Documents> findByAttachTypeId(String uuid);
+
+    List<Documents> findByAttachTypeIdOrderByCreatedAtDesc(String attachTypeId);
 }

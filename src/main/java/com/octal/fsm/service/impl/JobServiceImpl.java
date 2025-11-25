@@ -117,6 +117,9 @@ public class JobServiceImpl implements JobService {
     private DocumentService documentService;
 
     @Autowired
+    private JobNotesRepository jobNotesRepository;
+
+    @Autowired
     private JobService jobService;
     @Autowired
     private DocumentsRepository documentsRepository;
@@ -2270,6 +2273,156 @@ public class JobServiceImpl implements JobService {
             throw new RuntimeException(exception.getMessage());
         }
     }
+
+    @Override
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> getTaskView(String taskId, Long tenantId, boolean isSuperAdmin) {
+        try {
+            Optional<JobMappingTask> byUuid = jobMappingTaskRepository.findByUuid(taskId);
+            if (byUuid.isPresent()) {
+                if(byUuid.get().getAssignType().equals(TaskAssignedType.CSR)){
+                    List<Documents> documents =  documentsRepository.findByAttachTypeId(taskId);
+                    List<DocumentDTO.Add> documentDTO = documents
+                            .stream()
+                            .map(this::convertDocumentToDto)
+                            .collect(Collectors.toList());
+
+                    JobMappingTask entity = byUuid.get();
+                    JobMappingTaskDTO dto = new JobMappingTaskDTO();
+                    dto.setUuid(entity.getUuid());
+                    dto.setTaskId(entity.getTaskId());
+                    dto.setTaskShowId(entity.getTaskShowId());
+                    dto.setTaskName(entity.getTaskName());
+                    dto.setDocumentTypeId(entity.getDocumentTypeId());
+                    dto.setTaskSequence(entity.getTaskSequence());
+                    dto.setJobTaskStatus(entity.getJobTaskStatus());
+                    dto.setDocuments(documentDTO);
+                    dto.setAssignType(entity.getAssignType());
+                    dto.setNote(entity.getNote());
+                    return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task fetched successfully", dto, "200", HttpStatus.OK), HttpStatus.OK);
+                }else if(byUuid.get().getAssignType().equals(TaskAssignedType.TECHNICIAN)){
+                    Optional<JobTaskMappingTechnician> byJobTaskMappingId = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(byUuid.get().getUuid());
+                    if(byJobTaskMappingId.isPresent()){
+                        List<Documents> documents =  documentsRepository.findByAttachTypeId(taskId);
+                        List<DocumentDTO.Add> documentDTO = documents
+                                .stream()
+                                .map(this::convertDocumentToDto)
+                                .collect(Collectors.toList());
+                        JobTaskMappingTechnician entity = byJobTaskMappingId.get();
+                        JobMappingTaskDTO dto = new JobMappingTaskDTO();
+                        dto.setUuid(entity.getUuid());
+                        dto.setTaskId(byUuid.get().getUuid());
+                        dto.setNote(entity.getNote());
+                        dto.setHtmlFormPages(entity.getHtmlFormPages());
+                        dto.setDocumentTypeId(entity.getDocuments());
+                        dto.setJobTaskStatus(entity.getTaskStatus());
+                        dto.setDocuments(documentDTO);
+                        dto.setAssignType(byUuid.get().getAssignType());
+                        dto.setNote(entity.getNote());
+                        return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task fetched successfully", dto, "200", HttpStatus.OK), HttpStatus.OK);
+                    }
+                }else{
+                    return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, "Task Not Available", null, "500", HttpStatus.OK), HttpStatus.OK);
+                }
+            }
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, "Task Not Available", null, "500", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception exception) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, exception.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
+        }
+    }
+
+    @Override
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> getNotesByJobId(String jobId, Long tenantId, boolean isSuperAdmin) {
+        try {
+            List<JobNotes> jobNotes = jobNotesRepository.findByJobId(jobId);
+            JobFullNotesDTO response = new JobFullNotesDTO();
+            response.setJobId(jobId);
+            response.setJobNotes(
+                    jobNotes.stream()
+                            .map(n -> {
+                                JobFullNotesDTO.JobNotesDTO dto = new JobFullNotesDTO.JobNotesDTO();
+                                dto.setNote(n.getNotes());
+                                dto.setCreatedAt(n.getCreatedAt());
+                                return dto;
+                            }).collect(Collectors.toList())
+            );
+            List<JobMappingTask> tasks = jobMappingTaskRepository.findByJob_Uuid(jobId);
+            List<String> taskIds = tasks.stream().map(JobMappingTask::getUuid).collect(Collectors.toList());
+
+            List<JobTaskMappingTechnician> technicians = jobTaskMappingTechnicianRepository.findByJobTaskIdAndDeletedFalse(taskIds);
+
+            List<JobFullNotesDTO.TaskNotesDTO> taskNotesList = new ArrayList<>();
+
+            for (JobMappingTask task : tasks) {
+
+                JobFullNotesDTO.TaskNotesDTO taskDto = new JobFullNotesDTO.TaskNotesDTO();
+                taskDto.setTaskId(task.getUuid());
+                taskDto.setTaskName(task.getTaskName());
+                taskDto.setTaskNote(task.getNote());
+                taskDto.setCreatedAt(task.getCreatedAt());
+                JobTaskMappingTechnician tech =
+                        technicians.stream()
+                                .filter(x -> x.getJobTaskMappingId().equals(task.getUuid()))
+                                .findFirst()
+                                .orElse(null);
+
+                if (tech != null) {
+
+                    JobFullNotesDTO.TechnicianNotesDTO techDto = new JobFullNotesDTO.TechnicianNotesDTO();
+                    techDto.setTechnicianId(tech.getTechnicianId());
+                    techDto.setTaskNote(tech.getNote());
+                    techDto.setCreatedAt(tech.getCreatedAt());
+                    taskDto.setTechnicians(techDto);
+                }
+                taskNotesList.add(taskDto);
+            }
+            response.setTaskNotes(taskNotesList);
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Notes fetched successfully", response, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception exception) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, exception.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
+        }
+    }
+
+    @Override
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> getFormsByJobId(String jobId, Long tenantId, boolean isSuperAdmin) {
+        try {
+            Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobId);
+            if (job.isPresent()) {
+                List<FormsManagementDTO.Detail> formsDetails = getFormByJobType(job.get().getJobTypeId(), tenantId);
+                String finalApiUrl = baseApiUrl + jobId;
+                formsDetails.forEach(detail -> {
+                    if (detail.getContent() != null) {
+                        detail.setContent(
+                                detail.getContent().replace("{{API_URL}}", finalApiUrl)
+                        );
+                    }
+                });
+                FormsResponseDTO formsResponseDTO = new FormsResponseDTO();
+                formsResponseDTO.setJobId(jobId);
+                formsResponseDTO.setJobTypeId(job.get().getJobTypeId());
+                formsResponseDTO.setFormDetails(formsDetails);
+                return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Forms fetched successfully", formsResponseDTO, "200", HttpStatus.OK), HttpStatus.OK);
+            }
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, "Forms Not Available", null, "500", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception exception) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, exception.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
+        }
+    }
+
+    private DocumentDTO.Add convertDocumentToDto(Documents doc) {
+        DocumentDTO.Add dto = new DocumentDTO.Add();
+        dto.setFileName(doc.getFileName());
+        dto.setDocumentUrl(doc.getDocumentUrl());
+        dto.setThumbnail(doc.getThumbnail());
+        dto.setDocumentTypeId(doc.getDocumentTypeId());
+        dto.setFileType(doc.getFileType());
+        dto.setAttachType(doc.getAttachType());
+        dto.setAttachTypeId(doc.getAttachTypeId());
+        dto.setUploadByUserName(doc.getUploadedByUserName());
+        dto.setUploadedBType(doc.getUploadedByType());
+        dto.setUploadedBTypeId(doc.getUploadedByTypeId());
+        return dto;
+    }
+
 
 
     private void prepareDispatchSearchFilter(com.octal.fsm.models.request.PageRequest.List listRequest, GenericSpecificationsBuilder<JobTaskMappingTechnician> builder) {

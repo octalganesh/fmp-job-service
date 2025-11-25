@@ -95,4 +95,10 @@ public interface JobService {
     TaskManagerDTO getTaskByTaskId(String taskId ,Long tenantId, boolean isSuperAdmin) throws CodeException ;
 
     PageItem<DispatchBoardTechnicianWrapper> getDataForDispatchBoard(PageRequest.List listRequest,Long tenantId, boolean isSuperAdmin);
+
+    ResponseEntity<com.octal.fsm.common.ApiResponse> getTaskView(String taskId , Long tenantId, boolean isSuperAdmin) throws CodeException;
+
+    ResponseEntity<com.octal.fsm.common.ApiResponse> getNotesByJobId(String jobId , Long tenantId, boolean isSuperAdmin) throws CodeException;
+
+    ResponseEntity<com.octal.fsm.common.ApiResponse> getFormsByJobId(String jobId , Long tenantId, boolean isSuperAdmin) throws CodeException;
 }
