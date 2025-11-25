@@ -2,6 +2,7 @@ package com.octal.fsm.service.impl;
 
 import com.octal.fsm.dto.*;
 import com.octal.fsm.entities.JobNotes;
+import com.octal.fsm.entities.enums.SystemEventType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
@@ -30,6 +31,9 @@ public class JobNotesServiceImpl implements JobNotesService {
     @Autowired
     private SpecificationFactory<JobNotes> jobNotesSpecificationFactory;
 
+    @Autowired
+    private EventPublisherService eventPublisherService;
+
     @Override
     public String addNotes(JobNotesDTO.Add addNotes, boolean isSuperAdmin) throws CodeException {
         try{
@@ -41,7 +45,18 @@ public class JobNotesServiceImpl implements JobNotesService {
             jobNotes.setCreatedAt(LocalDateTime.now());
             jobNotes.setCreatedBy(addNotes.getCreatedBy());
             JobNotes save = jobNotesRepository.save(jobNotes);
-            return save.getUuid();
+            String uuid = save.getUuid();
+
+            SystemEventLogDTO systemEventLogDTO = new SystemEventLogDTO();
+            systemEventLogDTO.setEventType(SystemEventType.NOTE_ADDED);
+            systemEventLogDTO.setDescription("Job note added successfully");
+            systemEventLogDTO.setPerformedBy(addNotes.getCreatedBy());
+            systemEventLogDTO.setReferenceId(addNotes.getJobId());
+            systemEventLogDTO.setProfileUrl("");
+            eventPublisherService.publish(systemEventLogDTO);
+            
+            return uuid;
+
         }catch (Exception exception){
             throw new RuntimeException(exception.getMessage());
         }
