@@ -885,7 +885,7 @@ public class JobServiceImpl implements JobService {
                 JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
 
                 if (job.isPresent() && jobTask.isPresent()) {
-                    if (TextUtils.isEmpty(job.get().getFrontOfficeId())) {
+                    if (!TextUtils.isEmpty(job.get().getFrontOfficeId())) {
                         ResponseEntity<ApiResponse> frontOfficeResponse = adminClient.getFrontOfficeById(job.get().getFrontOfficeId(), tenantId);
                         if (frontOfficeResponse != null && frontOfficeResponse.getBody() != null && frontOfficeResponse.getBody().getData() != null) {
                             Gson gson = new Gson();
