@@ -304,6 +304,8 @@ public class JobDTO {
         // response for customer feedback on the task
         private CustomerFeedbackResponse customerFeedbackResponse;
         private List<HTMLFormDTO.Details> formList;
+        private String frontOfficeName;
+        private String frontOfficeId;
     }
 
     @Data

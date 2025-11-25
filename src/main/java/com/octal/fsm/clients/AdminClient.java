@@ -43,4 +43,7 @@ public interface AdminClient {
     ResponseEntity<ApiResponse> getCustomerByIds(@RequestBody List<String> ids, @RequestHeader("tenantId") Long tenantId,
                                                  @RequestHeader("superAdmin") boolean superAdmin);
 
+    @GetMapping("/front-office/get-front-office-by-id/{id}")
+    ResponseEntity<ApiResponse> getFrontOfficeById(@PathVariable("id") String id, @RequestHeader("tenantId") Long tenantId);
+
 }

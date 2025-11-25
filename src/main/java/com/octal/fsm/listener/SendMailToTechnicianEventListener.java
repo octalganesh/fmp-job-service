@@ -9,6 +9,7 @@ import com.octal.fsm.dto.enums.PushNotificationType;
 import com.octal.fsm.entities.JobTaskMappingTechnician;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.service.EmailService;
+import com.octal.fsm.service.JobService;
 import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
