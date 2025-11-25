@@ -516,15 +516,15 @@ public class JobServiceImpl implements JobService {
                     Gson gson = new Gson();
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 }
-                JobTaskMappingTechnician save = jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
-
                 Gson gson = new Gson();
                 if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
                     List<String> documentsWithUrl = assignJobToTechnician.getDocuments().stream()
                             .map(doc -> awsS3BaseUrl + doc)  // Prepending AWS base URL
                             .collect(Collectors.toList());
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(documentsWithUrl));
-                }try{
+                }
+                JobTaskMappingTechnician save = jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
+                try{
                     applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician,save, loggedInUserEmail, tenantId, isSuperAdmin));
                 } catch (Exception e){
                     e.printStackTrace();
