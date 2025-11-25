@@ -531,8 +531,6 @@ public class JobServiceImpl implements JobService {
                     Time sqlTime = Time.valueOf(ldt.toLocalTime());
                     jobTaskMappingToTechnician.get().setEndTime(sqlTime);
                 }
-                jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
-
                 Gson gson = new Gson();
                 if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
                     List<String> documentsWithUrl = assignJobToTechnician.getDocuments().stream()
@@ -540,6 +538,9 @@ public class JobServiceImpl implements JobService {
                             .collect(Collectors.toList());
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(documentsWithUrl));
                 }
+                jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
+
+
                 JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail, tenantId, isSuperAdmin);
 
                 // Convert response data to TechnicianDTO.GetDetails
