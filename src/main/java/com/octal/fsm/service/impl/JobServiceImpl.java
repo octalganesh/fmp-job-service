@@ -542,6 +542,8 @@ public class JobServiceImpl implements JobService {
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(documentsWithUrl));
                 }
                 try {
+                    assignJobToTechnician.setTaskName(jobMappingTask.get().getTaskName());
+                    assignJobToTechnician.setTaskShowId(jobMappingTask.get().getTaskShowId());
                     applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician, save, loggedInUserEmail, tenantId, isSuperAdmin));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -580,6 +582,8 @@ public class JobServiceImpl implements JobService {
                 // Save attached documents in DB
                 JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 try {
+                    assignJobToTechnician.setTaskName(jobMappingTask.get().getTaskName());
+                    assignJobToTechnician.setTaskShowId(jobMappingTask.get().getTaskShowId());
                     applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician, JobTaskMappingTechnician, loggedInUserEmail, tenantId, isSuperAdmin));
                 } catch (Exception e) {
                     e.printStackTrace();
