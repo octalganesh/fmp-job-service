@@ -13,7 +13,7 @@ import javax.persistence.Table;
 @Table(name = "job_status_master")
 @Data
 public class JobStatusMaster extends AbstractPersistable {
-    private String name;
+    private String name;  //todo need to make this unique across the system.
     private String description;
     private Integer sequenceOrder;
     private String colorCode; // todo need to discuss
