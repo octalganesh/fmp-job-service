@@ -1723,6 +1723,7 @@ public class JobServiceImpl implements JobService {
                 dto.setTaskStatus(entity.getJobTaskStatus());
                 dto.setTaskName(entity.getTaskName());
                 dto.setTaskId(entity.getTaskId());
+                dto.setTaskShowId(entity.getTaskShowId());
                 dto.setDate(entity.getCreatedAt().toLocalDate().toString());
                 dto.setTime(null);
                 dto.setDescription("Description");
@@ -2353,6 +2354,7 @@ public class JobServiceImpl implements JobService {
                 TaskManagerDTO dto = new TaskManagerDTO();
                 dto.setJobId(department.getJob().getUuid());
                 dto.setTaskId(department.getUuid());
+                dto.setTaskShowId(department.getTaskShowId());
                 dto.setTaskName(department.getTaskName());
                 dto.setTaskStatus(department.getJobTaskStatus());
                 dto.setDate(String.valueOf(department.getCreatedAt()));
@@ -2430,6 +2432,7 @@ public class JobServiceImpl implements JobService {
             for (JobMappingTask department : page.getContent()) {
                 TaskManagerDTO dto = new TaskManagerDTO();
                 dto.setJobId(department.getJob().getUuid());
+                dto.setTaskShowId(department.getTaskShowId());
                 dto.setTaskId(department.getUuid());
                 dto.setTaskName(department.getTaskName());
                 dto.setTaskStatus(department.getJobTaskStatus());

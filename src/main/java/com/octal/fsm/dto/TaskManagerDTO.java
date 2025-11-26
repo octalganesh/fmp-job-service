@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 public class TaskManagerDTO {
 
     private String taskStatus;
+    private String taskShowId;
     private String taskName;
     private String taskId;
     private String date;
