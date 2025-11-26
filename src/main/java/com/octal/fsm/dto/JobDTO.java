@@ -399,4 +399,13 @@ public class JobDTO {
         private List<DocumentDTO.Add> documents;
         private Boolean isDone;
     }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class UpdateDrawingDetails {
+        private String taskId;
+        private String drawingJsonData;
+        private String drawingImage;
+    }
 }

@@ -2089,7 +2089,7 @@ public class JobServiceImpl implements JobService {
                     String taskShowId = jobMappingTask.get().getTaskShowId() != null ? jobMappingTask.get().getTaskShowId().toLowerCase() : "";
 
 //
-                    details.setId(jobMappingTask.get().getUuid());
+                    details.setId(taskMapping.get().getUuid());
                     details.setTaskName(jobTask.get().getName());
                     details.setNote(taskMapping.get().getTechnicianNote());
                     details.setFrontOfficeNote(taskMapping.get().getNote());
@@ -2190,9 +2190,28 @@ public class JobServiceImpl implements JobService {
                         details.setFormList(list);
                     }
                     return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Mapping Task fetched successfully", details, "200", HttpStatus.OK), HttpStatus.OK);
+                }else{
+                    return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Mapping data Not Available", null, "200", HttpStatus.OK), HttpStatus.OK);
                 }
             }
             return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, "Job Mapping Task Not Available", null, "500", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception exception) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, exception.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
+        }
+    }
+
+    @Override
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> updateDrawingData(JobDTO.UpdateDrawingDetails details, Long tenantId, boolean isSuperAdmin) {
+        try {
+            Optional<JobTaskMappingTechnician> byUuidAndDeletedFalse = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(details.getTaskId());
+            if (byUuidAndDeletedFalse.isPresent()) {
+                JobTaskMappingTechnician entity = byUuidAndDeletedFalse.get();
+                entity.setDrawingJson(details.getDrawingJsonData());
+                entity.setDrawingImage(details.getDrawingImage());
+                JobTaskMappingTechnician save = jobTaskMappingTechnicianRepository.save(entity);
+                return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Drawing data updated successfully", save.getUuid(), "200", HttpStatus.OK), HttpStatus.OK);
+            }
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Task Mapping Technician Not Available", null, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception exception) {
             return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, exception.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
         }

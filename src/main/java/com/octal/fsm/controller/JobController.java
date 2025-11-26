@@ -516,4 +516,16 @@ public class JobController extends BaseController {
         }
     }
 
+    @PostMapping("/update-drawing-details")
+    public ResponseEntity<ApiResponse> updateDrawingData(@RequestBody JobDTO.UpdateDrawingDetails details, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.updateDrawingData(details, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error retrieving data : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 }
