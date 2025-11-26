@@ -45,10 +45,10 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
     public void onApplicationEvent(SendMailToTechnicianEvent event) {
         JobDTO.AssignJobToTechnician assignJobToTechnician = event.getAssignJobToTechnician();
         JobTaskMappingTechnician jobTaskMappingTech = event.getJobTaskMappingTech();
-        processSendMailToTechnicianEvent(assignJobToTechnician,jobTaskMappingTech,event.getLoggedInuser(), event.getTenantId(), event.isSuperAdmin());
+        processSendMailToTechnicianEvent(assignJobToTechnician,jobTaskMappingTech,event.getLoggedInuser(), event.getTenantId(), event.isSuperAdmin(), assignJobToTechnician.getTaskShowId());
     }
 
-    public void processSendMailToTechnicianEvent( JobDTO.AssignJobToTechnician assignJobToTechnician,JobTaskMappingTechnician jobTaskMappingTech, String loggedInUserEmail, Long tenantId, boolean isSuperAdmin) {
+    public void processSendMailToTechnicianEvent( JobDTO.AssignJobToTechnician assignJobToTechnician,JobTaskMappingTechnician jobTaskMappingTech, String loggedInUserEmail, Long tenantId, boolean isSuperAdmin,String taskShowId) {
         try{
             ApiResponse technicianResponse = technicianClient.getTechnicianById(assignJobToTechnician.getTechnicianId(), loggedInUserEmail).getBody();
             if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200")) {
@@ -69,6 +69,9 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
                             sendBulkNotificationToUsers.setBody(content.getMessage());
                             sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
                             sendBulkNotificationToUsers.setTypeId(jobTaskMappingTech.getUuid());
+                            sendBulkNotificationToUsers.setTaskId(jobTaskMappingTech.getUuid());
+                            sendBulkNotificationToUsers.setTaskShowId(assignJobToTechnician.getTaskShowId());
+                            sendBulkNotificationToUsers.setTaskName(assignJobToTechnician.getTaskName());
                             Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
                             MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
                             multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());

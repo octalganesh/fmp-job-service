@@ -542,6 +542,8 @@ public class JobServiceImpl implements JobService {
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(documentsWithUrl));
                 }
                 try {
+                    assignJobToTechnician.setTaskName(jobMappingTask.get().getTaskName());
+                    assignJobToTechnician.setTaskShowId(jobMappingTask.get().getTaskShowId());
                     applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician, save, loggedInUserEmail, tenantId, isSuperAdmin));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -580,6 +582,8 @@ public class JobServiceImpl implements JobService {
                 // Save attached documents in DB
                 JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 try {
+                    assignJobToTechnician.setTaskName(jobMappingTask.get().getTaskName());
+                    assignJobToTechnician.setTaskShowId(jobMappingTask.get().getTaskShowId());
                     applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician, JobTaskMappingTechnician, loggedInUserEmail, tenantId, isSuperAdmin));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -663,7 +667,7 @@ public class JobServiceImpl implements JobService {
                 Optional<Job> jobOptional = jobRepository.findByUuidAndTenantIdAndFrontOfficeIdAndDeletedFalse(leaveJob.getJobId(), tenantId, leaveJob.getFrontOfficeUserId());
                 if (jobOptional.isPresent()) {
                     job = jobOptional.get();
-                    job.setFrontOfficeId("");
+                    //job.setFrontOfficeId("");
                 } else {
                     throw new CodeException("Job not found", ErrorCode.COMMON);
                 }
@@ -679,7 +683,7 @@ public class JobServiceImpl implements JobService {
                 jobHistoryRepository.save(jobHistory);
             } else {
 
-                Optional<Job> jobOptional = jobRepository.findByUuidAndTenantIdAndFrontOfficeIdAndDeletedFalse(leaveJob.getJobId(), tenantId, "");
+                Optional<Job> jobOptional = jobRepository.findByUuidAndTenantIdAndDeletedFalse(leaveJob.getJobId(), tenantId);
                 if (jobOptional.isPresent()) {
                     job = jobOptional.get();
                     job.setFrontOfficeId(leaveJob.getFrontOfficeUserId());
@@ -885,7 +889,7 @@ public class JobServiceImpl implements JobService {
                 JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
 
                 if (job.isPresent() && jobTask.isPresent()) {
-                    if (TextUtils.isEmpty(job.get().getFrontOfficeId())) {
+                    if (!TextUtils.isEmpty(job.get().getFrontOfficeId())) {
                         ResponseEntity<ApiResponse> frontOfficeResponse = adminClient.getFrontOfficeById(job.get().getFrontOfficeId(), tenantId);
                         if (frontOfficeResponse != null && frontOfficeResponse.getBody() != null && frontOfficeResponse.getBody().getData() != null) {
                             Gson gson = new Gson();

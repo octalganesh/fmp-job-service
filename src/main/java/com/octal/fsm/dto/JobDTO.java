@@ -169,6 +169,8 @@ public class JobDTO {
         private String endDate;
         private String startDateTime;
         private String endDateTime;
+        private String taskShowId;
+        private String taskName;
     }
 
     @Data
