@@ -504,4 +504,16 @@ public class JobController extends BaseController {
         }
     }
 
+    @GetMapping("/get-job-task-mapping/{id}")
+    public ResponseEntity<ApiResponse> getJobTaskMapping(@PathVariable("id") String id, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.getJobTaskMapping(id, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 }
