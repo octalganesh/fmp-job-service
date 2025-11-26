@@ -313,6 +313,37 @@ public class JobDTO {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
+    public static class TechnicianForFrontOffice{
+        private String id;
+        private String taskId;
+        private String taskName;
+        private String note;
+        private String frontOfficeNote;
+        private String startDate;
+        private String endDate;
+        private String taskDescription;
+        private String clientFeedbackUrl;
+        private String signature;
+        private String cancelReason;
+        private String drawingJsonData;
+        private String drawingImage;
+        private String customerId;
+        private List<String> jobTags;
+        private List<Document> jobUploadedDocuments = new ArrayList<>();
+        private List<Document> uploadedDocuments;
+        private String jobDescription;
+        private String status;
+        private Double serviceLocationLat;
+        private Double serviceLocationLng;
+        private String frontOfficeName;
+        private String frontOfficeId;
+        private List<HTMLFormDTO.Details> formList;
+
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class Document {
         private String file;
         private String fileType;

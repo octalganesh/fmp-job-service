@@ -2066,6 +2066,142 @@ public class JobServiceImpl implements JobService {
         }
     }
 
+    @Override
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> getJobTaskMapping(String id, Long tenantId, boolean isSuperAdmin) {
+        try {
+            Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(id);
+            if (jobMappingTask.isPresent()) {
+                Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobMappingTask.get().getJob().getUuid());
+                Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.get().getTaskId());
+                Optional<JobTaskMappingTechnician> taskMapping = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.get().getUuid());
+                JobDTO.TechnicianForFrontOffice details = new JobDTO.TechnicianForFrontOffice();
+                if (job.isPresent() && jobTask.isPresent() && taskMapping.isPresent()) {
+                    if (TextUtils.isEmpty(job.get().getFrontOfficeId())) {
+                        ResponseEntity<ApiResponse> frontOfficeResponse = adminClient.getFrontOfficeById(job.get().getFrontOfficeId(), tenantId);
+                        if (frontOfficeResponse != null && frontOfficeResponse.getBody() != null && frontOfficeResponse.getBody().getData() != null) {
+                            Gson gson = new Gson();
+                            String stringResponse = gson.toJson(frontOfficeResponse.getBody().getData());
+                            FrontOfficeStaffDTO.list frontOfficeResponseData = gson.fromJson(stringResponse, FrontOfficeStaffDTO.list.class);
+                            if (frontOfficeResponseData != null) {
+                                details.setFrontOfficeName(frontOfficeResponseData.getName());
+                                details.setFrontOfficeId(frontOfficeResponseData.getId());
+                            }
+                        }
+                    }
+//
+                    String jobId = job.get().getJobId() != null ? job.get().getJobId().toLowerCase() : "";
+                    String taskShowId = jobMappingTask.get().getTaskShowId() != null ? jobMappingTask.get().getTaskShowId().toLowerCase() : "";
+
+//
+                    details.setId(jobMappingTask.get().getUuid());
+                    details.setTaskName(jobTask.get().getName());
+                    details.setNote(taskMapping.get().getTechnicianNote());
+                    details.setFrontOfficeNote(taskMapping.get().getNote());
+                    String customerFeedbackLink = clientFeedbackLink
+                            .replace("<jobId>", job.get().getJobId())
+                            .replace("<taskId>", jobMappingTask.get().getTaskShowId())
+                            .replace("<technicianId>", taskMapping.get().getTechnicianId())
+                            .replace("<customerId>", job.get().getCustomerId());
+                    details.setClientFeedbackUrl(customerFeedbackLink);
+                    if (!TextUtils.isEmpty(taskMapping.get().getSignature()))
+                        details.setSignature(taskMapping.get().getSignature());
+                    if (!TextUtils.isEmpty(taskMapping.get().getCancelReason()))
+                        details.setCancelReason(taskMapping.get().getCancelReason());
+                    if (!TextUtils.isEmpty(taskMapping.get().getDrawingJson()))
+                        details.setDrawingJsonData(taskMapping.get().getDrawingJson());
+                    if (!TextUtils.isEmpty(taskMapping.get().getDrawingImage()))
+                        details.setDrawingImage(taskMapping.get().getDrawingImage());
+                    details.setTaskId(jobMappingTask.get().getTaskShowId());
+
+                    details.setTaskDescription(jobTask.get().getDescription());
+                    details.setJobDescription(job.get().getJobDescription());
+                    details.setStartDate(taskMapping.get().getStartDate() != null ? taskMapping.get().getStartDate().toString() : null);
+                    details.setEndDate(taskMapping.get().getEndDate() != null ? taskMapping.get().getEndDate().toString() : null);
+                    details.setServiceLocationLat(job.get().getServiceLocationLat());
+                    details.setServiceLocationLng(job.get().getServiceLocationLng());
+                    if (taskMapping.get().getTaskStatus().equalsIgnoreCase("ASSIGNED")) {
+                        details.setStatus("NEW");
+                    } else {
+                        details.setStatus(taskMapping.get().getTaskStatus());
+                    }
+
+                    // Get job type
+
+                    // Get customer details
+
+                    List<String> jobTags = new ArrayList<>();
+                    List<JobMappingTags> jobMappingTags = job.get().getJobMappingTags();
+                    for (JobMappingTags mappingTag : jobMappingTags) {
+                        Optional<JobTag> tag = jobTagRepository.findByUuid(mappingTag.getTagId());
+                        tag.ifPresent(jobTag -> jobTags.add(jobTag.getName()));
+                    }
+                    details.setJobTags(jobTags);
+                    List<Documents> jobDocuments = documentsRepository.findByAttachTypeId(job.get().getJobId());
+                    if (!jobDocuments.isEmpty()) {
+                        for (Documents documents : jobDocuments) {
+                            JobDTO.Document document = new JobDTO.Document();
+                            document.setFile(documents.getDocumentUrl());
+                            document.setFileType(documents.getFileType());
+                            document.setFileName(documents.getFileName());
+                            if (documents.getThumbnail() != null)
+                                document.setThumbnail(documents.getThumbnail());
+                            document.setDocumentTypeId(documents.getDocumentTypeId());
+                            details.getJobUploadedDocuments().add(document);
+                        }
+                    }
+                    // Get uploaded documents
+                    List<JobDTO.Document> documents = new ArrayList<>();
+                    if (!TextUtils.isEmpty(taskMapping.get().getDocuments())) {
+                        try {
+                            Gson gson = new Gson();
+                            Type listType = new TypeToken<List<String>>() {
+                            }.getType();
+                            List<String> documentList = gson.fromJson(taskMapping.get().getDocuments(), listType);
+                            for (String doc : documentList) {
+                                JobDTO.Document document = new JobDTO.Document();
+                                document.setFile(doc);
+                                document.setFileType(TextUtils.getFileTypeFromFileUrl(doc));
+                                document.setFileName(TextUtils.getFileNameFromFileUrl(doc));
+                                documents.add(document);
+                            }
+                        } catch (Exception e) {
+                            logger.error("Error parsing documents: {}", e.getMessage());
+                        }
+                    }
+                    List<Documents> documentsList = documentsRepository.findByAttachTypeId(taskMapping.get().getJobTaskMappingId());
+                    if (!documentsList.isEmpty()) {
+                        for (Documents documents1 : documentsList) {
+                            JobDTO.Document document = new JobDTO.Document();
+                            document.setFile(documents1.getDocumentUrl());
+                            document.setFileType(documents1.getFileType());
+                            document.setFileName(documents1.getFileName());
+                            if (documents1.getThumbnail() != null)
+                                document.setThumbnail(documents1.getThumbnail());
+                            documents.add(document);
+                        }
+                    }
+                    details.setUploadedDocuments(documents);
+                    if (!taskMapping.get().getHtmlFormPages().isEmpty()) {
+                        List<HTMLFormDTO.Details> list = new ArrayList<>();
+                        for (HTMLFormPage htmlFormPage : taskMapping.get().getHtmlFormPages()) {
+                            HTMLFormDTO.Details htmlFormDTO = new HTMLFormDTO.Details();
+                            htmlFormDTO.setId(htmlFormPage.getUuid());
+                            htmlFormDTO.setContent(htmlFormPage.getContent());
+                            htmlFormDTO.setActive(htmlFormPage.getActive());
+                            htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt().toString());
+                            list.add(htmlFormDTO);
+                        }
+                        details.setFormList(list);
+                    }
+                    return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Mapping Task fetched successfully", details, "200", HttpStatus.OK), HttpStatus.OK);
+                }
+            }
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, "Job Mapping Task Not Available", null, "500", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception exception) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, exception.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
+        }
+    }
+
     private DocumentDTO.Add convertDocumentToDto(Documents doc) {
         DocumentDTO.Add dto = new DocumentDTO.Add();
         dto.setFileName(doc.getFileName());
