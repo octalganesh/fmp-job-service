@@ -667,7 +667,7 @@ public class JobServiceImpl implements JobService {
                 Optional<Job> jobOptional = jobRepository.findByUuidAndTenantIdAndFrontOfficeIdAndDeletedFalse(leaveJob.getJobId(), tenantId, leaveJob.getFrontOfficeUserId());
                 if (jobOptional.isPresent()) {
                     job = jobOptional.get();
-                    job.setFrontOfficeId("");
+                    //job.setFrontOfficeId("");
                 } else {
                     throw new CodeException("Job not found", ErrorCode.COMMON);
                 }
@@ -683,7 +683,7 @@ public class JobServiceImpl implements JobService {
                 jobHistoryRepository.save(jobHistory);
             } else {
 
-                Optional<Job> jobOptional = jobRepository.findByUuidAndTenantIdAndFrontOfficeIdAndDeletedFalse(leaveJob.getJobId(), tenantId, "");
+                Optional<Job> jobOptional = jobRepository.findByUuidAndTenantIdAndDeletedFalse(leaveJob.getJobId(), tenantId);
                 if (jobOptional.isPresent()) {
                     job = jobOptional.get();
                     job.setFrontOfficeId(leaveJob.getFrontOfficeUserId());
