@@ -183,6 +183,7 @@ public class JobDTO {
         private String createdAt;
         private String taskStatus;
         private String technicianName;
+        private String technicianId;
         private TaskAssignedType assignedType;
         private Integer sequenceNumber;
     }

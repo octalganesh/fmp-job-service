@@ -465,6 +465,7 @@ public class JobServiceImpl implements JobService {
                             Gson gson = new Gson();
                             TechnicianDTO.GetDetails technicianDetails = gson.fromJson(gson.toJson(technicianResponse.getData()), TechnicianDTO.GetDetails.class);
                             dto.setTechnicianName(technicianDetails.getName());
+                            dto.setTechnicianId(technicianDetails.getId());
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
