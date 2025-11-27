@@ -41,6 +41,7 @@ import java.lang.reflect.Type;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -497,6 +498,10 @@ public class JobServiceImpl implements JobService {
             JobTaskMappingTechnician jobTaskMappingTechnician = new JobTaskMappingTechnician();
             Optional<JobTaskMappingTechnician> jobTaskMappingToTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(assignJobToTechnician.getJobTaskMappingId());
             if (jobTaskMappingToTechnician.isPresent()) {
+                boolean checkIfTaskAssignedToTechnician = checkIfTaskAssignedToTechnician(assignJobToTechnician);
+                if(!checkIfTaskAssignedToTechnician){
+                    throw new CodeException("Technician is already assigned to another task during the selected time period.", ErrorCode.COMMON);
+                }
                 //Todo need to create log for all assignment and reassignment of technician
                 jobTaskMappingToTechnician.get().setTechnicianId(assignJobToTechnician.getTechnicianId());
                 jobTaskMappingToTechnician.get().setNote(assignJobToTechnician.getNote());
@@ -550,6 +555,12 @@ public class JobServiceImpl implements JobService {
                 }
 
             } else {
+
+                boolean checkIfTaskAssignedToTechnician = checkIfTaskAssignedToTechnician(assignJobToTechnician);
+                if(!checkIfTaskAssignedToTechnician){
+                    throw new CodeException("Technician is already assigned to another task during the selected time period.", ErrorCode.COMMON);
+                }
+
                 jobTaskMappingTechnician.setJobTaskMappingId(jobMappingTask.get().getUuid());
                 jobTaskMappingTechnician.setTechnicianId(assignJobToTechnician.getTechnicianId());
                 jobTaskMappingTechnician.setTaskStatus("ASSIGNED");
@@ -579,6 +590,10 @@ public class JobServiceImpl implements JobService {
                 }
                 JobTaskMappingTechnician JobTaskMappingTechnician = jobTaskMappingTechnicianRepository.save(jobTaskMappingTechnician);
 
+
+
+
+
                 // Save attached documents in DB
                 JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 try {
@@ -594,6 +609,44 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Technician Not Found", ErrorCode.COMMON);
         }
     }
+
+    public boolean checkIfTaskAssignedToTechnician(JobDTO.AssignJobToTechnician assignJobToTechnician) {
+        List<JobTaskMappingTechnician> byTechnicianId =
+                jobTaskMappingTechnicianRepository.findByTechnicianId(assignJobToTechnician.getTechnicianId());
+
+        LocalDate newStartDate = LocalDate.parse(assignJobToTechnician.getStartDate());
+        LocalDate newEndDate = LocalDate.parse(assignJobToTechnician.getEndDate());
+
+        LocalTime newStartTime = LocalTime.parse(assignJobToTechnician.getStartDateTime());
+        LocalTime newEndTime = LocalTime.parse(assignJobToTechnician.getEndDateTime());
+
+        if (byTechnicianId != null && !byTechnicianId.isEmpty()) {
+            for (JobTaskMappingTechnician existing : byTechnicianId) {
+
+                LocalDate exStartDate = existing.getStartDate();
+                LocalDate exEndDate = existing.getEndDate();
+
+                LocalTime exStartTime = existing.getStartTime().toLocalTime();
+                LocalTime exEndTime = existing.getEndTime().toLocalTime();
+
+                boolean dateOverlap =
+                        !(newEndDate.isBefore(exStartDate) || newStartDate.isAfter(exEndDate));
+
+                if (!dateOverlap) {
+                    continue;
+                }
+
+                boolean timeOverlap =
+                        !(newEndTime.isBefore(exStartTime) || newStartTime.isAfter(exEndTime));
+
+                if (timeOverlap) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
 
     @Override
     public void updateAssignedTaskWithDocumentType(String jobTaskMappingId, JobDTO.UpdateAssignedTaskWithDocumentType updateAssignedTaskWithDocumentType, String loggedInUserEmail) throws CodeException {
