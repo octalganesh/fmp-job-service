@@ -1,6 +1,6 @@
 package com.octal.fsm.repositories;
 
-import com.octal.fsm.entities.JobCallHistory;
+import com.octal.fsm.entities.SystemEventLog;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface JobCallHistoryRepository extends JpaRepository<JobCallHistory, Long>, JpaSpecificationExecutor<JobCallHistory> {
+public interface SystemEventLogRepository extends JpaRepository<SystemEventLog, Long>, JpaSpecificationExecutor<SystemEventLog> {
 
-    List<JobCallHistory> findByJobIdOrderByCreatedAtDesc(String jobId);
+    List<SystemEventLog> findByReferenceIdOrderByCreatedAtDesc(String referenceId);
 }

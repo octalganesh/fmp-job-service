@@ -2,6 +2,8 @@ package com.octal.fsm.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.octal.fsm.dto.enums.JobUpdateType;
+import com.octal.fsm.entities.JobMappingTask;
+import com.octal.fsm.entities.JobStatusMaster;
 import com.octal.fsm.entities.enums.TaskAssignedType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -165,6 +167,10 @@ public class JobDTO {
         private List<String> documents; // Optional
         private String startDate;
         private String endDate;
+        private String startDateTime;
+        private String endDateTime;
+        private String taskShowId;
+        private String taskName;
     }
 
     @Data
@@ -177,6 +183,8 @@ public class JobDTO {
         private String createdAt;
         private String taskStatus;
         private String technicianName;
+        private TaskAssignedType assignedType;
+        private Integer sequenceNumber;
     }
 
     @Data
@@ -202,6 +210,9 @@ public class JobDTO {
         private String jobStatus;
         private String customerType;
         private String customerTypeId;
+        private String frontOfficeId;
+        private JobStatusMaster jobStatusMaster;
+        private String currentTaskId;
     }
 
     @Data
@@ -294,6 +305,40 @@ public class JobDTO {
         private Double serviceLocationLng;
         // response for customer feedback on the task
         private CustomerFeedbackResponse customerFeedbackResponse;
+        private List<HTMLFormDTO.Details> formList;
+        private String frontOfficeName;
+        private String frontOfficeId;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TechnicianForFrontOffice{
+        private String id;
+        private String taskId;
+        private String taskName;
+        private String note;
+        private String frontOfficeNote;
+        private String startDate;
+        private String endDate;
+        private String taskDescription;
+        private String clientFeedbackUrl;
+        private String signature;
+        private String cancelReason;
+        private String drawingJsonData;
+        private String drawingImage;
+        private String customerId;
+        private List<String> jobTags;
+        private List<Document> jobUploadedDocuments = new ArrayList<>();
+        private List<Document> uploadedDocuments;
+        private String jobDescription;
+        private String status;
+        private Double serviceLocationLat;
+        private Double serviceLocationLng;
+        private String frontOfficeName;
+        private String frontOfficeId;
+        private List<HTMLFormDTO.Details> formList;
+
     }
 
     @Data
@@ -353,6 +398,16 @@ public class JobDTO {
         private String taskId;
         private String note;
         private TaskAssignedType assignedType;
-        private List<Document> documents;
+        private List<DocumentDTO.Add> documents;
+        private Boolean isDone;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class UpdateDrawingDetails {
+        private String taskId;
+        private String drawingJsonData;
+        private String drawingImage;
     }
 }

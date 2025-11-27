@@ -58,7 +58,10 @@ public class PushNotificationRequest {
         private String body;
         private String imageUrl;
         private String typeId;
-        public String topic;
+        private String topic;
+        private String taskId;
+        private String taskShowId;
+        private String taskName;
     }
 
     @Data

@@ -51,4 +51,16 @@ public class JobCallHistoryController extends BaseController {
             return handleException(e);
         }
     }
+
+    @GetMapping("/get-calls-by/{jobId}")
+    public ResponseEntity<ApiResponse> getCallByJobId(@PathVariable("jobId") String jobId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobCallHistoryService.getAllJobCallHistoriesByJobId(jobId), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
 }

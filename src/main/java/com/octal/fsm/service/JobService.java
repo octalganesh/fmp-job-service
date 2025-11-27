@@ -1,8 +1,9 @@
 package com.octal.fsm.service;
 
-import com.octal.fsm.common.ApiResponse;
+
 import com.octal.fsm.dto.*;
 import com.octal.fsm.exceptions.CodeException;
+import com.octal.fsm.models.request.PageRequest;
 import org.springframework.http.ResponseEntity;
 
 import javax.validation.Valid;
@@ -32,12 +33,12 @@ public interface JobService {
     void assignJobToTechnician(JobDTO.AssignJobToTechnician assignJobToTechnician, Long tenantId, Boolean isSuperAdmin, String loggedInUserEmail) throws CodeException;
 
 
-    PageItem<JobDTO.DetailsForTechnician> getJobTasksForTechnician(JobDTO.JobFilterRequest filterRequest, String technicianId, String loggedInUserEmail) throws CodeException;
+    PageItem<JobDTO.DetailsForTechnician> getJobTasksForTechnician(JobDTO.JobFilterRequest filterRequest, String technicianId, String loggedInUserEmail,Long tenantId) throws CodeException;
 
 
     void addJobStatus(List<JobDTO.AddJobStatus> addJobStatus, Long tenantId, boolean isSuperAdmin, String userName);
 
-    JobDTO.DetailsForTechnician getJobTaskDetailsForTechnician(String technicianId, String taskId, String userName) throws CodeException;
+    JobDTO.DetailsForTechnician getJobTaskDetailsForTechnician(String technicianId, String taskId, String userName,Long tenantId) throws CodeException;
 
     void updateJobTaskStatus(String technicianId, String taskId, String status, String note, String signature, String userName, Long tenantId) throws CodeException;
 
@@ -76,9 +77,33 @@ public interface JobService {
 
     HashMap<String, TechnicianDTO.TaskStats> getTechnicianTaskSummary(List<String> technicianUuids, Long tenantId, boolean isSuperAdmin);
 
-    ResponseEntity<ApiResponse> saveTechnicianHtmlForm(HTMLFormDTO.Add add, Long tenantId) throws CodeException;
+    ResponseEntity<com.octal.fsm.common.ApiResponse> saveTechnicianHtmlForm(HTMLFormDTO.Add add, Long tenantId) throws CodeException;
 
-    public JobTaskMappingWithHTMLFormDTO getTechnicianHtmlForm(String taskId, Long tenantId) throws CodeException;
+    JobTaskMappingWithHTMLFormDTO getTechnicianHtmlForm(String taskId, Long tenantId) throws CodeException;
 
     void updateJobTaskDetails(String jobId, JobDTO.UpdateJobTaskDetails updateJobTaskDetails, Long tenantId, String userName) throws CodeException;
+    List<TechnicianJobSummaryDTO> getTechnicianAssociationNeeded(Long tenantId, boolean isSuperAdmin);
+
+    List<TodayScheduleDTO> getTodayScheduled(Long tenantId, boolean isSuperAdmin)throws CodeException;
+
+    PageItem<JobTaskListDTO> getJobTaskList(PageRequest.List listRequest ,Long tenantId, boolean isSuperAdmin)throws CodeException ;
+
+    PageItem<JobInvoiceListDTO> getJobCompletedInvoiceList(PageRequest.List listRequest ,Long tenantId, boolean isSuperAdmin) throws CodeException ;
+
+    PageItem<TaskManagerDTO> getTaskManagerList(PageRequest.List listRequest ,Long tenantId, boolean isSuperAdmin) throws CodeException ;
+
+    TaskManagerDTO getTaskByTaskId(String taskId ,Long tenantId, boolean isSuperAdmin) throws CodeException ;
+
+    PageItem<DispatchBoardTechnicianWrapper> getDataForDispatchBoard(PageRequest.List listRequest,Long tenantId, boolean isSuperAdmin);
+
+    ResponseEntity<com.octal.fsm.common.ApiResponse> getTaskView(String taskId , Long tenantId, boolean isSuperAdmin) throws CodeException;
+
+    ResponseEntity<com.octal.fsm.common.ApiResponse> getNotesByJobId(String jobId , Long tenantId, boolean isSuperAdmin) throws CodeException;
+
+    ResponseEntity<com.octal.fsm.common.ApiResponse> getFormsByJobId(String jobId , Long tenantId, boolean isSuperAdmin) throws CodeException;
+
+    ResponseEntity<com.octal.fsm.common.ApiResponse> getJobTaskMapping(String id , Long tenantId, boolean isSuperAdmin) throws CodeException;
+
+    ResponseEntity<com.octal.fsm.common.ApiResponse> updateDrawingData(JobDTO.UpdateDrawingDetails details, Long tenantId, boolean isSuperAdmin) throws CodeException;
+
 }

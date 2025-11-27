@@ -186,4 +186,79 @@ public class DocumentServiceImpl implements DocumentService {
         documentsRepository.saveAll(documentsList);
     }
 
+
+    @Override
+    public void uploadMultipleDocumentForCSR(List<DocumentDTO.Add> list) throws CodeException {
+        List<Documents> documentsList = new ArrayList<>();
+        for (DocumentDTO.Add addJobDTO : list) {
+            if (TextUtils.isEmpty(addJobDTO.getDocumentUrl()))
+                throw new CodeException("document url is required", ErrorCode.BAD_REQUEST);
+            if (TextUtils.isEmpty(addJobDTO.getFileName()))
+                throw new CodeException("file name is required", ErrorCode.BAD_REQUEST);
+            if (TextUtils.isEmpty(addJobDTO.getFileType()))
+                throw new CodeException("file type is required", ErrorCode.BAD_REQUEST);
+            if (TextUtils.isEmpty(addJobDTO.getAttachTypeId()))
+                throw new CodeException("attach type id is required", ErrorCode.BAD_REQUEST);
+            if (TextUtils.isEmpty(addJobDTO.getDocumentTypeId()))
+                throw new CodeException("document type id is required", ErrorCode.BAD_REQUEST);
+            if (addJobDTO.getAttachType().equalsIgnoreCase("JOB")) {
+                Boolean jobExits = jobRepository.existsByUuidAndDeletedFalse(addJobDTO.getAttachTypeId());
+                if (!jobExits)
+                    throw new CodeException("Job not found", ErrorCode.COMMON);
+            } else if (addJobDTO.getAttachType().equalsIgnoreCase("JOB_TASK")) {
+                Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(addJobDTO.getAttachTypeId());
+                if (jobMappingTask.isEmpty())
+                    throw new CodeException("Job Task not found", ErrorCode.COMMON);
+                Boolean jobTaskExists = jobMappingTaskRepository.existsByUuidAndDeletedFalse(jobMappingTask.get().getUuid());
+                if (!jobTaskExists)
+                    throw new CodeException("Job Task not found", ErrorCode.COMMON);
+                addJobDTO.setAttachTypeId(jobMappingTask.get().getUuid());
+            } else {
+                throw new CodeException("Invalid attach type. Allowed values are JOB or JOB_TASK", ErrorCode.BAD_REQUEST);
+            }
+            Documents documents = new Documents();
+            documents.setFileName(addJobDTO.getFileName());
+            documents.setDocumentUrl(awsS3BaseUrl + addJobDTO.getDocumentUrl());
+            documents.setFileType(addJobDTO.getFileType());
+            if (addJobDTO.getThumbnail() != null && !addJobDTO.getThumbnail().isEmpty())
+                documents.setThumbnail(awsS3BaseUrl + addJobDTO.getThumbnail());
+            documents.setDocumentTypeId(addJobDTO.getDocumentTypeId());
+            documents.setAttachType(addJobDTO.getAttachType());
+            documents.setAttachTypeId(addJobDTO.getAttachTypeId());
+            documents.setUploadedByType(addJobDTO.getUploadedBType());
+            documents.setUploadedByTypeId(addJobDTO.getUploadedBTypeId());
+            documents.setUploadedByUserName(addJobDTO.getUploadByUserName());
+            documentsList.add(documents);
+        }
+        documentsRepository.saveAll(documentsList);
+    }
+
+    @Override
+    public List<DocumentDTO.ListResponse> getJobDocuments(String jobId, Long tenantId, boolean isSuperAdmin) throws CodeException {
+        try {
+            List<Documents> documents =  documentsRepository.findByAttachTypeIdOrderByCreatedAtDesc(jobId);//here get all documents by job id
+            List<DocumentDTO.ListResponse> documentDTO = documents
+                    .stream()
+                    .map(this::convertDocumentToDto)
+                    .collect(Collectors.toList());
+            return documentDTO;
+        } catch (Exception exception) {
+            throw new CodeException("Failed to get Documents: " + exception.getMessage(), ErrorCode.COMMON);
+        }
+    }
+
+    private DocumentDTO.ListResponse convertDocumentToDto(Documents doc) {
+        DocumentDTO.ListResponse dto = new DocumentDTO.ListResponse();
+        dto.setId(doc.getUuid());
+        dto.setFileName(doc.getFileName());
+        dto.setDocumentUrl(doc.getDocumentUrl());
+        dto.setDocumentTypeId(doc.getDocumentTypeId());
+        dto.setUploadedByType(doc.getUploadedByType());
+        dto.setFileType(doc.getFileType());
+        dto.setCreatedAt(doc.getCreatedAt().toString());
+        dto.setUploadedByTypeId(doc.getUploadedByTypeId());
+        dto.setCreatedAtInDate(doc.getCreatedAt());
+        return dto;
+    }
+
 }

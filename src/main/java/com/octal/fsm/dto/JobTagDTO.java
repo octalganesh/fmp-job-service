@@ -2,6 +2,7 @@ package com.octal.fsm.dto;
 
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -21,6 +22,7 @@ public class JobTagDTO {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
+    @Builder
     public static class Detail {
         private String id;
         private String name;
@@ -28,6 +30,7 @@ public class JobTagDTO {
         private String createdAt;
         private String updatedAt;
         private Boolean isActive;
+
     }
 }
 

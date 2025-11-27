@@ -14,4 +14,8 @@ public interface JobStatusMasterRepository extends JpaRepository<JobStatusMaster
 
     List<JobStatusMaster> findAllByTenantIdAndDeletedFalse(Long tenantIdToUse);
 
+    Optional<JobStatusMaster> findBySequenceOrderAndTenantId(Integer sequenceOrder, Long tenant);
+
+    List<JobStatusMaster> findByName(String name);
+
 }

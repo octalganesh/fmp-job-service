@@ -1,19 +1,26 @@
 package com.octal.fsm.listener;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import com.octal.fsm.clients.NotificationClient;
-import com.octal.fsm.dto.EmailDTO;
-import com.octal.fsm.dto.JobDTO;
-import com.octal.fsm.dto.PushNotificationRequest;
-import com.octal.fsm.dto.TechnicianDTO;
+import com.octal.fsm.clients.TechnicianClient;
+import com.octal.fsm.dto.*;
+import com.octal.fsm.dto.enums.PushNotificationType;
+import com.octal.fsm.entities.JobTaskMappingTechnician;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.service.EmailService;
+import com.octal.fsm.service.JobService;
+import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 
 @Component
@@ -25,15 +32,64 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
     @Autowired
     private NotificationClient notificationClient;
 
+    @Autowired
+    private JobService jobService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
+    private TechnicianClient technicianClient;
+
     @Override
     @Async("sendMailToTechnicianEvent")
     public void onApplicationEvent(SendMailToTechnicianEvent event) {
-        TechnicianDTO.TechnicianData technicianDTO = event.getTechnicianDTO();
-        JobDTO.Detail jobDetails = event.getJobDetails(); // Assuming your event has job details
-        PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = event.getSendBulkNotificationToUsers();
+        JobDTO.AssignJobToTechnician assignJobToTechnician = event.getAssignJobToTechnician();
+        JobTaskMappingTechnician jobTaskMappingTech = event.getJobTaskMappingTech();
+        processSendMailToTechnicianEvent(assignJobToTechnician,jobTaskMappingTech,event.getLoggedInuser(), event.getTenantId(), event.isSuperAdmin(), assignJobToTechnician.getTaskShowId());
+    }
 
-        sendJobEmailToTechnician(technicianDTO, jobDetails, event.getLoggedInuser(), event.getTenantId(), event.isSuperAdmin());
-        sendNotificationToUser(sendBulkNotificationToUsers);
+    public void processSendMailToTechnicianEvent( JobDTO.AssignJobToTechnician assignJobToTechnician,JobTaskMappingTechnician jobTaskMappingTech, String loggedInUserEmail, Long tenantId, boolean isSuperAdmin,String taskShowId) {
+        try{
+            ApiResponse technicianResponse = technicianClient.getTechnicianById(assignJobToTechnician.getTechnicianId(), loggedInUserEmail).getBody();
+            if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200")) {
+                JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail, tenantId, isSuperAdmin);
+                Gson gson = new Gson();
+                // Convert response data to TechnicianDTO.GetDetails
+                if (jobDetails != null) {
+                    String jsonResponse = gson.toJson(technicianResponse.getData());
+                    TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
+                    if (getDetails != null && getDetails.getEmail() != null) {
+                        PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
+                        ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
+                        ApiResponse body = notificationSlugContent.getBody();
+                        if (body != null) {
+                            NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
+                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", getDetails.getName()));
+                            sendBulkNotificationToUsers.setTitle(content.getTitle());
+                            sendBulkNotificationToUsers.setBody(content.getMessage());
+                            sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
+                            sendBulkNotificationToUsers.setTypeId(jobTaskMappingTech.getUuid());
+                            sendBulkNotificationToUsers.setTaskId(jobTaskMappingTech.getUuid());
+                            sendBulkNotificationToUsers.setTaskShowId(assignJobToTechnician.getTaskShowId());
+                            sendBulkNotificationToUsers.setTaskName(assignJobToTechnician.getTaskName());
+                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
+                            MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
+                            multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
+                            multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
+                            multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                            set.add(multiUserDeviceDetailsDTO);
+                            sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
+                            sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
+                        }
+                        sendNotificationToUser(sendBulkNotificationToUsers);
+                    }
+                    sendJobEmailToTechnician(getDetails, jobDetails, loggedInUserEmail,tenantId, isSuperAdmin);
+                }
+            }
+        }  catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     private void sendNotificationToUser(PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers) {

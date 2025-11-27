@@ -3,6 +3,7 @@ package com.octal.fsm.controller;
 import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.common.CommonConstants;
 import com.octal.fsm.dto.*;
+import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.service.JobReportService;
 import com.octal.fsm.service.JobService;
 import org.apache.logging.log4j.LogManager;
@@ -171,7 +172,8 @@ public class JobController extends BaseController {
     public ResponseEntity<ApiResponse> getJobTasksForTechnician(@RequestBody JobDTO.JobFilterRequest filterRequest, @PathVariable("technicianId") String technicianId, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            PageItem<JobDTO.DetailsForTechnician> jobTasksList = jobService.getJobTasksForTechnician(filterRequest, technicianId, userName);
+            Long tenantId= getTenantId(request);
+            PageItem<JobDTO.DetailsForTechnician> jobTasksList = jobService.getJobTasksForTechnician(filterRequest, technicianId, userName,tenantId);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job tasks for technician retrieved successfully", jobTasksList, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving job tasks for technician: {}", e.getMessage(), e);
@@ -183,7 +185,8 @@ public class JobController extends BaseController {
     public ResponseEntity<ApiResponse> getJobTaskDetailsForTechnician(@PathVariable("technicianId") String technicianId, @PathVariable("taskId") String taskId, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            JobDTO.DetailsForTechnician jobTaskDetails = jobService.getJobTaskDetailsForTechnician(technicianId, taskId, userName);
+            Long tenantId = getTenantId(request);
+            JobDTO.DetailsForTechnician jobTaskDetails = jobService.getJobTaskDetailsForTechnician(technicianId, taskId, userName,tenantId);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job task details for technician retrieved successfully", jobTaskDetails, "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving job task details for technician: {}", e.getMessage(), e);
@@ -315,10 +318,11 @@ public class JobController extends BaseController {
         }
     }
 
-    @PostMapping("/forms/save-form")
-    public ResponseEntity<ApiResponse> addHTMLFormPage(@RequestBody HTMLFormDTO.Add add, HttpServletRequest request) {
+    @PostMapping("/forms/save-form/{taskId}")
+    public ResponseEntity<ApiResponse> addHTMLFormPage(@PathVariable("taskId") String taskId, @RequestBody HTMLFormDTO.Add add, HttpServletRequest request) {
         try {
             Long tenantId = getTenantId(request);
+            add.setTaskId(taskId);
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "HTML form added for technician successfully", jobService.saveTechnicianHtmlForm(add, tenantId), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving job tasks for technician: {}", e.getMessage(), e);
@@ -379,4 +383,149 @@ public class JobController extends BaseController {
             return handleException(e);
         }
     }
+
+    @GetMapping("/get-technician-for-front-dashboard")
+    public ResponseEntity<ApiResponse> getTechForFrontDashboard(HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Technician Details retrieved successfully", jobService.getTechnicianAssociationNeeded(tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/get-current-day-task")
+    public ResponseEntity<ApiResponse> getCurrentDaysTask(HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Technician Details retrieved successfully", jobService.getTodayScheduled(tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/get-task-list")
+    public ResponseEntity<ApiResponse> getJobTaskList(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Details Updated Successfully.", jobService.getJobTaskList(listRequest, tenantId,  isSuperAdmin(request)), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error updating job task details: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/get-job-completed-invoice")
+    public ResponseEntity<ApiResponse> getJobCompletedInvoiceList(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Details Updated Successfully.", jobService.getJobCompletedInvoiceList(listRequest, tenantId,  isSuperAdmin(request)), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error updating job task details: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/task/manager-list")
+    public ResponseEntity<ApiResponse> getTaskManagerList(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task Details Updated Successfully.", jobService.getTaskManagerList(listRequest, tenantId,  isSuperAdmin(request)), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error updating job task details: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/task/by-task-id/{taskId}")
+    public ResponseEntity<ApiResponse> getTaskByTaskId(@PathVariable("taskId") String taskId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Task Details retrieved successfully", jobService.getTaskByTaskId(taskId,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/get-data-for/dispatch")
+    public ResponseEntity<ApiResponse> getDataForDispatch(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Task Details retrieved successfully", jobService.getDataForDispatchBoard(listRequest,tenantId,isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/task-view/{taskId}")
+    public ResponseEntity<ApiResponse> getTaskView(@PathVariable("taskId") String taskId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.getTaskView(taskId, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/get-notes-by/{jobId}")
+    public ResponseEntity<ApiResponse> getNotes(@PathVariable("jobId") String jobId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.getNotesByJobId(jobId, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/get-forms-by/{jobId}")
+    public ResponseEntity<ApiResponse> getFormsByJobId(@PathVariable("jobId") String jobId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.getFormsByJobId(jobId, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/get-job-task-mapping/{id}")
+    public ResponseEntity<ApiResponse> getJobTaskMapping(@PathVariable("id") String id, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.getJobTaskMapping(id, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/update-drawing-details")
+    public ResponseEntity<ApiResponse> updateDrawingData(@RequestBody JobDTO.UpdateDrawingDetails details, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.updateDrawingData(details, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error retrieving data : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 }
