@@ -2413,9 +2413,10 @@ public class JobServiceImpl implements JobService {
             } else if (TextUtils.isEmpty(technicianId)) {
                 prepareTechnicianTaskFilters(listReq, builder, null, tenantId, new ArrayList<>(mappingIds));
             }
-
             Page<JobMappingTask> pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
-
+            if(techMappings.isEmpty()){
+                techMappings=jobTaskMappingTechnicianRepository.findByJobTaskMappingIdIn(pageData.getContent().stream().map(AbstractPersistable::getUuid).collect(Collectors.toList()));
+            }
             // 4. Build technician details lookup map
             Map<String, TechnicianDTO.GetDetails> technicianMap;
 
@@ -2466,7 +2467,7 @@ public class JobServiceImpl implements JobService {
                             dto.setEndTime(String.valueOf(tech.getEndTime()));
                         }
 
-                        dto.setTechnicianName(details != null ? details.getName() : "Unknown");
+                        dto.setTechnicianName(details != null ? details.getName() : "Assigned to CSR");
 
                         return dto;
                     }).collect(Collectors.toList());
