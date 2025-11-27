@@ -50,9 +50,9 @@ jwt:
 
 forgot.password.time.in.second: 60
 forgot.password.otp.resend.count: 3
-user.activation.link.url: http://12.com:7070/?token=<token>
-user.forget.password.link: http://65.72/reset-password/<token>
-client.feedback.link: https://development.d1ig8p7rfwgvkb.amplifyapp.com/client-feedback?jobId=<jobId>&taskId=<taskId>&technicianId=<technicianId>&customerId=<customerId>
+user.activation.link.url: ${USER_ACTIVATION_LINK_URL}
+user.forget.password.link: ${USER_FORGET_PASSWORD_LINK_URL}
+client.feedback.link: ${CLIENT_FEEDBACK_LINK_URL}
 
 feign:
   client:
@@ -72,9 +72,9 @@ quickbooks:
   oauth2:
     client-id: AB2qEt6NUUOdcxFumczGwFmTCSV2A80LRhJTjvFMA3bGVBapYJ
     client-secret: BC9kkI9BtsZNaC1doHLWlrLSTS8sRgnRxVs4CnhA
-    redirect-uri: http://localhost:9084/oauth2redirect
+    redirect-uri: ${QUICKBOOKS_OAUTH2_REDIRECT_URI}
   api:
-    host: https://sandbox-quickbooks.api.intuit.com
+    host: ${QUICKBOOKS_API_HOST}
     minorversion: 73
 
 aws:
