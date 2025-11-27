@@ -1726,7 +1726,7 @@ public class JobServiceImpl implements JobService {
                 dto.setTaskId(entity.getTaskId());
                 dto.setTaskShowId(entity.getTaskShowId());
                 dto.setDate(entity.getCreatedAt().toLocalDate().toString());
-                dto.setTime(null);
+                //dto.setTime(null);
                 dto.setDescription("Description");
                 dto.setJobId(entity.getJob().getUuid());
                 return dto;
@@ -2325,51 +2325,165 @@ public class JobServiceImpl implements JobService {
         }
     }
 
-    public PageItem<TaskManagerDTO> generateDataUsingSpecification(String technicianId, com.octal.fsm.models.request.PageRequest.List listReq, Long tenantId) {
+//    public PageItem<TaskManagerDTO> generateDataUsingSpecification(String technicianId, com.octal.fsm.models.request.PageRequest.List listReq, Long tenantId) {
+//        try {
+//            List<JobTaskMappingTechnician> jobTaskMappingTechnicians = jobTaskMappingTechnicianRepository.findByTechnicianId(technicianId);
+//
+//            Set<String> mappingIds = jobTaskMappingTechnicians.stream().map(JobTaskMappingTechnician::getJobTaskMappingId).collect(Collectors.toSet());
+//            String trimmedText = listReq.getSearchText().trim();
+//            listReq.setSearchText(trimmedText);
+//            GenericSpecificationsBuilder<JobMappingTask> builder = new GenericSpecificationsBuilder<>();
+//            Pageable pageable = null;
+//            if (Boolean.TRUE.equals(listReq.getAsc())) {
+//                pageable = org.springframework.data.domain.PageRequest.of(listReq.getPageNumber(), listReq.getPageSize(), Sort.by(listReq.getShortingField()).ascending());
+//            } else {
+//                pageable = org.springframework.data.domain.PageRequest.of(listReq.getPageNumber(), listReq.getPageSize(), Sort.by(listReq.getShortingField()).descending());
+//            }
+//            Page<JobMappingTask> pageData = new PageImpl<>(Collections.emptyList(), pageable, 0);
+//            if (!TextUtils.isEmpty(technicianId) && !jobTaskMappingTechnicians.isEmpty()) {
+//                prepareTechnicianTaskFilters(listReq, builder, technicianId, tenantId, new ArrayList<>(mappingIds));
+//                pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
+//            }
+//            if (TextUtils.isEmpty(technicianId)) {
+//                prepareTechnicianTaskFilters(listReq, builder, technicianId, tenantId, new ArrayList<>(mappingIds));
+//                pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
+//            }
+//            List<TechnicianDTO.GetDetails> techDetails;
+//            ApiResponse technicianResponse = technicianClient.getTechByIds(jobTaskMappingTechnicians.stream().map(JobTaskMappingTechnician::getTechnicianId).collect(Collectors.toList()), tenantId).getBody();
+//            if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
+//                techDetails = objectMapper.convertValue(
+//                        technicianResponse.getData(),
+//                        new TypeReference<List<TechnicianDTO.GetDetails>>() {
+//                        }
+//                );
+//            }
+//
+//            List<TaskManagerDTO> responseList = new ArrayList<>();
+//            for (JobMappingTask department : pageData.getContent()) {
+//                JobTaskMappingTechnician taskMappingTechnician=jobTaskMappingTechnicians.stream().filter(obj->obj.getJobTaskMappingId().equalsIgnoreCase(department.getUuid())).findFirst().get();
+//                TechnicianDTO.GetDetails getDetails=techDetails.stream().filter(obj->obj.getId().equals(taskMappingTechnician.getTechnicianId())).findFirst();
+//                TaskManagerDTO dto = new TaskManagerDTO();
+//                dto.setJobId(department.getJob().getUuid());
+//                dto.setTaskId(department.getUuid());
+//                dto.setTaskShowId(department.getTaskShowId());
+//                dto.setTaskName(department.getTaskName());
+//                dto.setTaskStatus(department.getJobTaskStatus());
+//                dto.setDate(String.valueOf(department.getCreatedAt()));
+//                dto.setDescription("Description");
+//                dto.setStartTime(taskMappingTechnician.getStartTime().toString());
+//                dto.setEndTime(taskMappingTechnician.getEndTime().toString());
+//                dto.setTechnicianName(getDetails.getName());
+//                responseList.add(dto);
+//            }
+//            return new PageItem<>(pageData.getTotalPages(), pageData.getTotalElements(), responseList, listReq.getPageNumber(),
+//                    listReq.getPageSize());
+//        } catch (Exception exception) {
+//            throw new RuntimeException(exception);
+//        }
+//
+//    }
+    public PageItem<TaskManagerDTO> generateDataUsingSpecification(
+            String technicianId,
+            com.octal.fsm.models.request.PageRequest.List listReq,
+            Long tenantId) {
+
         try {
-            List<JobTaskMappingTechnician> jobTaskMappingTechnicians = jobTaskMappingTechnicianRepository.findByTechnicianId(technicianId);
+            listReq.setSearchText(listReq.getSearchText().trim());
 
-            Set<String> mappingIds = jobTaskMappingTechnicians.stream().map(JobTaskMappingTechnician::getJobTaskMappingId).collect(Collectors.toSet());
-            String trimmedText = listReq.getSearchText().trim();
-            listReq.setSearchText(trimmedText);
+            // 1. Fetch technician mappings
+            List<JobTaskMappingTechnician> techMappings =
+                    jobTaskMappingTechnicianRepository.findByTechnicianId(technicianId);
+
+            Set<String> mappingIds = techMappings.stream()
+                    .map(JobTaskMappingTechnician::getJobTaskMappingId)
+                    .collect(Collectors.toSet());
+
+            // 2. Prepare Pageable
+            Sort sort = Boolean.TRUE.equals(listReq.getAsc())
+                    ? Sort.by(listReq.getShortingField()).ascending()
+                    : Sort.by(listReq.getShortingField()).descending();
+
+            Pageable pageable = PageRequest.of(listReq.getPageNumber(), listReq.getPageSize(), sort);
+
+            // 3. Prepare spec builder
             GenericSpecificationsBuilder<JobMappingTask> builder = new GenericSpecificationsBuilder<>();
-            Pageable pageable = null;
-            if (Boolean.TRUE.equals(listReq.getAsc())) {
-                pageable = org.springframework.data.domain.PageRequest.of(listReq.getPageNumber(), listReq.getPageSize(), Sort.by(listReq.getShortingField()).ascending());
+
+            if (!TextUtils.isEmpty(technicianId) && !techMappings.isEmpty()) {
+                prepareTechnicianTaskFilters(listReq, builder, technicianId, tenantId, new ArrayList<>(mappingIds));
+            } else if (TextUtils.isEmpty(technicianId)) {
+                prepareTechnicianTaskFilters(listReq, builder, null, tenantId, new ArrayList<>(mappingIds));
+            }
+
+            Page<JobMappingTask> pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
+
+            // 4. Build technician details lookup map
+            Map<String, TechnicianDTO.GetDetails> technicianMap;
+
+            if (!techMappings.isEmpty()) {
+                ApiResponse techResp = technicianClient.getTechByIds(
+                        techMappings.stream()
+                                .map(JobTaskMappingTechnician::getTechnicianId)
+                                .collect(Collectors.toList()),
+                        tenantId
+                ).getBody();
+
+                if (techResp != null && "200".equalsIgnoreCase(techResp.getStatus()) && techResp.getData() != null) {
+                    List<TechnicianDTO.GetDetails> techDetails =
+                            objectMapper.convertValue(techResp.getData(), new TypeReference<List<TechnicianDTO.GetDetails>>() {});
+
+                    technicianMap = techDetails.stream()
+                            .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
+                } else {
+                    technicianMap = Collections.emptyMap();
+                }
             } else {
-                pageable = org.springframework.data.domain.PageRequest.of(listReq.getPageNumber(), listReq.getPageSize(), Sort.by(listReq.getShortingField()).descending());
-            }
-            Page<JobMappingTask> pageData = new PageImpl<>(Collections.emptyList(), pageable, 0);
-            if (!TextUtils.isEmpty(technicianId) && !jobTaskMappingTechnicians.isEmpty()) {
-                prepareTechnicianTaskFilters(listReq, builder, technicianId, tenantId, new ArrayList<>(mappingIds));
-                pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
-            }
-            if (TextUtils.isEmpty(technicianId)) {
-                prepareTechnicianTaskFilters(listReq, builder, technicianId, tenantId, new ArrayList<>(mappingIds));
-                pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
+                technicianMap = Collections.emptyMap();
             }
 
+            // Build mapping -> technicianTime lookup to avoid repeated stream operations later
+            Map<String, JobTaskMappingTechnician> mappingTechMap = techMappings.stream()
+                    .collect(Collectors.toMap(JobTaskMappingTechnician::getJobTaskMappingId, m -> m));
 
-            List<TaskManagerDTO> responseList = new ArrayList<>();
-            for (JobMappingTask department : pageData.getContent()) {
-                TaskManagerDTO dto = new TaskManagerDTO();
-                dto.setJobId(department.getJob().getUuid());
-                dto.setTaskId(department.getUuid());
-                dto.setTaskShowId(department.getTaskShowId());
-                dto.setTaskName(department.getTaskName());
-                dto.setTaskStatus(department.getJobTaskStatus());
-                dto.setDate(String.valueOf(department.getCreatedAt()));
-                dto.setDescription("Description");
-                dto.setTime(null);
-                responseList.add(dto);
-            }
-            return new PageItem<>(pageData.getTotalPages(), pageData.getTotalElements(), responseList, listReq.getPageNumber(),
-                    listReq.getPageSize());
-        } catch (Exception exception) {
-            throw new RuntimeException(exception);
+            // 5. Prepare DTO response
+            List<TaskManagerDTO> responseList = pageData.getContent().stream()
+                    .map(task -> {
+                        JobTaskMappingTechnician tech = mappingTechMap.get(task.getUuid());
+                        TechnicianDTO.GetDetails details = (tech != null)
+                                ? technicianMap.get(tech.getTechnicianId())
+                                : null;
+
+                        TaskManagerDTO dto = new TaskManagerDTO();
+                        dto.setJobId(task.getJob().getUuid());
+                        dto.setTaskId(task.getUuid());
+                        dto.setTaskShowId(task.getTaskShowId());
+                        dto.setTaskName(task.getTaskName());
+                        dto.setTaskStatus(task.getJobTaskStatus());
+                        dto.setDate(String.valueOf(task.getCreatedAt()));
+                        dto.setDescription("Description");
+
+                        if (tech != null) {
+                            dto.setStartTime(String.valueOf(tech.getStartTime()));
+                            dto.setEndTime(String.valueOf(tech.getEndTime()));
+                        }
+
+                        dto.setTechnicianName(details != null ? details.getName() : "Unknown");
+
+                        return dto;
+                    }).collect(Collectors.toList());
+
+            return new PageItem<>(
+                    pageData.getTotalPages(),
+                    pageData.getTotalElements(),
+                    responseList,
+                    listReq.getPageNumber(),
+                    listReq.getPageSize()
+            );
+
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
         }
-
     }
+
 
     private void prepareTechnicianTaskFilters(com.octal.fsm.models.request.PageRequest.List listReq, GenericSpecificationsBuilder<JobMappingTask> builder,
                                               String frontOfficeId, Long tenantId, List<String> jobTaskMappingIds) {
@@ -2439,7 +2553,7 @@ public class JobServiceImpl implements JobService {
                 dto.setTaskStatus(department.getJobTaskStatus());
                 dto.setDate(String.valueOf(department.getCreatedAt()));
                 dto.setDescription("Description");
-                dto.setTime(null);
+                //dto.setTime(null);
                 responseList.add(dto);
             }
             return new PageItem<>(page.getTotalPages(), page.getTotalElements(), responseList, listReq.getPageNumber(),
