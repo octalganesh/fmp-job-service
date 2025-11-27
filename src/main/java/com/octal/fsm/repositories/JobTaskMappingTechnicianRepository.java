@@ -16,6 +16,7 @@ import java.util.Optional;
 public interface JobTaskMappingTechnicianRepository extends JpaRepository<JobTaskMappingTechnician, Long>, JpaSpecificationExecutor<JobTaskMappingTechnician> {
 
     Optional<JobTaskMappingTechnician> findByJobTaskMappingId(String taskId);
+    List<JobTaskMappingTechnician> findByJobTaskMappingIdIn(List<String> taskIds);
 
     Boolean existsByJobTaskMappingId(String taskId);
 
