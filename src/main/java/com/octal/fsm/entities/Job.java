@@ -1,16 +1,12 @@
 package com.octal.fsm.entities;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @NoArgsConstructor
@@ -63,6 +59,28 @@ public class Job extends AbstractPersistable {
 
     @Column(name = "budget")
     private Double budget;
+
+    @Column(name = "tenant_id")
+    private Long tenantId;
+
+    @Column(name = "front_office_id")
+    private String frontOfficeId;
+
+    public String getFrontOfficeId() {
+        return frontOfficeId;
+    }
+
+    public void setFrontOfficeId(String frontOfficeId) {
+        this.frontOfficeId = frontOfficeId;
+    }
+
+    public Long getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(Long tenantId) {
+        this.tenantId = tenantId;
+    }
 
     @Override
     public String toString() {
@@ -241,6 +259,22 @@ public class Job extends AbstractPersistable {
         this.jobMappingDocuments = jobMappingDocuments;
     }
 
+    public JobStatusMaster getJobStatusMaster() {
+        return jobStatusMaster;
+    }
+
+    public void setJobStatusMaster(JobStatusMaster jobStatusMaster) {
+        this.jobStatusMaster = jobStatusMaster;
+    }
+
+    public String getCurrentTaskId() {
+        return currentTaskId;
+    }
+
+    public void setCurrentTaskId(String currentTask) {
+        this.currentTaskId = currentTask;
+    }
+
     // ✅ One-to-Many relationship with JobMappingTask
     @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<JobMappingTags> jobMappingTags = new ArrayList<>();
@@ -248,10 +282,19 @@ public class Job extends AbstractPersistable {
     @Column(name = "additional_notes")
     private String additionalNotes; // Optional
 
-    @Column(name = "job_id",unique = true,nullable = false)
+    @Column(name = "job_id", unique = true, nullable = false)
     private String jobId;
 
     @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<JobMappingDocuments> jobMappingDocuments = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "job_status_id")  // todo need to add nullable = false later
+    private JobStatusMaster jobStatusMaster;
+
+    @Column(name = "current_task_Id")
+    // todo need to attach this as job mapping task uuid to track the job's current task
+    private String currentTaskId;
+
 }
 

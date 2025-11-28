@@ -2,16 +2,19 @@ package com.octal.fsm.service.impl;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.netflix.discovery.converters.Auto;
 import com.octal.fsm.dto.AppointmentDTO;
-import com.octal.fsm.dto.JobTaskDTO;
-import com.octal.fsm.dto.JobTypeDTO;
 import com.octal.fsm.dto.PageItem;
-import com.octal.fsm.entities.*;
+import com.octal.fsm.entities.Appointment;
+import com.octal.fsm.entities.JobMappingTask;
+import com.octal.fsm.entities.JobTag;
+import com.octal.fsm.entities.JobType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
-import com.octal.fsm.repositories.*;
+import com.octal.fsm.repositories.AppointmentRepository;
+import com.octal.fsm.repositories.JobMappingTaskRepository;
+import com.octal.fsm.repositories.JobTagRepository;
+import com.octal.fsm.repositories.JobTypeRepository;
 import com.octal.fsm.service.AppointmentService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
@@ -44,33 +47,33 @@ public class AppointmentServiceImpl implements AppointmentService {
     private AppointmentRepository appointmentRepository;
 
     @Autowired
-    private SpecificationFactory<Appointment>appointmentSpecificationFactory;
+    private SpecificationFactory<Appointment> appointmentSpecificationFactory;
 
     @Override
     public String addAppointment(AppointmentDTO.Add add, String userName) throws CodeException {
-        if(TextUtils.isEmpty(add.getJobId()))
+        if (TextUtils.isEmpty(add.getJobId()))
             throw new CodeException("job id is required", ErrorCode.COMMON);
-        if(TextUtils.isEmpty(add.getJobTypeId()))
-            throw new CodeException("job type is required",ErrorCode.COMMON);
-        Optional<JobType>jobType=jobTypeRepository.findByUuid(add.getJobTypeId());
-        if(jobType.isEmpty())
-            throw new CodeException("job type not found by id",ErrorCode.COMMON);
-        if(add.getJobTags().isEmpty())
-            throw new CodeException("job tags are required",ErrorCode.COMMON);
-        List<JobTag> list=jobTagRepository.findByUuidIn(add.getJobTags());
-        if(list.isEmpty())
-            throw new CodeException("job tags not found with ids",ErrorCode.COMMON);
-        if(TextUtils.isEmpty(add.getJobTaskId()))
-            throw new CodeException("job task id  is required",ErrorCode.COMMON);
-        Optional<JobMappingTask>jobTaskMappingTechnician=jobMappingTaskRepository.findByTaskShowId(add.getJobTaskId());
-        if(jobTaskMappingTechnician.isEmpty())
-            throw new CodeException("job task not found",ErrorCode.COMMON);
-        if(add.getStartDateTime()==null)
-            throw new CodeException("start date time cannot be null",ErrorCode.COMMON);
-        if(add.getEndDateTime()==null)
-            throw new CodeException("end date time cannot be null",ErrorCode.COMMON);
-        if(TextUtils.isEmpty(add.getTechnicianId()))
-            throw new CodeException("technician id is required",ErrorCode.COMMON);
+        if (TextUtils.isEmpty(add.getJobTypeId()))
+            throw new CodeException("job type is required", ErrorCode.COMMON);
+        Optional<JobType> jobType = jobTypeRepository.findByUuid(add.getJobTypeId());
+        if (jobType.isEmpty())
+            throw new CodeException("job type not found by id", ErrorCode.COMMON);
+        if (add.getJobTags().isEmpty())
+            throw new CodeException("job tags are required", ErrorCode.COMMON);
+        List<JobTag> list = jobTagRepository.findByUuidIn(add.getJobTags());
+        if (list.isEmpty())
+            throw new CodeException("job tags not found with ids", ErrorCode.COMMON);
+        if (TextUtils.isEmpty(add.getJobTaskId()))
+            throw new CodeException("job task id  is required", ErrorCode.COMMON);
+        Optional<JobMappingTask> jobTaskMappingTechnician = jobMappingTaskRepository.findByTaskShowId(add.getJobTaskId());
+        if (jobTaskMappingTechnician.isEmpty())
+            throw new CodeException("job task not found", ErrorCode.COMMON);
+        if (add.getStartDateTime() == null)
+            throw new CodeException("start date time cannot be null", ErrorCode.COMMON);
+        if (add.getEndDateTime() == null)
+            throw new CodeException("end date time cannot be null", ErrorCode.COMMON);
+        if (TextUtils.isEmpty(add.getTechnicianId()))
+            throw new CodeException("technician id is required", ErrorCode.COMMON);
         Appointment appointment;
         if (TextUtils.isEmpty(add.getId())) {
             appointment = new Appointment();
@@ -118,7 +121,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             AppointmentDTO.ListResponse dto = new AppointmentDTO.ListResponse();
             dto.setAdditionalNotes(appointment.getAdditionalNotes());
             dto.setJobId(appointment.getJobId());
-            dto.setJobTags(new Gson().fromJson(appointment.getJobTags(),listType));
+            dto.setJobTags(new Gson().fromJson(appointment.getJobTags(), listType));
             dto.setJobTypeId(appointment.getJobTypeId());
             dto.setJobTaskId(appointment.getJobTaskId());
             dto.setStartDateTime(appointment.getStartDateTime());
@@ -136,7 +139,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (listRequest.getIsActive() != null) {
             builder.with(appointmentSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
         }
-        if(!TextUtils.isEmpty(listRequest.getJobId())){
+        if (!TextUtils.isEmpty(listRequest.getJobId())) {
             builder.with(appointmentSpecificationFactory.isEqual("jobId", listRequest.getJobId()));
         }
         if (listRequest.getStartDate() != null) {

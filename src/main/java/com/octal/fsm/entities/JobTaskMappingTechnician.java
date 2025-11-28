@@ -5,8 +5,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @NoArgsConstructor
@@ -27,6 +30,7 @@ public class JobTaskMappingTechnician extends AbstractPersistable {
     @Column(name = "note")
     private String note;
 
+    @Lob
     @Column(name = "technician_note")
     private String technicianNote;
 
@@ -48,6 +52,24 @@ public class JobTaskMappingTechnician extends AbstractPersistable {
 
     @Column(name = "cancel_reason")
     private String cancelReason;
+
+    @Lob
+    @Column(name = "drawing_json")
+    private String drawingJson;
+
+    @Lob
+    @Column(name = "drawing_image")
+    private String drawingImage;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = false)
+    @JoinColumn(name = "job_task_mapping_technician_id")
+    private List<HTMLFormPage> htmlFormPages = new ArrayList<>();
+
+    @Column(name = "start_time")
+    private Time startTime;
+
+    @Column(name = "end_time")
+    private Time endTime;
 
 
 }

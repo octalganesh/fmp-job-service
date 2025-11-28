@@ -189,9 +189,9 @@
 
         <!-- data jar -->
         <dependency>
-            <groupId> com.intuit.quickbooks-online </groupId>
-            <artifactId> ipp-v3-java-data </artifactId>
-            <version> 6.0.7 </version>
+            <groupId>com.intuit.quickbooks-online</groupId>
+            <artifactId>ipp-v3-java-data</artifactId>
+            <version>6.0.7</version>
         </dependency>
 
         <!-- devkit jar with dependencies-->
@@ -199,7 +199,7 @@
             <groupId>com.intuit.quickbooks-online</groupId>
             <artifactId>ipp-v3-java-devkit</artifactId>
             <classifier>jar-with-dependencies</classifier>
-            <version> 6.0.7 </version>
+            <version>6.0.7</version>
         </dependency>
 
         <!-- oauth jar with dependencies-->
@@ -207,7 +207,7 @@
             <groupId>com.intuit.quickbooks-online</groupId>
             <artifactId>oauth2-platform-api</artifactId>
             <classifier>jar-with-dependencies</classifier>
-            <version> 6.0.7 </version>
+            <version>6.0.7</version>
         </dependency>
 
 

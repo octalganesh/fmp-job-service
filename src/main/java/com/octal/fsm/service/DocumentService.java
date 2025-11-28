@@ -10,7 +10,11 @@ public interface DocumentService {
 
     void uploadDocument(DocumentDTO.Add addJobDTO) throws CodeException;
 
-    PageItem<DocumentDTO.ListResponse> getListOfDocument(String type, String typeId, String uploadedByType, String uploadByTypeId, String fileType, int page, int size, String sortBy, Boolean order,String documentTypeId,String loggedInUserEmail) throws CodeException;
+    PageItem<DocumentDTO.ListResponse> getListOfDocument(String type, String typeId, String uploadedByType, String uploadByTypeId, String fileType, int page, int size, String sortBy, Boolean order, String documentTypeId, String loggedInUserEmail) throws CodeException;
 
     void uploadMultipleDocument(List<DocumentDTO.Add> list) throws CodeException;
+
+    void uploadMultipleDocumentForCSR(List<DocumentDTO.Add> list) throws CodeException;
+
+    List<DocumentDTO.ListResponse> getJobDocuments(String jobId, Long tenantId, boolean isSuperAdmin) throws CodeException;
 }

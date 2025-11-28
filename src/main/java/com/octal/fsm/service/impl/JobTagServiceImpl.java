@@ -2,7 +2,6 @@ package com.octal.fsm.service.impl;
 
 import com.octal.fsm.common.CommonConstants;
 import com.octal.fsm.dto.JobTagDTO;
-import com.octal.fsm.dto.JobTypeDTO;
 import com.octal.fsm.dto.PageItem;
 import com.octal.fsm.entities.JobTag;
 import com.octal.fsm.exceptions.CodeException;
@@ -33,12 +32,13 @@ public class JobTagServiceImpl implements JobTagService {
     private SpecificationFactory<JobTag> jobTagSpecificationFactory;
 
 
-
     @Override
-    public String addJobTag(JobTagDTO.Add add) throws CodeException {
+    public String addJobTag(JobTagDTO.Add add, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
         if (TextUtils.isEmpty(add.getName()))
             throw new CodeException("Tag name is required", ErrorCode.COMMON);
-        if(TextUtils.isEmpty(add.getTagColor()))
+        if (TextUtils.isEmpty(add.getTagColor()))
             throw new CodeException("Tag color is required", ErrorCode.COMMON);
 //        Optional<JobTag> optionalJobTag = jobTagRepository.findByUuid(add.getId());
 //        if (optionalJobTag.isPresent() && !optionalJobTag.get().getUuid().equals(add.getId())) {
@@ -46,18 +46,19 @@ public class JobTagServiceImpl implements JobTagService {
 //        }
         JobTag newJobTagRecord = null;
         if (TextUtils.isEmpty(add.getId())) {
-            Boolean isTagExist = jobTagRepository.existsByName(add.getName());
-            if(isTagExist){
+            Boolean isTagExist = jobTagRepository.existsByNameAndTenantId(add.getName(), tenantId);
+            if (isTagExist) {
                 throw new CodeException("Tag name is already exist", ErrorCode.COMMON);
             }
             newJobTagRecord = new JobTag();
             newJobTagRecord.setCreatedAt(LocalDateTime.now());
             newJobTagRecord.setUpdatedAt(LocalDateTime.now());
+            newJobTagRecord.setTenantId(tenantId);
         } else {
             Optional<JobTag> jobTag = jobTagRepository.findByUuid(add.getId());
             if (jobTag.isPresent()) {
-                Boolean isTagExist = jobTagRepository.existsByNameAndUuidNot(add.getName(),add.getId());
-                if(isTagExist){
+                Boolean isTagExist = jobTagRepository.existsByNameAndTenantIdAndUuidNot(add.getName(), tenantId, add.getId());
+                if (isTagExist) {
                     throw new CodeException("Tag name is already exist", ErrorCode.COMMON);
                 }
                 newJobTagRecord = jobTag.get();
@@ -88,8 +89,10 @@ public class JobTagServiceImpl implements JobTagService {
     }
 
     @Override
-    public JobTagDTO.Detail getJobTagByUuid(String id) throws CodeException {
-        Optional<JobTag> jobTagOptional = jobTagRepository.findByUuid(id);
+    public JobTagDTO.Detail getJobTagByUuid(String id, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
+        Optional<JobTag> jobTagOptional = jobTagRepository.findByUuidAndTenantId(id, tenantId);
         if (jobTagOptional.isPresent()) {
             JobTagDTO.Detail jobType = new JobTagDTO.Detail();
             jobType.setName(jobTagOptional.get().getName());
@@ -126,29 +129,34 @@ public class JobTagServiceImpl implements JobTagService {
 
 
     @Override
-    public PageItem<JobTagDTO.Detail> getAllJobTags(PageRequest.List listRequest) {
+    public PageItem<JobTagDTO.Detail> getAllJobTags(PageRequest.List listRequest, Long tenantId, Boolean isSuperAdmin) {
+        if (isSuperAdmin)
+            tenantId = 1L;
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobTag> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
-            if(!TextUtils.isEmpty(listRequest.getSortBy())){
+            if (!TextUtils.isEmpty(listRequest.getSortBy())) {
                 pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getSortBy()).ascending());
-            }else {
+            } else {
                 pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
             }
         } else {
-            if(!TextUtils.isEmpty(listRequest.getSortBy())){
+            if (!TextUtils.isEmpty(listRequest.getSortBy())) {
                 pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getSortBy()).descending());
-            }else {
+            } else {
                 pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
             }
         }
+
+        builder.with(jobTagSpecificationFactory.isEqual("tenantId", tenantId));
+
         prepareJobTagSearchFilter(listRequest, builder);
         Page<JobTag> pagedResult = jobTagRepository.findAll(builder.build(), pageable);
         List<JobTagDTO.Detail> responseList = new ArrayList<>();
-        for(JobTag jobTag:pagedResult.getContent()){
-            JobTagDTO.Detail dto=new JobTagDTO.Detail();
+        for (JobTag jobTag : pagedResult.getContent()) {
+            JobTagDTO.Detail dto = new JobTagDTO.Detail();
             dto.setId(jobTag.getUuid());
             dto.setName(jobTag.getName());
             dto.setTagColor(jobTag.getTagColor());
@@ -169,7 +177,7 @@ public class JobTagServiceImpl implements JobTagService {
         if (org.apache.commons.lang.StringUtils.isNotBlank(listRequest.getSearchText())) {
             builder.with(jobTagSpecificationFactory.like("name", listRequest.getSearchText()));
         }
-        if(listRequest.getIsActive()!=null){
+        if (listRequest.getIsActive() != null) {
             builder.with(jobTagSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
         }
         if (listRequest.getStartDate() != null) {
@@ -177,7 +185,7 @@ public class JobTagServiceImpl implements JobTagService {
         }
 
         if (listRequest.getEndDate() != null) {
-            builder.with(jobTagSpecificationFactory.isLessThanOrEquals("createdAt", listRequest.getEndDate().atTime(23,59,59)));
+            builder.with(jobTagSpecificationFactory.isLessThanOrEquals("createdAt", listRequest.getEndDate().atTime(23, 59, 59)));
         }
 
     }

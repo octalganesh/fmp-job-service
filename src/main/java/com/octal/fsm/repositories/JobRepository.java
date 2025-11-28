@@ -5,6 +5,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,12 +17,29 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
 
     Optional<Job> findByUuidAndDeletedFalse(String id);
 
+    Optional<Job> findByUuidAndTenantIdAndDeletedFalse(String id, Long tenantId);
+
     Page<Job> findAllByDeletedFalse(Pageable pageable);
 
     Boolean existsByJobId(String jobId);
 
     Boolean existsByUuidAndDeletedFalse(String uuid);
 
+    Boolean existsByUuidAndTenantIdAndDeletedFalse(String uuid, Long tenantId);
 
-    //List<Job> findByCustomerIdAndDeletedFalse(Long customerId);
+
+    Optional<Job> findByUuidAndTenantIdAndFrontOfficeIdAndDeletedFalse(String id, Long tenantId, String frontOfficeId);
+
+    Optional<Job> findByUuidAndFrontOfficeIdAndDeletedFalse(String uuid, String frontOfficeId);
+
+    Page<Job> findAllByFrontOfficeIdAndDeletedFalse(String frontOfficeId, Pageable pageable);
+
+    boolean existsByJobIdAndFrontOfficeId(String jobId, String frontOfficeId);
+
+    boolean existsByUuidAndFrontOfficeIdAndDeletedFalse(String uuid, String frontOfficeId);
+
+    boolean existsByUuidAndTenantIdAndFrontOfficeIdAndDeletedFalse(String uuid, Long tenantId, String frontOfficeId);
+
+    @Query("SELECT j FROM Job j WHERE j.uuid IN :uuids")
+    List<Job> findByUuidIn(@Param("uuids") List<String> uuids);
 }

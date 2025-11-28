@@ -1,27 +1,42 @@
 package com.octal.fsm.listener.events;
 
 import com.octal.fsm.dto.JobDTO;
+import com.octal.fsm.dto.PushNotificationRequest;
 import com.octal.fsm.dto.TechnicianDTO;
+import com.octal.fsm.entities.JobTaskMappingTechnician;
 import org.springframework.context.ApplicationEvent;
 
 public class SendMailToTechnicianEvent extends ApplicationEvent {
-    private final TechnicianDTO.TechnicianData technicianDTO;
-    private final JobDTO.Detail jobDetails;
+    private final JobDTO.AssignJobToTechnician assignJobToTechnician;
+    private final JobTaskMappingTechnician jobTaskMappingTech;
     private final String loggedInuser;
+    private final Long tenantId;
+    private final boolean isSuperAdmin;
 
-    public SendMailToTechnicianEvent(TechnicianDTO.TechnicianData technicianDTO, JobDTO.Detail jobDetails, String loggedInuser) {
-        super(technicianDTO);
-        this.technicianDTO = technicianDTO;
-        this.jobDetails = jobDetails;
+
+    public SendMailToTechnicianEvent(JobDTO.AssignJobToTechnician assignJobToTechnician,JobTaskMappingTechnician jobTaskMappingTech, String loggedInuser, Long tenantId, boolean isSuperAdmin) {
+        super(assignJobToTechnician);
+        this.assignJobToTechnician = assignJobToTechnician;
+        this.jobTaskMappingTech = jobTaskMappingTech;
         this.loggedInuser = loggedInuser;
+        this.tenantId = tenantId;
+        this.isSuperAdmin = isSuperAdmin;
     }
 
-    public TechnicianDTO.TechnicianData getTechnicianDTO() {
-        return technicianDTO;
+    public boolean isSuperAdmin() {
+        return isSuperAdmin;
     }
 
-    public JobDTO.Detail getJobDetails() {
-        return jobDetails;
+    public Long getTenantId() {
+        return tenantId;
+    }
+
+    public JobDTO.AssignJobToTechnician getAssignJobToTechnician() {
+        return assignJobToTechnician;
+    }
+
+    public JobTaskMappingTechnician getJobTaskMappingTech() {
+        return jobTaskMappingTech;
     }
 
     public String getLoggedInuser() {

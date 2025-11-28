@@ -16,6 +16,7 @@ import java.net.UnknownHostException;
 @RestController
 @EnableScheduling
 @EnableFeignClients
+@EnableScheduling
 public class JobApplication implements ApplicationRunner {
 
     public static void main(String[] args) throws UnknownHostException {

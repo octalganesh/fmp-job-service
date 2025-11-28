@@ -3,10 +3,9 @@ package com.octal.fsm.specification;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Root;
+import javax.persistence.criteria.*;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 @Component
@@ -84,4 +83,47 @@ public class SpecificationFactory<T> {
             return criteriaBuilder.like(path.get(fieldName).as(String.class), "%" + value + "%");
         };
     }
+
+    public <T> Specification<T> joinEquals(String joinField, String targetField, String value) {
+        return (root, query, cb) -> {
+
+            if (value == null || value.trim().isEmpty()) {
+                return cb.conjunction(); // do nothing
+            }
+
+            Join<Object, Object> join = root.join(joinField, JoinType.LEFT);
+            return cb.equal(join.get(targetField), value);
+        };
+    }
+
+    public <T> Specification<T> joinEqualsLong(String joinPath, String targetField, Long value) {
+        return (root, query, cb) -> {
+
+            if (value == null) {
+                return cb.conjunction(); // no filter
+            }
+
+            // Handle nested joins (e.g., job.customer)
+            String[] parts = joinPath.split("\\.");
+            From<?, ?> join = root;
+
+            for (String part : parts) {
+                join = join.join(part, JoinType.LEFT);
+            }
+
+            return cb.equal(join.get(targetField), value);
+        };
+    }
+
+    public Specification<T> in(String fieldName, List<?> values) {
+        return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
+            CriteriaBuilder.In<Object> inClause = cb.in(root.get(fieldName));
+
+            for (Object value : values) {
+                inClause.value(value);
+            }
+            return inClause;
+        };
+    }
+
 }

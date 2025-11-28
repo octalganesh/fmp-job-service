@@ -31,5 +31,6 @@ public class QuickBooksToken {
     private LocalDateTime expiresAt; // token expiration time
 
     private LocalDateTime createdAt = LocalDateTime.now();
+
     private LocalDateTime updatedAt;
 }
