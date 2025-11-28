@@ -5,6 +5,8 @@ import com.octal.fsm.dto.InvoiceRequest;
 import com.octal.fsm.dto.QuickBookApiResponse;
 import com.octal.fsm.dto.QuickBookDTO;
 import com.octal.fsm.dto.QuickBooksItemDTO;
+import com.octal.fsm.exceptions.CodeException;
+import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.service.impl.QuickBooksCustomerService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,13 +29,17 @@ public class QuickBooksController extends BaseController {
     }
 
 
-    @PostMapping("/create-customer")
+        @PostMapping("/create-customer")
     public ResponseEntity<ApiResponse> createJob(@Valid @RequestBody QuickBookDTO.CreateCustomer quickBookDTO, HttpServletRequest request) {
         try {
 
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Customer created in Quick books", customerService.addNewCustomer(quickBookDTO), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
+            Throwable root = e.getCause();
+            if (root != null) {
+                return handleException(new CodeException(root.getMessage(), ErrorCode.COMMON));
+            }
             return handleException(e);
         }
     }

@@ -831,8 +831,8 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Service Location Latitude is required", ErrorCode.COMMON);
         if (addJobDTO.getServiceLocationLng() == null)
             throw new CodeException("Service Location Longitude is required", ErrorCode.COMMON);
-        if (TextUtils.isEmpty(addJobDTO.getJobStatus()))
-            throw new CodeException("Job Status is required", ErrorCode.COMMON);
+//        if (TextUtils.isEmpty(addJobDTO.getJobStatus()))
+//            throw new CodeException("Job Status is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getCustomerTypeId()))
             throw new CodeException("Customer Type is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getJobDescription()))
