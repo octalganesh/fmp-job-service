@@ -29,18 +29,13 @@ public class QuickBooksController extends BaseController {
     }
 
 
-        @PostMapping("/create-customer")
+    @PostMapping("/create-customer")
     public ResponseEntity<ApiResponse> createJob(@Valid @RequestBody QuickBookDTO.CreateCustomer quickBookDTO, HttpServletRequest request) {
         try {
-
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Customer created in Quick books", customerService.addNewCustomer(quickBookDTO), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
-            Throwable root = e.getCause();
-            if (root != null) {
-                return handleException(new CodeException(root.getMessage(), ErrorCode.COMMON));
-            }
-            return handleException(e);
+            return new ResponseEntity<>(new ApiResponse(Boolean.FALSE, e.getMessage(), null, "101", HttpStatus.OK), HttpStatus.OK);
         }
     }
 
