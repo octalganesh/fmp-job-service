@@ -21,4 +21,7 @@ public class HTMLFormPage extends AbstractPersistable {
     @Column(name = "content")
     private String content;
 
+    @Column(name = "form_id")
+    String formId;
+
 }

@@ -319,11 +319,12 @@ public class JobController extends BaseController {
     }
 
     @PostMapping("/forms/save-form/{taskId}")
-    public ResponseEntity<ApiResponse> addHTMLFormPage(@PathVariable("taskId") String taskId, @RequestBody HTMLFormDTO.Add add, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse> addHTMLFormPage(@PathVariable("taskId") String taskId,@RequestParam("formId")String formId, @RequestBody HTMLFormDTO.Add add, HttpServletRequest request) {
         try {
             Long tenantId = getTenantId(request);
             add.setTaskId(taskId);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "HTML form added for technician successfully", jobService.saveTechnicianHtmlForm(add, tenantId), "200", HttpStatus.OK), HttpStatus.OK);
+            add.setFormId(formId);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "HTML form added for technician successfully", jobService.saveTechnicianHtmlForm(add,tenantId), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving job tasks for technician: {}", e.getMessage(), e);
             return handleException(e);
