@@ -72,9 +72,9 @@ quickbooks:
   oauth2:
     client-id: AB2qEt6NUUOdcxFumczGwFmTCSV2A80LRhJTjvFMA3bGVBapYJ
     client-secret: BC9kkI9BtsZNaC1doHLWlrLSTS8sRgnRxVs4CnhA
-    redirect-uri: ${QUICKBOOKS_OAUTH2_REDIRECT_URI}
+    redirect-uri: http://localhost:9084/oauth2redirect
   api:
-    host: ${QUICKBOOKS_API_HOST}
+    host: https://sandbox-quickbooks.api.intuit.com
     minorversion: 73
 aws:
   access-key: ${AWS_ACCESS_KEY}
