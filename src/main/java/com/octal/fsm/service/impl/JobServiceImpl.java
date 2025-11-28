@@ -1110,6 +1110,7 @@ public class JobServiceImpl implements JobService {
                             htmlFormDTO.setContent(htmlFormPage.getContent());
                             htmlFormDTO.setActive(htmlFormPage.getActive());
                             htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt().toString());
+                            htmlFormDTO.setFormId(htmlFormPage.getFormId()!=null?htmlFormPage.getFormId():"");
                             list.add(htmlFormDTO);
                         }
                         details.setFormList(list);
@@ -1315,7 +1316,8 @@ public class JobServiceImpl implements JobService {
                         f.getName(),
                         f.getContent(),
                         f.getCreatedAt().toString(),
-                        f.getUpdatedAt().toString()
+                        f.getUpdatedAt().toString(),
+                        f.getFormId()
                 ))
                 .collect(Collectors.toList());
         return new JobTaskMappingWithHTMLFormDTO(

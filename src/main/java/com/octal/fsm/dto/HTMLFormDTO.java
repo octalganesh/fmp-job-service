@@ -28,6 +28,7 @@ public class HTMLFormDTO {
         private String content;
         private String createdAt;
         private String updatedAt;
+        private String formId;
     }
 
 }
