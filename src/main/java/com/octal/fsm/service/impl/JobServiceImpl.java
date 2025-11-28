@@ -1257,7 +1257,7 @@ public class JobServiceImpl implements JobService {
                             formsDetails.forEach(detail -> {
                                 if (detail.getContent() != null) {
                                     detail.setContent(
-                                            detail.getContent().replace("{{API_URL}}", finalApiUrl)
+                                            detail.getContent().replace("{{API_URL}}", finalApiUrl+"?formId="+detail.getId())
                                     );
                                 }
                             });
@@ -1291,6 +1291,7 @@ public class JobServiceImpl implements JobService {
         HTMLFormPage htmlFormPage = new HTMLFormPage();
         htmlFormPage.setName(add.getName());
         htmlFormPage.setContent(add.getContent());
+        htmlFormPage.setFormId(add.getFormId());
         htmlFormPage.setCreatedAt(LocalDateTime.now());
         technician.getHtmlFormPages().add(htmlFormPage);
         JobTaskMappingTechnician save = jobTaskMappingTechnicianRepository.save(technician);
@@ -2115,7 +2116,7 @@ public class JobServiceImpl implements JobService {
                 formsDetails.forEach(detail -> {
                     if (detail.getContent() != null) {
                         detail.setContent(
-                                detail.getContent().replace("{{API_URL}}", finalApiUrl)
+                                detail.getContent().replace("{{API_URL}}", finalApiUrl+"?formId="+detail.getId())
                         );
                     }
                 });

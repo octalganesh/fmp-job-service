@@ -15,6 +15,7 @@ public class HTMLFormDTO {
         private String taskId;
         private String name;
         private String content;
+        private String formId;
     }
 
     @Data
