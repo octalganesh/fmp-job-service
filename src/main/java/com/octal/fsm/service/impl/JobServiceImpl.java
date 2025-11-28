@@ -618,15 +618,24 @@ public class JobServiceImpl implements JobService {
         LocalDate newStartDate = LocalDate.parse(assignJobToTechnician.getStartDate());
         LocalDate newEndDate = LocalDate.parse(assignJobToTechnician.getEndDate());
 
-        LocalTime newStartTime = LocalTime.parse(assignJobToTechnician.getStartDateTime());
-        LocalTime newEndTime = LocalTime.parse(assignJobToTechnician.getEndDateTime());
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+        LocalDateTime startDateTime = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), formatter);
+        LocalDateTime endDateTime   = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), formatter);
+
+        LocalTime newStartTime = startDateTime.toLocalTime();
+        LocalTime newEndTime   = endDateTime.toLocalTime();
+
+
 
         if (byTechnicianId != null && !byTechnicianId.isEmpty()) {
             for (JobTaskMappingTechnician existing : byTechnicianId) {
 
                 LocalDate exStartDate = existing.getStartDate();
                 LocalDate exEndDate = existing.getEndDate();
-
+               if(existing.getStartTime()==null||existing.getEndTime()==null){
+                   continue;
+               }
                 LocalTime exStartTime = existing.getStartTime().toLocalTime();
                 LocalTime exEndTime = existing.getEndTime().toLocalTime();
 
