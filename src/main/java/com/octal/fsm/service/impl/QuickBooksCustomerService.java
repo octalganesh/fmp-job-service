@@ -77,6 +77,9 @@ public class QuickBooksCustomerService {
                 errorInfo.setCode(info.getCode());
                 errorInfo.setDetail(info.getDetail());
                 errorInfo.setRaw(info.getRaw());
+                if(errorInfo.getMessage().contains("Duplicate Name Exists Error")){
+                    errorInfo.setMessage("customer name or email already exists");
+                }
                 throw new CodeException(errorInfo.getMessage(), ErrorCode.COMMON);
              } else {
                 throw new CodeException(info.getMessage(), ErrorCode.COMMON);
