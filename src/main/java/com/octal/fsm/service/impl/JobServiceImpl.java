@@ -289,6 +289,9 @@ public class JobServiceImpl implements JobService {
         if (!TextUtils.isEmpty(jobStatus)) {
             builder.with(jobSpecificationFactory.isEqual("jobStatus", jobStatus));
         }
+        if(!TextUtils.isEmpty(txt)){
+            builder.with(jobSpecificationFactory.like("jobId",txt));
+        }
         if (!TextUtils.isEmpty(jobTag)) {
             builder.with(jobSpecificationFactory.join("jobMappingTags", "tagId", jobTag));
         }
