@@ -322,6 +322,8 @@ public class JobDTO {
         private String frontOfficeNote;
         private String startDate;
         private String endDate;
+        private String startTime;
+        private String endTime;
         private String taskDescription;
         private String clientFeedbackUrl;
         private String signature;
@@ -339,6 +341,7 @@ public class JobDTO {
         private String frontOfficeName;
         private String frontOfficeId;
         private List<HTMLFormDTO.Details> formList;
+        private String assignType;
 
     }
 
