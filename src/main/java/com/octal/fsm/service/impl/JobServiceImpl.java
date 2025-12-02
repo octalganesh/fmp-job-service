@@ -1213,8 +1213,8 @@ public class JobServiceImpl implements JobService {
     public List<JobStatusDetail> getAllJobStatus(Long tenantId, boolean isSuperAdmin) {
 
         List<JobStatusMaster> statusMasters;
-        Long tenantIdToUse = isSuperAdmin ? 1L : tenantId;
-        statusMasters = jobStatusMasterRepository.findAllByTenantIdAndDeletedFalse(tenantIdToUse);
+        //Long tenantIdToUse = isSuperAdmin ? 1L : tenantId;
+        statusMasters = jobStatusMasterRepository.findAllByDeletedFalse();
 
         List<JobStatusDetail> statusDetails = statusMasters.stream()
                 .map(statusMaster -> new JobStatusDetail(statusMaster.getUuid(), statusMaster.getName(), statusMaster.getColorCode()))
