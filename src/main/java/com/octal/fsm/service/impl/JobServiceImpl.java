@@ -859,8 +859,8 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Job End Date is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getLeadSourceId()))
             throw new CodeException("Lead Source is required", ErrorCode.COMMON);
-        if (TextUtils.isEmpty(addJobDTO.getBudget()))
-            throw new CodeException("Budget is required", ErrorCode.COMMON);
+//        if (TextUtils.isEmpty(addJobDTO.getBudget()))
+//            throw new CodeException("Budget is required", ErrorCode.COMMON);
         if (addJobDTO.getJobTags() == null || addJobDTO.getJobTags().isEmpty())
             throw new CodeException("At least one Job Tag is required", ErrorCode.COMMON);
 //        if(TextUtils.isEmpty(addJobDTO.getTechnicianId()))
