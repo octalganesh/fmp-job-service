@@ -859,8 +859,8 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Job End Date is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getLeadSourceId()))
             throw new CodeException("Lead Source is required", ErrorCode.COMMON);
-        if (TextUtils.isEmpty(addJobDTO.getBudget()))
-            throw new CodeException("Budget is required", ErrorCode.COMMON);
+//        if (TextUtils.isEmpty(addJobDTO.getBudget()))
+//            throw new CodeException("Budget is required", ErrorCode.COMMON);
         if (addJobDTO.getJobTags() == null || addJobDTO.getJobTags().isEmpty())
             throw new CodeException("At least one Job Tag is required", ErrorCode.COMMON);
 //        if(TextUtils.isEmpty(addJobDTO.getTechnicianId()))
@@ -1213,8 +1213,8 @@ public class JobServiceImpl implements JobService {
     public List<JobStatusDetail> getAllJobStatus(Long tenantId, boolean isSuperAdmin) {
 
         List<JobStatusMaster> statusMasters;
-        Long tenantIdToUse = isSuperAdmin ? 1L : tenantId;
-        statusMasters = jobStatusMasterRepository.findAllByTenantIdAndDeletedFalse(tenantIdToUse);
+        //Long tenantIdToUse = isSuperAdmin ? 1L : tenantId;
+        statusMasters = jobStatusMasterRepository.findAllByDeletedFalse();
 
         List<JobStatusDetail> statusDetails = statusMasters.stream()
                 .map(statusMaster -> new JobStatusDetail(statusMaster.getUuid(), statusMaster.getName(), statusMaster.getColorCode()))
@@ -2183,11 +2183,13 @@ public class JobServiceImpl implements JobService {
                     if (!TextUtils.isEmpty(taskMapping.get().getDrawingImage()))
                         details.setDrawingImage(taskMapping.get().getDrawingImage());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
-
+                    details.setAssignType(jobMappingTask.get().getAssignType().toString());
                     details.setTaskDescription(jobTask.get().getDescription());
                     details.setJobDescription(job.get().getJobDescription());
                     details.setStartDate(taskMapping.get().getStartDate() != null ? taskMapping.get().getStartDate().toString() : null);
                     details.setEndDate(taskMapping.get().getEndDate() != null ? taskMapping.get().getEndDate().toString() : null);
+                    details.setStartTime(taskMapping.get().getStartTime()!=null?taskMapping.get().getStartTime().toString():null);
+                    details.setEndTime(taskMapping.get().getEndTime()!=null?taskMapping.get().getEndTime().toString():null);
                     details.setServiceLocationLat(job.get().getServiceLocationLat());
                     details.setServiceLocationLng(job.get().getServiceLocationLng());
                     if (taskMapping.get().getTaskStatus().equalsIgnoreCase("ASSIGNED")) {
@@ -2265,7 +2267,17 @@ public class JobServiceImpl implements JobService {
                         details.setFormList(list);
                     }
                     return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Mapping Task fetched successfully", details, "200", HttpStatus.OK), HttpStatus.OK);
-                }else{
+                }else if(job.isPresent() && jobTask.isPresent()){
+                    details.setId(jobMappingTask.get().getUuid());
+                    details.setTaskName(jobMappingTask.get().getTaskName());
+                    details.setNote(jobMappingTask.get().getNote());
+                    details.setFrontOfficeNote(jobMappingTask.get().getNote());
+                    details.setTaskId(jobMappingTask.get().getTaskShowId());
+                    details.setTaskDescription(jobTask.get().getDescription());
+                    details.setAssignType(jobMappingTask.get().getAssignType().toString());
+                    return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Mapping Task fetched successfully", details, "200", HttpStatus.OK), HttpStatus.OK);
+                }
+                else{
                     return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Mapping data Not Available", null, "200", HttpStatus.OK), HttpStatus.OK);
                 }
             }
