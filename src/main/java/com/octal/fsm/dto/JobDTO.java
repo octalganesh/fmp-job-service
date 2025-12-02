@@ -322,6 +322,8 @@ public class JobDTO {
         private String frontOfficeNote;
         private String startDate;
         private String endDate;
+        private String startTime;
+        private String endTime;
         private String taskDescription;
         private String clientFeedbackUrl;
         private String signature;

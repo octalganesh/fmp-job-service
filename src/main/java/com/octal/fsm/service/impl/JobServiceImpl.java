@@ -2188,6 +2188,8 @@ public class JobServiceImpl implements JobService {
                     details.setJobDescription(job.get().getJobDescription());
                     details.setStartDate(taskMapping.get().getStartDate() != null ? taskMapping.get().getStartDate().toString() : null);
                     details.setEndDate(taskMapping.get().getEndDate() != null ? taskMapping.get().getEndDate().toString() : null);
+                    details.setStartTime(taskMapping.get().getStartTime()!=null?taskMapping.get().getStartTime().toString():null);
+                    details.setEndTime(taskMapping.get().getEndTime()!=null?taskMapping.get().getEndTime().toString():null);
                     details.setServiceLocationLat(job.get().getServiceLocationLat());
                     details.setServiceLocationLng(job.get().getServiceLocationLng());
                     if (taskMapping.get().getTaskStatus().equalsIgnoreCase("ASSIGNED")) {
