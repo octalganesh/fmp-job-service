@@ -91,7 +91,7 @@ public class JobTransformer {
             e.printStackTrace();
         }
         job.setLeadSourceId(addJobDTO.getLeadSourceId());
-        job.setBudget(addJobDTO.getBudget());
+        //job.setBudget(addJobDTO.getBudget());
         // Tags
         List<JobMappingTags> jobMappingTags = new ArrayList<>();
         for (String jobTagId : addJobDTO.getJobTags()) {
