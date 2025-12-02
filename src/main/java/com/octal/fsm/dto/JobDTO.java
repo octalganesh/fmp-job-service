@@ -341,6 +341,7 @@ public class JobDTO {
         private String frontOfficeName;
         private String frontOfficeId;
         private List<HTMLFormDTO.Details> formList;
+        private String assignType;
 
     }
 
