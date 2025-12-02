@@ -2183,7 +2183,7 @@ public class JobServiceImpl implements JobService {
                     if (!TextUtils.isEmpty(taskMapping.get().getDrawingImage()))
                         details.setDrawingImage(taskMapping.get().getDrawingImage());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
-
+                    details.setAssignType(jobMappingTask.get().getAssignType().toString());
                     details.setTaskDescription(jobTask.get().getDescription());
                     details.setJobDescription(job.get().getJobDescription());
                     details.setStartDate(taskMapping.get().getStartDate() != null ? taskMapping.get().getStartDate().toString() : null);
@@ -2267,7 +2267,17 @@ public class JobServiceImpl implements JobService {
                         details.setFormList(list);
                     }
                     return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Mapping Task fetched successfully", details, "200", HttpStatus.OK), HttpStatus.OK);
-                }else{
+                }else if(job.isPresent() && jobTask.isPresent()){
+                    details.setId(jobMappingTask.get().getUuid());
+                    details.setTaskName(jobMappingTask.get().getTaskName());
+                    details.setNote(jobMappingTask.get().getNote());
+                    details.setFrontOfficeNote(jobMappingTask.get().getNote());
+                    details.setTaskId(jobMappingTask.get().getTaskShowId());
+                    details.setTaskDescription(jobTask.get().getDescription());
+                    details.setAssignType(jobMappingTask.get().getAssignType().toString());
+                    return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Mapping Task fetched successfully", details, "200", HttpStatus.OK), HttpStatus.OK);
+                }
+                else{
                     return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Mapping data Not Available", null, "200", HttpStatus.OK), HttpStatus.OK);
                 }
             }
