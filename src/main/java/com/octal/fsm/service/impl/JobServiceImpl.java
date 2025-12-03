@@ -528,10 +528,10 @@ public class JobServiceImpl implements JobService {
                         e.printStackTrace();
                     }
                 }
-                if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
-                    Gson gson = new Gson();
-                    jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
-                }
+//                if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
+//                    Gson gson = new Gson();
+//                    jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
+//                }
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
                 if (assignJobToTechnician.getStartDateTime() != null) {
