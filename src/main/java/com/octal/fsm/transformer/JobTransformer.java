@@ -5,6 +5,7 @@ import com.octal.fsm.clients.AdminClient;
 import com.octal.fsm.dto.JobDTO;
 import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
+import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.helper.CodeGenerator;
 import com.octal.fsm.repositories.*;
 import com.octal.fsm.utils.TextUtils;
@@ -72,6 +73,9 @@ public class JobTransformer {
                 task.setJob(job);
                 jobMappingTask.add(task);
             }
+        }
+        if(TextUtils.isEmpty(job.getJobStatus())){
+            throw new CodeException("job type is not configured properly", ErrorCode.COMMON);
         }
         job.setJobMappingTasks(jobMappingTask);
         try {

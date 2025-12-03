@@ -29,7 +29,10 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -289,8 +292,8 @@ public class JobServiceImpl implements JobService {
         if (!TextUtils.isEmpty(jobStatus)) {
             builder.with(jobSpecificationFactory.isEqual("jobStatus", jobStatus));
         }
-        if(!TextUtils.isEmpty(txt)){
-            builder.with(jobSpecificationFactory.like("jobId",txt));
+        if (!TextUtils.isEmpty(txt)) {
+            builder.with(jobSpecificationFactory.like("jobId", txt));
         }
         if (!TextUtils.isEmpty(jobTag)) {
             builder.with(jobSpecificationFactory.join("jobMappingTags", "tagId", jobTag));
@@ -503,7 +506,7 @@ public class JobServiceImpl implements JobService {
             Optional<JobTaskMappingTechnician> jobTaskMappingToTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(assignJobToTechnician.getJobTaskMappingId());
             if (jobTaskMappingToTechnician.isPresent()) {
                 boolean checkIfTaskAssignedToTechnician = checkIfTaskAssignedToTechnician(assignJobToTechnician);
-                if(!checkIfTaskAssignedToTechnician){
+                if (!checkIfTaskAssignedToTechnician) {
                     throw new CodeException("Technician is already assigned to another task during the selected time period.", ErrorCode.COMMON);
                 }
                 //Todo need to create log for all assignment and reassignment of technician
@@ -530,7 +533,6 @@ public class JobServiceImpl implements JobService {
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 }
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-                JobTaskMappingTechnician save = jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
 
                 if (assignJobToTechnician.getStartDateTime() != null) {
                     LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), formatter);
@@ -550,6 +552,7 @@ public class JobServiceImpl implements JobService {
                             .collect(Collectors.toList());
                     jobTaskMappingToTechnician.get().setDocuments(gson.toJson(documentsWithUrl));
                 }
+                JobTaskMappingTechnician save = jobTaskMappingTechnicianRepository.save(jobTaskMappingToTechnician.get());
                 try {
                     assignJobToTechnician.setTaskName(jobMappingTask.get().getTaskName());
                     assignJobToTechnician.setTaskShowId(jobMappingTask.get().getTaskShowId());
@@ -557,11 +560,10 @@ public class JobServiceImpl implements JobService {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-
             } else {
 
                 boolean checkIfTaskAssignedToTechnician = checkIfTaskAssignedToTechnician(assignJobToTechnician);
-                if(!checkIfTaskAssignedToTechnician){
+                if (!checkIfTaskAssignedToTechnician) {
                     throw new CodeException("Technician is already assigned to another task during the selected time period.", ErrorCode.COMMON);
                 }
 
@@ -595,9 +597,6 @@ public class JobServiceImpl implements JobService {
                 JobTaskMappingTechnician JobTaskMappingTechnician = jobTaskMappingTechnicianRepository.save(jobTaskMappingTechnician);
 
 
-
-
-
                 // Save attached documents in DB
                 JobTaskMappingTechnician.setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
                 try {
@@ -624,11 +623,10 @@ public class JobServiceImpl implements JobService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
         LocalDateTime startDateTime = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), formatter);
-        LocalDateTime endDateTime   = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), formatter);
+        LocalDateTime endDateTime = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), formatter);
 
         LocalTime newStartTime = startDateTime.toLocalTime();
-        LocalTime newEndTime   = endDateTime.toLocalTime();
-
+        LocalTime newEndTime = endDateTime.toLocalTime();
 
 
         if (byTechnicianId != null && !byTechnicianId.isEmpty()) {
@@ -636,9 +634,9 @@ public class JobServiceImpl implements JobService {
 
                 LocalDate exStartDate = existing.getStartDate();
                 LocalDate exEndDate = existing.getEndDate();
-               if(existing.getStartTime()==null||existing.getEndTime()==null){
-                   continue;
-               }
+                if (existing.getStartTime() == null || existing.getEndTime() == null) {
+                    continue;
+                }
                 LocalTime exStartTime = existing.getStartTime().toLocalTime();
                 LocalTime exEndTime = existing.getEndTime().toLocalTime();
 
@@ -818,6 +816,7 @@ public class JobServiceImpl implements JobService {
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, page,
                 size);
     }
+
     public void validatedJobDTO(JobDTO.Add addJobDTO) throws CodeException {
         if (addJobDTO.getCustomerDetails() == null)
             throw new CodeException("Customer Details are required", ErrorCode.COMMON);
@@ -1113,7 +1112,7 @@ public class JobServiceImpl implements JobService {
                             htmlFormDTO.setContent(htmlFormPage.getContent());
                             htmlFormDTO.setActive(htmlFormPage.getActive());
                             htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt().toString());
-                            htmlFormDTO.setFormId(htmlFormPage.getFormId()!=null?htmlFormPage.getFormId():"");
+                            htmlFormDTO.setFormId(htmlFormPage.getFormId() != null ? htmlFormPage.getFormId() : "");
                             list.add(htmlFormDTO);
                         }
                         details.setFormList(list);
@@ -1130,7 +1129,7 @@ public class JobServiceImpl implements JobService {
     public PageItem<JobDTO.DetailsForTechnician> getJobTasksForTechnician(
             JobDTO.JobFilterRequest filterRequest,
             String technicianId,
-            String loggedInUserEmail,Long tenantId) throws CodeException {
+            String loggedInUserEmail, Long tenantId) throws CodeException {
         try {
             GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
             builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("deleted", false));
@@ -1199,7 +1198,7 @@ public class JobServiceImpl implements JobService {
                     })
                     .collect(Collectors.toList());
 
-            List<JobDTO.DetailsForTechnician> responseList = buildTechnicianJobTaskDetails(filteredList, filterRequest.getTxt(), loggedInUserEmail,tenantId);
+            List<JobDTO.DetailsForTechnician> responseList = buildTechnicianJobTaskDetails(filteredList, filterRequest.getTxt(), loggedInUserEmail, tenantId);
 
             return new PageItem<>(pagedResult.getTotalPages(), responseList.size(), responseList, page, limit);
 
@@ -1261,7 +1260,7 @@ public class JobServiceImpl implements JobService {
                             formsDetails.forEach(detail -> {
                                 if (detail.getContent() != null) {
                                     detail.setContent(
-                                            detail.getContent().replace("{{API_URL}}", finalApiUrl+"?formId="+detail.getId())
+                                            detail.getContent().replace("{{API_URL}}", finalApiUrl + "?formId=" + detail.getId())
                                     );
                                 }
                             });
@@ -2121,7 +2120,7 @@ public class JobServiceImpl implements JobService {
                 formsDetails.forEach(detail -> {
                     if (detail.getContent() != null) {
                         detail.setContent(
-                                detail.getContent().replace("{{API_URL}}", finalApiUrl+"?formId="+detail.getId())
+                                detail.getContent().replace("{{API_URL}}", finalApiUrl + "?formId=" + detail.getId())
                         );
                     }
                 });
@@ -2188,8 +2187,8 @@ public class JobServiceImpl implements JobService {
                     details.setJobDescription(job.get().getJobDescription());
                     details.setStartDate(taskMapping.get().getStartDate() != null ? taskMapping.get().getStartDate().toString() : null);
                     details.setEndDate(taskMapping.get().getEndDate() != null ? taskMapping.get().getEndDate().toString() : null);
-                    details.setStartTime(taskMapping.get().getStartTime()!=null?taskMapping.get().getStartTime().toString():null);
-                    details.setEndTime(taskMapping.get().getEndTime()!=null?taskMapping.get().getEndTime().toString():null);
+                    details.setStartTime(taskMapping.get().getStartTime() != null ? taskMapping.get().getStartTime().toString() : null);
+                    details.setEndTime(taskMapping.get().getEndTime() != null ? taskMapping.get().getEndTime().toString() : null);
                     details.setServiceLocationLat(job.get().getServiceLocationLat());
                     details.setServiceLocationLng(job.get().getServiceLocationLng());
                     if (taskMapping.get().getTaskStatus().equalsIgnoreCase("ASSIGNED")) {
@@ -2267,7 +2266,7 @@ public class JobServiceImpl implements JobService {
                         details.setFormList(list);
                     }
                     return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Mapping Task fetched successfully", details, "200", HttpStatus.OK), HttpStatus.OK);
-                }else if(job.isPresent() && jobTask.isPresent()){
+                } else if (job.isPresent() && jobTask.isPresent()) {
                     details.setId(jobMappingTask.get().getUuid());
                     details.setTaskName(jobMappingTask.get().getTaskName());
                     details.setNote(jobMappingTask.get().getNote());
@@ -2276,8 +2275,7 @@ public class JobServiceImpl implements JobService {
                     details.setTaskDescription(jobTask.get().getDescription());
                     details.setAssignType(jobMappingTask.get().getAssignType().toString());
                     return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Mapping Task fetched successfully", details, "200", HttpStatus.OK), HttpStatus.OK);
-                }
-                else{
+                } else {
                     return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Mapping data Not Available", null, "200", HttpStatus.OK), HttpStatus.OK);
                 }
             }
@@ -2406,7 +2404,7 @@ public class JobServiceImpl implements JobService {
         }
     }
 
-//    public PageItem<TaskManagerDTO> generateDataUsingSpecification(String technicianId, com.octal.fsm.models.request.PageRequest.List listReq, Long tenantId) {
+    //    public PageItem<TaskManagerDTO> generateDataUsingSpecification(String technicianId, com.octal.fsm.models.request.PageRequest.List listReq, Long tenantId) {
 //        try {
 //            List<JobTaskMappingTechnician> jobTaskMappingTechnicians = jobTaskMappingTechnicianRepository.findByTechnicianId(technicianId);
 //
@@ -2495,8 +2493,8 @@ public class JobServiceImpl implements JobService {
                 prepareTechnicianTaskFilters(listReq, builder, null, tenantId, new ArrayList<>(mappingIds));
             }
             Page<JobMappingTask> pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
-            if(techMappings.isEmpty()){
-                techMappings=jobTaskMappingTechnicianRepository.findByJobTaskMappingIdIn(pageData.getContent().stream().map(AbstractPersistable::getUuid).collect(Collectors.toList()));
+            if (techMappings.isEmpty()) {
+                techMappings = jobTaskMappingTechnicianRepository.findByJobTaskMappingIdIn(pageData.getContent().stream().map(AbstractPersistable::getUuid).collect(Collectors.toList()));
             }
             // 4. Build technician details lookup map
             Map<String, TechnicianDTO.GetDetails> technicianMap;
@@ -2511,7 +2509,8 @@ public class JobServiceImpl implements JobService {
 
                 if (techResp != null && "200".equalsIgnoreCase(techResp.getStatus()) && techResp.getData() != null) {
                     List<TechnicianDTO.GetDetails> techDetails =
-                            objectMapper.convertValue(techResp.getData(), new TypeReference<List<TechnicianDTO.GetDetails>>() {});
+                            objectMapper.convertValue(techResp.getData(), new TypeReference<List<TechnicianDTO.GetDetails>>() {
+                            });
 
                     technicianMap = techDetails.stream()
                             .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
