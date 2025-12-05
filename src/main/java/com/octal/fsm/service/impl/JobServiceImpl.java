@@ -1851,7 +1851,7 @@ public class JobServiceImpl implements JobService {
 
         List<TechnicianDTO.GetDetails> techDetailsList = new ArrayList<>();
         PageItem<TechnicianDTO.GetDetails> technicanPageItem = new PageItem<>();
-        if (listRequest.getTechnicianId() == null) {
+        if (listRequest.getTechnicianId().isEmpty()) {
             ApiResponse technicianResponse = technicianClient.getAllTechnician(listRequest, tenantId, false).getBody();
             if (technicianResponse != null && "200".equalsIgnoreCase(technicianResponse.getStatus()) && technicianResponse.getData() != null) {
                 PageItem<TechnicianDTO.GetDetails> pageItem = objectMapper.convertValue(
