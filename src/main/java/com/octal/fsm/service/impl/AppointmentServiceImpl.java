@@ -1,6 +1,7 @@
 package com.octal.fsm.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -124,9 +125,11 @@ public class AppointmentServiceImpl implements AppointmentService {
         prepareJobTypeSearchFilter(listRequest, builder);
         Page<Appointment> pagedResult = appointmentRepository.findAll(builder.build(), pageable);
         Map<String, TechnicianDTO.GetDetails> techMap = null;
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         ApiResponse technicianResponse = technicianClient.getTechByIds(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).collect(Collectors.toList())), tenantId).getBody();
         if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
-            List<TechnicianDTO.GetDetails> techDetails = new ObjectMapper().convertValue(
+            List<TechnicianDTO.GetDetails> techDetails = objectMapper.convertValue(
                     technicianResponse.getData(),
                     new TypeReference<List<TechnicianDTO.GetDetails>>() {
                     }
