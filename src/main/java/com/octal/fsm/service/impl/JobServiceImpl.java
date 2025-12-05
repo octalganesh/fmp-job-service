@@ -1866,7 +1866,8 @@ public class JobServiceImpl implements JobService {
             ApiResponse technicianResponse = technicianClient.getTechByIds(listRequest.getTechnicianId(), tenantId).getBody();
             if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
                 Gson gson = new Gson();
-                List<TechnicianDTO.GetDetails> technicianDetails = gson.fromJson(gson.toJson(technicianResponse.getData()), new TypeToken<List<TechnicianDTO.GetDetails>>() {}.getType());
+                List<TechnicianDTO.GetDetails> technicianDetails = gson.fromJson(gson.toJson(technicianResponse.getData()), new TypeToken<List<TechnicianDTO.GetDetails>>() {
+                }.getType());
                 techDetailsList.addAll(technicianDetails);
             }
         }
@@ -2468,10 +2469,11 @@ public class JobServiceImpl implements JobService {
 
         try {
             listReq.setSearchText(listReq.getSearchText().trim());
-
+            List<JobTaskMappingTechnician> techMappings = null;
             // 1. Fetch technician mappings
-            List<JobTaskMappingTechnician> techMappings =
-                    jobTaskMappingTechnicianRepository.findByTechnicianIdIn(technicianIds);
+            if (technicianIds.isEmpty()) {
+                jobTaskMappingTechnicianRepository.findByTechnicianIdIn(technicianIds);
+            }
 
             Set<String> mappingIds = techMappings.stream()
                     .map(JobTaskMappingTechnician::getJobTaskMappingId)
