@@ -1,9 +1,14 @@
 package com.octal.fsm.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.octal.fsm.clients.TechnicianClient;
+import com.octal.fsm.dto.ApiResponse;
 import com.octal.fsm.dto.AppointmentDTO;
 import com.octal.fsm.dto.PageItem;
+import com.octal.fsm.dto.TechnicianDTO;
 import com.octal.fsm.entities.Appointment;
 import com.octal.fsm.entities.JobMappingTask;
 import com.octal.fsm.entities.JobTag;
@@ -27,9 +32,8 @@ import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Type;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class AppointmentServiceImpl implements AppointmentService {
@@ -48,6 +52,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Autowired
     private SpecificationFactory<Appointment> appointmentSpecificationFactory;
+
+    @Autowired
+    private TechnicianClient technicianClient;
 
     @Override
     public String addAppointment(AppointmentDTO.Add add, String userName) throws CodeException {
@@ -102,7 +109,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public PageItem<AppointmentDTO.ListResponse> listAllAppointments(PageRequest.List listRequest, String userName) throws CodeException {
+    public PageItem<AppointmentDTO.ListResponse> listAllAppointments(PageRequest.List listRequest, Long tenantId, Boolean isSuperAdmin, String userName) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<Appointment> builder = new GenericSpecificationsBuilder<>();
@@ -114,11 +123,26 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         prepareJobTypeSearchFilter(listRequest, builder);
         Page<Appointment> pagedResult = appointmentRepository.findAll(builder.build(), pageable);
+        Map<String, TechnicianDTO.GetDetails> techMap = null;
+        ApiResponse technicianResponse = technicianClient.getTechByIds(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).collect(Collectors.toList())), tenantId).getBody();
+        if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
+            List<TechnicianDTO.GetDetails> techDetails = new ObjectMapper().convertValue(
+                    technicianResponse.getData(),
+                    new TypeReference<List<TechnicianDTO.GetDetails>>() {
+                    }
+            );
+
+            techMap = techDetails.stream()
+                    .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
+        }
         List<AppointmentDTO.ListResponse> responseList = new ArrayList<>();
         Type listType = new TypeToken<List<String>>() {
         }.getType();
         for (Appointment appointment : pagedResult.getContent()) {
             AppointmentDTO.ListResponse dto = new AppointmentDTO.ListResponse();
+            TechnicianDTO.GetDetails tech = Objects.requireNonNull(techMap).get(appointment.getTechnicianId());
+            if (tech != null)
+                dto.setTechnicianName(tech.getName());
             dto.setAdditionalNotes(appointment.getAdditionalNotes());
             dto.setJobId(appointment.getJobId());
             dto.setJobTags(new Gson().fromJson(appointment.getJobTags(), listType));
