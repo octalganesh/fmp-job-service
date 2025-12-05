@@ -2470,14 +2470,15 @@ public class JobServiceImpl implements JobService {
         try {
             listReq.setSearchText(listReq.getSearchText().trim());
             List<JobTaskMappingTechnician> techMappings = null;
+            Set<String> mappingIds = null;
             // 1. Fetch technician mappings
-            if (technicianIds.isEmpty()) {
-                jobTaskMappingTechnicianRepository.findByTechnicianIdIn(technicianIds);
+            if (!technicianIds.isEmpty()) {
+                techMappings = jobTaskMappingTechnicianRepository.findByTechnicianIdIn(technicianIds);
+                mappingIds = techMappings.stream()
+                        .map(JobTaskMappingTechnician::getJobTaskMappingId)
+                        .collect(Collectors.toSet());
             }
 
-            Set<String> mappingIds = techMappings.stream()
-                    .map(JobTaskMappingTechnician::getJobTaskMappingId)
-                    .collect(Collectors.toSet());
 
             // 2. Prepare Pageable
             Sort sort = Boolean.TRUE.equals(listReq.getAsc())
@@ -2489,10 +2490,10 @@ public class JobServiceImpl implements JobService {
             // 3. Prepare spec builder
             GenericSpecificationsBuilder<JobMappingTask> builder = new GenericSpecificationsBuilder<>();
 
-            if (!technicianIds.isEmpty() && !techMappings.isEmpty()) {
+            if (!technicianIds.isEmpty() && !Objects.requireNonNull(techMappings).isEmpty()) {
                 prepareTechnicianTaskFilters(listReq, builder, technicianIds, tenantId, new ArrayList<>(mappingIds));
             } else if (technicianIds.isEmpty()) {
-                prepareTechnicianTaskFilters(listReq, builder, null, tenantId, new ArrayList<>(mappingIds));
+                prepareTechnicianTaskFilters(listReq, builder, null, tenantId, new ArrayList<>(Objects.requireNonNull(mappingIds)));
             }
             Page<JobMappingTask> pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
             if (techMappings.isEmpty()) {
