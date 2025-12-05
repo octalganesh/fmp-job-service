@@ -146,6 +146,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             TechnicianDTO.GetDetails tech = Objects.requireNonNull(techMap).get(appointment.getTechnicianId());
             if (tech != null)
                 dto.setTechnicianName(tech.getName());
+            dto.setId(appointment.getUuid());
             dto.setAdditionalNotes(appointment.getAdditionalNotes());
             dto.setJobId(appointment.getJobId());
             dto.setJobTags(new Gson().fromJson(appointment.getJobTags(), listType));
@@ -167,7 +168,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             builder.with(appointmentSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
         }
         if (!TextUtils.isEmpty(listRequest.getJobId())) {
-            builder.with(appointmentSpecificationFactory.isEqual("jobId", listRequest.getJobId()));
+            builder.with(appointmentSpecificationFactory.like("jobId", listRequest.getJobId()).or(appointmentSpecificationFactory.isEqual("jobId", listRequest.getJobId())));
         }
         if (listRequest.getStartDate() != null) {
             builder.with(appointmentSpecificationFactory.isGreaterThanOrEquals("createdAt", listRequest.getStartDate().atStartOfDay()));
