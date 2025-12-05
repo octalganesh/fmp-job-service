@@ -1863,11 +1863,11 @@ public class JobServiceImpl implements JobService {
                 technicanPageItem = pageItem;
             }
         } else {
-            ApiResponse technicianResponse = technicianClient.getTechnicianByUuid(listRequest.getTechnicianId(), tenantId, isSuperAdmin).getBody();
+            ApiResponse technicianResponse = technicianClient.getTechByIds(listRequest.getTechnicianId(), tenantId).getBody();
             if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
                 Gson gson = new Gson();
-                TechnicianDTO.GetDetails technicianDetails = gson.fromJson(gson.toJson(technicianResponse.getData()), TechnicianDTO.GetDetails.class);
-                techDetailsList.add(technicianDetails);
+                List<TechnicianDTO.GetDetails> technicianDetails = gson.fromJson(gson.toJson(technicianResponse.getData()), new TypeToken<List<TechnicianDTO.GetDetails>>() {}.getType());
+                techDetailsList.addAll(technicianDetails);
             }
         }
         List<DispatchBoardTechnicianWrapper> dispatchBoardTechnicianWrappers = buildDispatchBoardData(all, techMappings, techDetailsList, tenantId);
@@ -2462,7 +2462,7 @@ public class JobServiceImpl implements JobService {
 //
 //    }
     public PageItem<TaskManagerDTO> generateDataUsingSpecification(
-            String technicianId,
+            List<String> technicianIds,
             com.octal.fsm.models.request.PageRequest.List listReq,
             Long tenantId) {
 
@@ -2471,7 +2471,7 @@ public class JobServiceImpl implements JobService {
 
             // 1. Fetch technician mappings
             List<JobTaskMappingTechnician> techMappings =
-                    jobTaskMappingTechnicianRepository.findByTechnicianId(technicianId);
+                    jobTaskMappingTechnicianRepository.findByTechnicianIdIn(technicianIds);
 
             Set<String> mappingIds = techMappings.stream()
                     .map(JobTaskMappingTechnician::getJobTaskMappingId)
@@ -2487,9 +2487,9 @@ public class JobServiceImpl implements JobService {
             // 3. Prepare spec builder
             GenericSpecificationsBuilder<JobMappingTask> builder = new GenericSpecificationsBuilder<>();
 
-            if (!TextUtils.isEmpty(technicianId) && !techMappings.isEmpty()) {
-                prepareTechnicianTaskFilters(listReq, builder, technicianId, tenantId, new ArrayList<>(mappingIds));
-            } else if (TextUtils.isEmpty(technicianId)) {
+            if (!technicianIds.isEmpty() && !techMappings.isEmpty()) {
+                prepareTechnicianTaskFilters(listReq, builder, technicianIds, tenantId, new ArrayList<>(mappingIds));
+            } else if (technicianIds.isEmpty()) {
                 prepareTechnicianTaskFilters(listReq, builder, null, tenantId, new ArrayList<>(mappingIds));
             }
             Page<JobMappingTask> pageData = jobMappingTaskRepository.findAll(builder.build(), pageable);
@@ -2567,7 +2567,7 @@ public class JobServiceImpl implements JobService {
 
 
     private void prepareTechnicianTaskFilters(com.octal.fsm.models.request.PageRequest.List listReq, GenericSpecificationsBuilder<JobMappingTask> builder,
-                                              String frontOfficeId, Long tenantId, List<String> jobTaskMappingIds) {
+                                              List<String> frontOfficeId, Long tenantId, List<String> jobTaskMappingIds) {
 
         builder.with(jobMappingTaskSpecificationFactory.joinEqualsLong("job", "tenantId", tenantId));
 

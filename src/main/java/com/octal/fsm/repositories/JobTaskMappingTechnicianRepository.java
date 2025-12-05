@@ -41,6 +41,9 @@ public interface JobTaskMappingTechnicianRepository extends JpaRepository<JobTas
     List<JobTaskMappingTechnician> findByTechnicianId(@Param("technicianId") String technicianId);
 
 
+    List<JobTaskMappingTechnician> findByTechnicianIdIn(List<String> technicianId);
+
+
 
 
 }
