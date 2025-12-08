@@ -139,4 +139,66 @@ public class JobTransformer {
         jobRepository.save(job);
         return job.getUuid();
     }
+
+    public String updateJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
+        try {
+            Optional<Job> byUuidAndDeletedFalse = jobRepository.findByUuidAndTenantIdAndDeletedFalse(addJobDTO.getJobUuiId(),tenantId);
+            if (byUuidAndDeletedFalse.isEmpty()) {
+                throw new CodeException("Job not found", ErrorCode.COMMON);
+            }
+            Job job = byUuidAndDeletedFalse.get();
+
+            // Update Job Tags
+            if (addJobDTO.getJobTags() != null) {
+                // use the existing persistent collection
+                List<JobMappingTags> existingTags = job.getJobMappingTags();
+                existingTags.clear();
+                for (String jobTagId : addJobDTO.getJobTags()) {
+                    Boolean jobTagExist = jobTagRepository.existsByUuid(jobTagId);
+                    if (jobTagExist) {
+                        JobMappingTags tag = new JobMappingTags();
+                        tag.setTagId(jobTagId);
+                        tag.setJob(job);      // set back-reference
+                        existingTags.add(tag); // add to existing collection
+                    }
+                }
+            }
+
+            if (addJobDTO.getAdditionalNotes() != null)
+                job.setAdditionalNotes(addJobDTO.getAdditionalNotes());
+
+            if (addJobDTO.getJobDescription() != null)
+                job.setJobDescription(addJobDTO.getJobDescription());
+
+            if (addJobDTO.getServiceLocation() != null)
+                job.setServiceLocation(addJobDTO.getServiceLocation());
+
+            if (addJobDTO.getServiceLocationLat() != null)
+                job.setServiceLocationLat(addJobDTO.getServiceLocationLat());
+
+            if (addJobDTO.getServiceLocationLng() != null)
+                job.setServiceLocationLng(addJobDTO.getServiceLocationLng());
+
+            if (addJobDTO.getBudget() != null)
+                job.setBudget(addJobDTO.getBudget());
+            try {
+                if (!TextUtils.isEmpty(addJobDTO.getJobStartDate())) {
+                    LocalDate jobStartDate = LocalDate.parse(addJobDTO.getJobStartDate());
+                    job.setJobStartDate(jobStartDate);
+                }
+                if (!TextUtils.isEmpty(addJobDTO.getJobEndDate())) {
+                    LocalDate jobEndDate = LocalDate.parse(addJobDTO.getJobEndDate());
+                    job.setJobEndDate(jobEndDate);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            jobRepository.save(job);
+            return job.getUuid();
+        } catch (Exception e) {
+            throw new CodeException("Failed to update job", ErrorCode.COMMON);
+        }
+    }
+
+
 }
