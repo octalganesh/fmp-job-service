@@ -2,6 +2,7 @@ package com.octal.fsm.transformer;
 
 
 import com.octal.fsm.clients.AdminClient;
+import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.dto.JobDTO;
 import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
@@ -11,6 +12,8 @@ import com.octal.fsm.repositories.*;
 import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -140,7 +143,7 @@ public class JobTransformer {
         return job.getUuid();
     }
 
-    public String updateJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> updateJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
             Optional<Job> byUuidAndDeletedFalse = jobRepository.findByUuidAndTenantIdAndDeletedFalse(addJobDTO.getJobUuiId(),tenantId);
             if (byUuidAndDeletedFalse.isEmpty()) {
@@ -194,7 +197,7 @@ public class JobTransformer {
                 e.printStackTrace();
             }
             jobRepository.save(job);
-            return job.getUuid();
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job updated successfully",job.getUuid() , "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             throw new CodeException("Failed to update job", ErrorCode.COMMON);
         }

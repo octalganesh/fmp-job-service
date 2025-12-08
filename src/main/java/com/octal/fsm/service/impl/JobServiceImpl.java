@@ -146,7 +146,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public String updateJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> updateJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
             addJobDTO.setTenantId(!isSuperAdmin ? tenantId : 1L);
             if(addJobDTO.getJobUuiId() == null)
@@ -167,7 +167,7 @@ public class JobServiceImpl implements JobService {
                 throw new CodeException("At least one Job Tag is required", ErrorCode.COMMON);
             return jobTransformer.updateJob(addJobDTO, tenantId, isSuperAdmin);
         } catch (Exception e) {
-            throw new CodeException(ErrorCode.EXCEPTION_OCCUR);
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, e.getMessage(), null, "101", HttpStatus.OK), HttpStatus.OK);
         }
     }
 

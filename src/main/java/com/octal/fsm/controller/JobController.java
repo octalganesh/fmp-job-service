@@ -51,7 +51,7 @@ public class JobController extends BaseController {
             String userName = request.getHeader(CommonConstants.USER_NAME);
             Long tenantId = getTenantId(request);
             boolean isSuperAdmin = isSuperAdmin(request);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job updated successfully", jobService.updateJob(addJobDTO, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+            return jobService.updateJob(addJobDTO, tenantId, isSuperAdmin);
         } catch (Exception e) {
             logger.error("Error Update job: {}", e.getMessage(), e);
             return handleException(e);
@@ -94,7 +94,7 @@ public class JobController extends BaseController {
     public ResponseEntity<ApiResponse> getJobById(@PathVariable String id, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            Long tenantId = getTenantId(request);
+            Long tenantId = 1L;
             boolean isSuperAdmin = isSuperAdmin(request);
             //Todo List Method to get all Job List.
             JobDTO.Detail job = jobService.getJobById(id, userName, tenantId, isSuperAdmin);

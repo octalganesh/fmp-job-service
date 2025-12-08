@@ -14,7 +14,7 @@ public interface JobService {
 
     String addJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException;
 
-    String updateJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException;
+    ResponseEntity<com.octal.fsm.common.ApiResponse> updateJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException;
 
     void createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
