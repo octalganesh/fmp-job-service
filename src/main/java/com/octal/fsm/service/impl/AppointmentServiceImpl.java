@@ -141,6 +141,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<AppointmentDTO.ListResponse> responseList = new ArrayList<>();
         Type listType = new TypeToken<List<String>>() {
         }.getType();
+        List<JobType>jobTypeList=jobTypeRepository.findByUuidAndDeletedFalse(pagedResult.getContent().stream().map(Appointment::getJobTypeId).collect(Collectors.toList()));
+        Map<String, String> jobTypeMap = jobTypeList.stream()
+                .collect(Collectors.toMap(JobType::getUuid, JobType::getName));
         for (Appointment appointment : pagedResult.getContent()) {
             AppointmentDTO.ListResponse dto = new AppointmentDTO.ListResponse();
             TechnicianDTO.GetDetails tech = Objects.requireNonNull(techMap).get(appointment.getTechnicianId());
@@ -151,6 +154,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             dto.setJobId(appointment.getJobId());
             dto.setJobTags(new Gson().fromJson(appointment.getJobTags(), listType));
             dto.setJobTypeId(appointment.getJobTypeId());
+            dto.setJobTypeName(jobTypeMap.get(appointment.getJobTypeId()));
             dto.setJobTaskId(appointment.getJobTaskId());
             dto.setStartDateTime(appointment.getStartDateTime());
             dto.setEndDateTime(appointment.getEndDateTime());

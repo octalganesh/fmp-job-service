@@ -1861,6 +1861,8 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public PageItem<DispatchBoardTechnicianWrapper> getDataForDispatchBoard(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) {
+        if(listRequest.getTechnicianId()==null)
+            listRequest.setTechnicianId(new ArrayList<>());
         GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
         prepareDispatchSearchFilter(listRequest, builder);
 
@@ -2494,9 +2496,12 @@ public class JobServiceImpl implements JobService {
             Long tenantId) {
 
         try {
+            if(technicianIds==null){
+                technicianIds = new ArrayList<>();
+            }
             listReq.setSearchText(listReq.getSearchText().trim());
-            List<JobTaskMappingTechnician> techMappings = null;
-            Set<String> mappingIds = null;
+            List<JobTaskMappingTechnician> techMappings = new ArrayList<>();
+            Set<String> mappingIds = new HashSet<>();
             // 1. Fetch technician mappings
             if (!technicianIds.isEmpty()) {
                 techMappings = jobTaskMappingTechnicianRepository.findByTechnicianIdIn(technicianIds);
@@ -2516,7 +2521,7 @@ public class JobServiceImpl implements JobService {
             // 3. Prepare spec builder
             GenericSpecificationsBuilder<JobMappingTask> builder = new GenericSpecificationsBuilder<>();
 
-            if (!technicianIds.isEmpty() && !Objects.requireNonNull(techMappings).isEmpty()) {
+            if (!technicianIds.isEmpty() ) {
                 prepareTechnicianTaskFilters(listReq, builder, technicianIds, tenantId, new ArrayList<>(mappingIds));
             } else if (technicianIds.isEmpty()) {
                 prepareTechnicianTaskFilters(listReq, builder, null, tenantId, new ArrayList<>(Objects.requireNonNull(mappingIds)));
