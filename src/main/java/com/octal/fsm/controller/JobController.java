@@ -94,7 +94,7 @@ public class JobController extends BaseController {
     public ResponseEntity<ApiResponse> getJobById(@PathVariable String id, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            Long tenantId = 1L;
+            Long tenantId = getTenantId(request);
             boolean isSuperAdmin = isSuperAdmin(request);
             //Todo List Method to get all Job List.
             JobDTO.Detail job = jobService.getJobById(id, userName, tenantId, isSuperAdmin);
