@@ -2,10 +2,7 @@ package com.octal.fsm.entities;
 
 import lombok.*;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Lob;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @AllArgsConstructor
@@ -41,5 +38,9 @@ public class Appointment extends AbstractPersistable {
 
     @Column(name = "additional_notes", length = 2000)
     private String additionalNotes;
+
+    @JoinColumn(name = "appointment_type_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private AppointmentType appointmentType;
 
 }
