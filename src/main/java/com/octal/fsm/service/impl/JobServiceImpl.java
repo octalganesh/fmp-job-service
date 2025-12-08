@@ -1835,6 +1835,8 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public PageItem<DispatchBoardTechnicianWrapper> getDataForDispatchBoard(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) {
+        if(listRequest.getTechnicianId()==null)
+            listRequest.setTechnicianId(new ArrayList<>());
         GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
         prepareDispatchSearchFilter(listRequest, builder);
 
