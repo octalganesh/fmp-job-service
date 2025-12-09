@@ -1822,7 +1822,7 @@ public class JobServiceImpl implements JobService {
                 dto.setDate(entity.getCreatedAt().toLocalDate().toString());
                 //dto.setTime(null);
                 dto.setDescription("Description");
-                dto.setJobId(entity.getJob().getUuid());
+                dto.setJobId(entity.getJob().getJobId());
                 return dto;
             }
             return null;
