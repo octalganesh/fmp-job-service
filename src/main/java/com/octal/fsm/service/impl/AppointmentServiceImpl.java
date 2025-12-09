@@ -180,14 +180,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         Map<String, TechnicianDTO.GetDetails> techMap = null;
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        ApiResponse technicianResponse = technicianClient.getTechByIds(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).collect(Collectors.toList())), tenantId).getBody();
-        if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
-            List<TechnicianDTO.GetDetails> techDetails = objectMapper.convertValue(
-                    technicianResponse.getData(),
-                    new TypeReference<List<TechnicianDTO.GetDetails>>() {
-                    }
-            );
 
+        List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).collect(Collectors.toList())), tenantId);
+        if(techDetails != null){
             techMap = techDetails.stream()
                     .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
         }
