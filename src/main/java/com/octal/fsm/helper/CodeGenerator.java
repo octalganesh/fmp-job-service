@@ -5,6 +5,7 @@ import com.octal.fsm.repositories.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.security.SecureRandom;
 import java.util.Random;
 
 @Component
@@ -50,6 +51,14 @@ public class CodeGenerator {
         String codePrefix = prefix;
         return codePrefix + id;
     }
+
+    private static final SecureRandom secureRandom = new SecureRandom();
+
+    public String generateCustomerCode() {
+        int number = secureRandom.nextInt(100_000_000); // 0 to 99,999,999
+        return "CUST_" + String.format("%08d", number);
+    }
+
 
 
 }
