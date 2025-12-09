@@ -2559,6 +2559,12 @@ public class JobServiceImpl implements JobService {
                                               List<String> frontOfficeId, Long tenantId, List<String> jobTaskMappingIds) {
 
         builder.with(jobMappingTaskSpecificationFactory.joinEqualsLong("job", "tenantId", tenantId));
+        if(!TextUtils.isEmpty(listReq.getJobTypeId())){
+            builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "jobTypeId", listReq.getJobTypeId()));
+        }
+        if(!TextUtils.isEmpty(listReq.getCustomerId())){
+            builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "customerId", listReq.getCustomerId()));
+        }
 
         builder.with(
                 jobMappingTaskSpecificationFactory.isEqual("assignType", TaskAssignedType.TECHNICIAN)
@@ -2660,6 +2666,13 @@ public class JobServiceImpl implements JobService {
                                    Long tenantId) {
         builder.with(jobMappingTaskSpecificationFactory.joinEqualsLong("job", "tenantId", tenantId));
         builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "frontOfficeId", frontOfficeId));
+
+        if(!TextUtils.isEmpty(listReq.getJobTypeId())){
+            builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "jobTypeId", listReq.getJobTypeId()));
+        }
+        if(!TextUtils.isEmpty(listReq.getCustomerId())){
+            builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "customerId", listReq.getCustomerId()));
+        }
 
         builder.with(jobMappingTaskSpecificationFactory.isEqual("assignType", TaskAssignedType.CSR));//for CSR
 

@@ -7,6 +7,7 @@ import com.octal.fsm.client.QuickBooksClient;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.entities.QuickBooksToken;
 import com.octal.fsm.exceptions.*;
+import com.octal.fsm.helper.CodeGenerator;
 import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +24,8 @@ public class QuickBooksCustomerService {
 
     @Autowired
     private QuickBooksTokenStore tokenStore;
+    @Autowired
+    private CodeGenerator codeGenerator;
 
     @Value("${quickbooks.api.minorversion}")
     private String minorVersion;
@@ -275,10 +278,22 @@ public class QuickBooksCustomerService {
 
     public String addNewCustomer(@Valid QuickBookDTO.CreateCustomer quickBookDTO) throws Exception {
         CustomerRequest customerRequest = new CustomerRequest();
-        customerRequest.setDisplayName(quickBookDTO.getName() + "-" + quickBookDTO.getEmail());
-        CustomerRequest.PrimaryEmailAddr primaryEmailAddr = new CustomerRequest.PrimaryEmailAddr();
-        primaryEmailAddr.setAddress(quickBookDTO.getEmail());
-        customerRequest.setPrimaryEmailAddr(primaryEmailAddr);
+        String displayName;
+        if (quickBookDTO.getEmail() != null && !quickBookDTO.getEmail().isEmpty()) {
+            displayName = quickBookDTO.getName() + "-" + quickBookDTO.getEmail();
+        } else {
+            displayName = quickBookDTO.getName() + "-" + codeGenerator.generateCustomerCode();
+        }
+        customerRequest.setDisplayName(displayName);
+//      customerRequest.setDisplayName(quickBookDTO.getName() + "-" + quickBookDTO.getEmail());
+        if (quickBookDTO.getEmail() != null && !quickBookDTO.getEmail().isEmpty()) {
+            CustomerRequest.PrimaryEmailAddr primaryEmailAddr = new CustomerRequest.PrimaryEmailAddr();
+            primaryEmailAddr.setAddress(quickBookDTO.getEmail());
+            customerRequest.setPrimaryEmailAddr(primaryEmailAddr);
+        }
+//      CustomerRequest.PrimaryEmailAddr primaryEmailAddr = new CustomerRequest.PrimaryEmailAddr();
+//      primaryEmailAddr.setAddress(quickBookDTO.getEmail());
+//      customerRequest.setPrimaryEmailAddr(primaryEmailAddr);
         CustomerRequest.PrimaryPhone primaryPhone = new CustomerRequest.PrimaryPhone();
         primaryPhone.setFreeFormNumber(quickBookDTO.getMobileNumber());
         customerRequest.setPrimaryPhone(primaryPhone);
