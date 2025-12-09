@@ -51,5 +51,18 @@ public class AppointmentController extends BaseController {
         }
     }
 
+    @PostMapping("/list/by-technician-id")
+    public ResponseEntity<ApiResponse> listAllAppointmentsByTechnicianId(@RequestBody PageRequest.List list, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            Boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Appointment added successfully", appointmentService.listAllAppointmentsWithTechnicianId(list,tenantId,isSuperAdmin, userName), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error updating job task status: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 
 }

@@ -151,6 +151,32 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> updateJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
+        try {
+            addJobDTO.setTenantId(!isSuperAdmin ? tenantId : 1L);
+            if(addJobDTO.getJobUuiId() == null)
+                throw new CodeException("Job Uuid required", ErrorCode.COMMON);
+            if (TextUtils.isEmpty(addJobDTO.getServiceLocation()))
+                throw new CodeException("Service Location is required", ErrorCode.COMMON);
+            if (addJobDTO.getServiceLocationLat() == null)
+                throw new CodeException("Service Location Latitude is required", ErrorCode.COMMON);
+            if (addJobDTO.getServiceLocationLng() == null)
+                throw new CodeException("Service Location Longitude is required", ErrorCode.COMMON);
+            if (TextUtils.isEmpty(addJobDTO.getJobDescription()))
+                throw new CodeException("Job Description is required", ErrorCode.COMMON);
+            if (TextUtils.isEmpty(addJobDTO.getJobStartDate()))
+                throw new CodeException("Job Start Date is required", ErrorCode.COMMON);
+            if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
+                throw new CodeException("Job End Date is required", ErrorCode.COMMON);
+            if (addJobDTO.getJobTags() == null || addJobDTO.getJobTags().isEmpty())
+                throw new CodeException("At least one Job Tag is required", ErrorCode.COMMON);
+            return jobTransformer.updateJob(addJobDTO, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, e.getMessage(), null, "101", HttpStatus.OK), HttpStatus.OK);
+        }
+    }
+
+    @Override
     public void createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice, Long tenantId, Boolean isSuperAdmin) throws CodeException {
         if (isSuperAdmin)
             tenantId = 1L;

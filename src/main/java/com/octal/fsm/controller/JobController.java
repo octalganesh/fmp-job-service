@@ -45,6 +45,19 @@ public class JobController extends BaseController {
         }
     }
 
+    @PostMapping("/update-job")
+    public ResponseEntity<ApiResponse> updateJob(@Valid @RequestBody JobDTO.Add addJobDTO, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.updateJob(addJobDTO, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error Update job: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
     @GetMapping("/list")
     public ResponseEntity<ApiResponse> jobList(@RequestParam(value = "searchText", defaultValue = "") String searchText,
                                                @RequestParam(defaultValue = "0") int page,

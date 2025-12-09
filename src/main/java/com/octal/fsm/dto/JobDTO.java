@@ -23,6 +23,7 @@ public class JobDTO {
     @NoArgsConstructor
     public static class Add {
 
+        private String jobUuiId;
         private CustomerDetails customerDetails;
         private String frontOfficeId;
 
