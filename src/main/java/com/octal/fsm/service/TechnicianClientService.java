@@ -22,30 +22,28 @@ public class TechnicianClientService {
     private TechnicianClient technicianClient;
     @Autowired
     private ObjectMapper objectMapper;
+    private static final Gson GSON = new Gson();
 
     public List<TechnicianDTO.GetDetails> getTechniciansList(List<String> ids, Long tenantId) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyList();
         }
         List<String> uniqueIds = ids.stream().distinct().collect(Collectors.toList());
+        if (uniqueIds.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         ResponseEntity<ApiResponse> responseEntity = technicianClient.getTechByIds(uniqueIds, tenantId);
 
         ApiResponse technicianResponse = responseEntity.getBody();
 
-        if (technicianResponse == null
-                || technicianResponse.getStatus() == null
-                || !technicianResponse.getStatus().equalsIgnoreCase("200")
+        if (technicianResponse == null || technicianResponse.getStatus() == null || !technicianResponse.getStatus().equalsIgnoreCase("200")
                 || technicianResponse.getData() == null) {
             return Collections.emptyList();
         }
-
-        List<TechnicianDTO.GetDetails> techDetails = objectMapper.convertValue(
-                technicianResponse.getData(),
-                new TypeReference<List<TechnicianDTO.GetDetails>>() {
+        return objectMapper.convertValue(technicianResponse.getData(), new TypeReference<List<TechnicianDTO.GetDetails>>() {
                 }
         );
-        return techDetails;
     }
 
     public TechnicianDTO.GetDetails getTechnicianById(String id, String userName) {
@@ -59,8 +57,8 @@ public class TechnicianClientService {
                     || !technicianResponse.getStatus().equalsIgnoreCase("200") || technicianResponse.getData() == null) {
                 return null;
             }
-            Gson gson = new Gson();
-            return gson.fromJson(gson.toJson(technicianResponse.getData()), TechnicianDTO.GetDetails.class);
+            Object data = technicianResponse.getData();
+            return GSON.fromJson(GSON.toJson(data), TechnicianDTO.GetDetails.class);
         } catch (Exception ex) {
             ex.printStackTrace();
             return null;

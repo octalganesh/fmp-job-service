@@ -24,6 +24,9 @@ public class AdminClientService {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private static final Gson GSON = new Gson();
+
+
     public CustomerDTO.GetDetails getCustomerById(String id) {
         try {
             if (TextUtils.isEmpty(id)) {
@@ -31,12 +34,11 @@ public class AdminClientService {
             }
             ResponseEntity<ApiResponse> responseEntity = adminClient.getCustomerById(id);
             ApiResponse customerResponse = responseEntity.getBody();
-            if (customerResponse == null || customerResponse.getStatus() == null
-                    || !customerResponse.getStatus().equalsIgnoreCase("200") || customerResponse.getData() == null) {
+            if (customerResponse == null || customerResponse.getStatus() == null || !customerResponse.getStatus().equalsIgnoreCase("200") || customerResponse.getData() == null) {
                 return null;
             }
-            Gson gson = new Gson();
-            return gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
+            Object data = customerResponse.getData();
+            return GSON.fromJson(GSON.toJson(data), CustomerDTO.GetDetails.class);
         } catch (Exception ex) {
             ex.printStackTrace();
             return null;
@@ -50,12 +52,11 @@ public class AdminClientService {
             }
             ResponseEntity<ApiResponse> responseEntity = adminClient.getFrontOfficeById(id, tenantId);
             ApiResponse frontOfficeResponse = responseEntity.getBody();
-            if (frontOfficeResponse == null || frontOfficeResponse.getStatus() == null
-                    || !frontOfficeResponse.getStatus().equalsIgnoreCase("200") || frontOfficeResponse.getData() == null) {
+            if (frontOfficeResponse == null || frontOfficeResponse.getStatus() == null || !frontOfficeResponse.getStatus().equalsIgnoreCase("200") || frontOfficeResponse.getData() == null) {
                 return null;
             }
-            Gson gson = new Gson();
-            return gson.fromJson(gson.toJson(frontOfficeResponse.getData()), FrontOfficeStaffDTO.list.class);
+            Object data = frontOfficeResponse.getData();
+            return GSON.fromJson(GSON.toJson(data), FrontOfficeStaffDTO.list.class);
         } catch (Exception ex) {
             ex.printStackTrace();
             return null;
@@ -67,23 +68,23 @@ public class AdminClientService {
             return Collections.emptyList();
         }
         List<String> uniqueIds = ids.stream().distinct().collect(Collectors.toList());
+        if (uniqueIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            ResponseEntity<ApiResponse> responseEntity = adminClient.getCustomerByIds(uniqueIds, tenantId, isSuperAdmin);
 
-        ResponseEntity<ApiResponse> responseEntity = adminClient.getCustomerByIds(uniqueIds, tenantId, isSuperAdmin);
+            ApiResponse customerResponse = responseEntity.getBody();
 
-        ApiResponse customerResponse = responseEntity.getBody();
-
-        if (customerResponse == null
-                || customerResponse.getStatus() == null
-                || !customerResponse.getStatus().equalsIgnoreCase("200")
-                || customerResponse.getData() == null) {
+            if (customerResponse == null || customerResponse.getStatus() == null || !customerResponse.getStatus().equalsIgnoreCase("200") || customerResponse.getData() == null) {
+                return Collections.emptyList();
+            }
+            return objectMapper.convertValue(customerResponse.getData(), new TypeReference<List<CustomerDTO.GetDetails>>() {
+            });
+        } catch (Exception ex) {
+            ex.printStackTrace();
             return Collections.emptyList();
         }
 
-        List<CustomerDTO.GetDetails> techDetails = objectMapper.convertValue(
-                customerResponse.getData(),
-                new TypeReference<List<CustomerDTO.GetDetails>>() {
-                }
-        );
-        return techDetails;
     }
 }

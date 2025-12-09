@@ -18,6 +18,8 @@ public class NotificationClientService {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private static final Gson GSON = new Gson();
+
     public NotificationContentDTO.Request getNotificationContent(String slug) {
         try {
             if (TextUtils.isEmpty(slug)) {
@@ -29,8 +31,8 @@ public class NotificationClientService {
                     || !contentResponse.getStatus().equalsIgnoreCase("200") || contentResponse.getData() == null) {
                 return null;
             }
-            Gson gson = new Gson();
-            return gson.fromJson(gson.toJson(contentResponse.getData()), NotificationContentDTO.Request.class);
+            Object data = contentResponse.getData();
+            return GSON.fromJson(GSON.toJson(data), NotificationContentDTO.Request.class);
         } catch (Exception ex) {
             ex.printStackTrace();
             return null;
