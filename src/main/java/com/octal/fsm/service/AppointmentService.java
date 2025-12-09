@@ -11,5 +11,7 @@ public interface AppointmentService {
 
     String addAppointment(AppointmentDTO.Add add, String userName) throws CodeException;
 
-    PageItem<AppointmentDTO.ListResponse> listAllAppointments(PageRequest.List list, String userName) throws CodeException;
+    PageItem<AppointmentDTO.ListResponse> listAllAppointments(PageRequest.List list, Long tenantId, Boolean isSuperAdmin, String userName) throws CodeException;
+
+    PageItem<AppointmentDTO.ListResponse> listAllAppointmentsWithTechnicianId(PageRequest.List list, Long tenantId, Boolean isSuperAdmin, String userName) throws CodeException;
 }

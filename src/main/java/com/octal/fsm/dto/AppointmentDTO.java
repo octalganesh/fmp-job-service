@@ -36,9 +36,11 @@ public class AppointmentDTO {
         private String id;
         private String jobId;
         private String jobTypeId;
+        private String jobTypeName;
         private List<String> jobTags;
         private String jobTaskId;
         private String technicianId;
+        private String technicianName;
         private LocalDateTime startDateTime;
         private LocalDateTime endDateTime;
         private LocalTime startTime;

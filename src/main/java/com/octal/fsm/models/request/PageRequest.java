@@ -39,7 +39,7 @@ public class PageRequest {
         private String jobId;
         private String jobStatus;
         private String userType;//FRONTOFFICE,TECHNICIAN
-        private String technicianId;
+        private java.util.List<String> technicianId;
         private String frontOfficeId;
         private String taskStatus;
         private String locationName;

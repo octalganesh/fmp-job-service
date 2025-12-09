@@ -40,6 +40,9 @@ public interface JobTaskMappingTechnicianRepository extends JpaRepository<JobTas
     @Query("SELECT i FROM JobTaskMappingTechnician i WHERE i.deleted = false AND i.technicianId = :technicianId")
     List<JobTaskMappingTechnician> findByTechnicianId(@Param("technicianId") String technicianId);
 
+    @Query("SELECT i FROM JobTaskMappingTechnician i WHERE i.deleted = false AND i.technicianId in :technicianId")
+    List<JobTaskMappingTechnician> findByTechnicianIdIn(List<String> technicianId);
+
 
 
 
