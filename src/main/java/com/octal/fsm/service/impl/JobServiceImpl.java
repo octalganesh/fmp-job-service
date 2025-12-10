@@ -2653,7 +2653,7 @@ public class JobServiceImpl implements JobService {
         if (!TextUtils.isEmpty(listReq.getSearchText())) {
             Specification<JobMappingTask> orCondition =
                     jobMappingTaskSpecificationFactory.like("taskName", listReq.getSearchText())
-                            .or(jobMappingTaskSpecificationFactory.like("taskId", listReq.getSearchText()));
+                            .or(jobMappingTaskSpecificationFactory.like("taskShowId", listReq.getSearchText()));
             builder.with(orCondition);
         }
 
@@ -2752,7 +2752,7 @@ public class JobServiceImpl implements JobService {
 
         if (org.apache.commons.lang.StringUtils.isNotBlank(listReq.getSearchText())) {
             builder.with(jobMappingTaskSpecificationFactory.like("taskName", listReq.getSearchText()).
-                    or(jobMappingTaskSpecificationFactory.like("taskId", listReq.getSearchText())));
+                    or(jobMappingTaskSpecificationFactory.like("taskShowId", listReq.getSearchText())));
         }
 
         if (listReq.getStartDate() != null) {
