@@ -293,7 +293,7 @@ public class JobServiceImpl implements JobService {
 
 
     @Override
-    public PageItem<JobDTO.JobListResponse> getAllJobs(String txt, int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String location, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin, String frontOfficeId) throws CodeException {
+    public PageItem<JobDTO.JobListResponse> getAllJobs(String txt, int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String location, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin, String frontOfficeId, List<String> customerIds) throws CodeException {
 
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
@@ -318,9 +318,30 @@ public class JobServiceImpl implements JobService {
         if (!TextUtils.isEmpty(jobStatus)) {
             builder.with(jobSpecificationFactory.isEqual("jobStatus", jobStatus));
         }
+
+        Specification<Job> searchSpec = null;
+
+        // jobId LIKE txt
         if (!TextUtils.isEmpty(txt)) {
-            builder.with(jobSpecificationFactory.like("jobId", txt));
+            searchSpec = jobSpecificationFactory.like("jobId", txt);
         }
+
+        // customerId IN customerIds
+        if (customerIds != null && !customerIds.isEmpty()) {
+            Specification<Job> customerSpec = jobSpecificationFactory.in("customerId", customerIds);
+
+            // combine with OR
+            if (searchSpec == null) {
+                searchSpec = customerSpec;
+            } else {
+                searchSpec = searchSpec.or(customerSpec);   // <-- key line
+            }
+        }
+        // now add the combined OR spec into builder (AND with other filters)
+        if (searchSpec != null) {
+            builder.with(searchSpec);
+        }
+
         if (!TextUtils.isEmpty(jobTag)) {
             builder.with(jobSpecificationFactory.join("jobMappingTags", "tagId", jobTag));
         }
@@ -2627,10 +2648,10 @@ public class JobServiceImpl implements JobService {
                                               List<String> frontOfficeId, Long tenantId, List<String> jobTaskMappingIds) {
 
         builder.with(jobMappingTaskSpecificationFactory.joinEqualsLong("job", "tenantId", tenantId));
-        if(!TextUtils.isEmpty(listReq.getJobTypeId())){
+        if (!TextUtils.isEmpty(listReq.getJobTypeId())) {
             builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "jobTypeId", listReq.getJobTypeId()));
         }
-        if(!TextUtils.isEmpty(listReq.getCustomerId())){
+        if (!TextUtils.isEmpty(listReq.getCustomerId())) {
             builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "customerId", listReq.getCustomerId()));
         }
 
@@ -2735,10 +2756,10 @@ public class JobServiceImpl implements JobService {
         builder.with(jobMappingTaskSpecificationFactory.joinEqualsLong("job", "tenantId", tenantId));
         builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "frontOfficeId", frontOfficeId));
 
-        if(!TextUtils.isEmpty(listReq.getJobTypeId())){
+        if (!TextUtils.isEmpty(listReq.getJobTypeId())) {
             builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "jobTypeId", listReq.getJobTypeId()));
         }
-        if(!TextUtils.isEmpty(listReq.getCustomerId())){
+        if (!TextUtils.isEmpty(listReq.getCustomerId())) {
             builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "customerId", listReq.getCustomerId()));
         }
 
