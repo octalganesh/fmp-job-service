@@ -2615,7 +2615,7 @@ public class JobServiceImpl implements JobService {
                                 : null;
 
                         TaskManagerDTO dto = new TaskManagerDTO();
-                        dto.setJobId(task.getJob().getUuid());
+                        dto.setJobId(task.getJob().getJobId());
                         dto.setTaskId(task.getUuid());
                         dto.setTaskShowId(task.getTaskShowId());
                         dto.setTaskName(task.getTaskName());
@@ -2737,7 +2737,7 @@ public class JobServiceImpl implements JobService {
                     .collect(Collectors.toMap(JobType::getUuid, JobType::getName));
             for (JobMappingTask department : page.getContent()) {
                 TaskManagerDTO dto = new TaskManagerDTO();
-                dto.setJobId(department.getJob().getUuid());
+                dto.setJobId(department.getJob().getJobId());
                 dto.setTaskShowId(department.getTaskShowId());
                 dto.setTaskId(department.getUuid());
                 dto.setTaskName(department.getTaskName());
