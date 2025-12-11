@@ -972,6 +972,14 @@ public class JobServiceImpl implements JobService {
 
                         } else {
                             jobOptional.get().setCurrentTaskId(null);
+                            List<JobStatusMaster> completedStatusList = jobStatusMasterRepository.findByName("Complete");
+                            if (!completedStatusList.isEmpty()) {
+                                JobStatusMaster completedStatus = completedStatusList.get(0);
+                                jobOptional.get().setJobStatusMaster(completedStatus);
+                                jobOptional.get().setJobStatus(completedStatus.getName());
+                            } else {
+                                jobOptional.get().setJobStatus("Complete");
+                            }
                         }
                         jobRepository.save(jobOptional.get());
                     }
@@ -1437,6 +1445,14 @@ public class JobServiceImpl implements JobService {
 
                     } else {
                         jobOptional.get().setCurrentTaskId(null);
+                        List<JobStatusMaster> completedStatusList = jobStatusMasterRepository.findByName("Complete");
+                        if (!completedStatusList.isEmpty()) {
+                            JobStatusMaster completedStatus = completedStatusList.get(0);
+                            jobOptional.get().setJobStatusMaster(completedStatus);
+                            jobOptional.get().setJobStatus(completedStatus.getName());
+                        } else {
+                            jobOptional.get().setJobStatus("Complete");
+                        }
                     }
                     jobRepository.save(jobOptional.get());
                 }
