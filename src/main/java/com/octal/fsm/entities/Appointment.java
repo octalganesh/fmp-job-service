@@ -42,4 +42,7 @@ public class Appointment extends AbstractPersistable {
     @Column(name = "additional_notes", length = 2000)
     private String additionalNotes;
 
+    @Column(name = "status")
+    private String status;
+
 }

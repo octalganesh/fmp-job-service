@@ -96,6 +96,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         appointment.setActive(true);
         appointment.setDeleted(false);
+        appointment.setStatus("Scheduled");
         appointment.setAdditionalNotes(add.getAdditionalNotes());
         appointment.setJobId(add.getJobId());
         Gson gson = new Gson();
@@ -159,6 +160,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             dto.setStartDateTime(appointment.getStartDateTime());
             dto.setEndDateTime(appointment.getEndDateTime());
             dto.setTechnicianId(appointment.getTechnicianId());
+            dto.setStatus(appointment.getStatus() != null ? appointment.getStatus() : "Scheduled");
             responseList.add(dto);
         }
 
@@ -212,10 +214,25 @@ public class AppointmentServiceImpl implements AppointmentService {
             dto.setStartDateTime(appointment.getStartDateTime());
             dto.setEndDateTime(appointment.getEndDateTime());
             dto.setTechnicianId(appointment.getTechnicianId());
+            dto.setStatus(appointment.getStatus() != null ? appointment.getStatus() : "Scheduled");
             responseList.add(dto);
         }
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, listRequest.getPageNumber(),
                 listRequest.getPageSize());
+    }
+
+    @Override
+    public String updateAppointmentStatus(String id) throws CodeException {
+        if (TextUtils.isEmpty(id))
+            throw new CodeException("appointment id is required", ErrorCode.COMMON);
+        Optional<Appointment> appointmentOptional = appointmentRepository.findByUuidAndDeletedFalse(id);
+        if (appointmentOptional.isEmpty())
+            throw new CodeException("appointment not found", ErrorCode.COMMON);
+
+        Appointment appointment = appointmentOptional.get();
+        appointment.setStatus("Completed");
+        appointmentRepository.save(appointment);
+        return appointment.getUuid();
     }
 
     private void prepareJobTypeSearchFilter(PageRequest.List listRequest, GenericSpecificationsBuilder<Appointment> builder) {
