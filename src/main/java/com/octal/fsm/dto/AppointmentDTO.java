@@ -49,5 +49,7 @@ public class AppointmentDTO {
         private String additionalNotes;
         private Boolean isActive;
         private String status;
+        private String customerName;
+        private String taskName;
     }
 }
