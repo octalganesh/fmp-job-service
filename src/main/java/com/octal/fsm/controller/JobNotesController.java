@@ -31,7 +31,8 @@ public class JobNotesController extends BaseController{
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
             boolean isSuperAdmin = isSuperAdmin(request);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Notes Added Successfully", jobNotesService.addNotes(addNotes, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+            String message = (addNotes.getId() == null)? "Job Note Added Successfully": "Job Note Updated Successfully";
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, message, jobNotesService.addNotes(addNotes, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error saving notes : {}", e.getMessage(), e);
             return handleException(e);
