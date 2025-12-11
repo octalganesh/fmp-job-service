@@ -5,22 +5,14 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.octal.fsm.clients.AdminClient;
 import com.octal.fsm.clients.TechnicianClient;
-import com.octal.fsm.dto.ApiResponse;
-import com.octal.fsm.dto.AppointmentDTO;
-import com.octal.fsm.dto.PageItem;
-import com.octal.fsm.dto.TechnicianDTO;
-import com.octal.fsm.entities.Appointment;
-import com.octal.fsm.entities.JobMappingTask;
-import com.octal.fsm.entities.JobTag;
-import com.octal.fsm.entities.JobType;
+import com.octal.fsm.dto.*;
+import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
-import com.octal.fsm.repositories.AppointmentRepository;
-import com.octal.fsm.repositories.JobMappingTaskRepository;
-import com.octal.fsm.repositories.JobTagRepository;
-import com.octal.fsm.repositories.JobTypeRepository;
+import com.octal.fsm.repositories.*;
 import com.octal.fsm.service.AppointmentService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
@@ -56,6 +48,10 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Autowired
     private TechnicianClient technicianClient;
+    @Autowired
+    private AdminClient adminClient;
+    @Autowired
+    private JobRepository jobRepository;
 
     @Override
     public String addAppointment(AppointmentDTO.Add add, String userName) throws CodeException {
@@ -126,9 +122,33 @@ public class AppointmentServiceImpl implements AppointmentService {
         prepareJobTypeSearchFilter(listRequest, builder);
         Page<Appointment> pagedResult = appointmentRepository.findAll(builder.build(), pageable);
         Map<String, TechnicianDTO.GetDetails> techMap = null;
+        Map<String, CustomerDTO.GetDetails> customerToNameMap = null;
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        ApiResponse technicianResponse = technicianClient.getTechByIds(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).collect(Collectors.toList())), tenantId).getBody();
+
+        List<Job> byUuidIn = jobRepository.findByJobIdIn(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getJobId).collect(Collectors.toList())));
+        Map<String, Job> jobMap = byUuidIn.stream()
+                .collect(Collectors.toMap(Job::getJobId, j -> j));
+
+        List<JobMappingTask> byJobTaskIdIn = jobMappingTaskRepository.findByTaskShowIdIn(pagedResult.getContent().stream().map(Appointment::getJobTaskId).filter(Objects::nonNull).distinct().collect(Collectors.toList()));
+
+        Map<String, JobMappingTask> jobMappingTaskMap = byJobTaskIdIn.stream()
+                .collect(Collectors.toMap(JobMappingTask::getTaskShowId, j -> j));
+
+        if(!byUuidIn.isEmpty()) {
+            ApiResponse customerResponse = adminClient.getCustomerByIds(new ArrayList<>(byUuidIn.stream().map(Job::getCustomerId).filter(Objects::nonNull).distinct().collect(Collectors.toList())), tenantId, false).getBody();
+            if (customerResponse != null && "200".equalsIgnoreCase(customerResponse.getStatus()) && customerResponse.getData() != null) {
+                List<CustomerDTO.GetDetails> customerDetails = objectMapper.convertValue(
+                        customerResponse.getData(),
+                        new TypeReference<List<CustomerDTO.GetDetails>>() {
+                        }
+                );
+                customerToNameMap = customerDetails.stream()
+                        .collect(Collectors.toMap(CustomerDTO.GetDetails::getId, t -> t));
+            }
+        }
+
+        ApiResponse technicianResponse = technicianClient.getTechByIds(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).filter(Objects::nonNull).distinct().collect(Collectors.toList())), tenantId).getBody();
         if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
             List<TechnicianDTO.GetDetails> techDetails = objectMapper.convertValue(
                     technicianResponse.getData(),
@@ -147,9 +167,12 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .collect(Collectors.toMap(JobType::getUuid, JobType::getName));
         for (Appointment appointment : pagedResult.getContent()) {
             AppointmentDTO.ListResponse dto = new AppointmentDTO.ListResponse();
-            TechnicianDTO.GetDetails tech = Objects.requireNonNull(techMap).get(appointment.getTechnicianId());
-            if (tech != null)
-                dto.setTechnicianName(tech.getName());
+            if (techMap != null) {
+                TechnicianDTO.GetDetails tech = techMap.get(appointment.getTechnicianId());
+                if (tech != null) {
+                    dto.setTechnicianName(tech.getName());
+                }
+            }
             dto.setId(appointment.getUuid());
             dto.setAdditionalNotes(appointment.getAdditionalNotes());
             dto.setJobId(appointment.getJobId());
@@ -161,6 +184,17 @@ public class AppointmentServiceImpl implements AppointmentService {
             dto.setEndDateTime(appointment.getEndDateTime());
             dto.setTechnicianId(appointment.getTechnicianId());
             dto.setStatus(appointment.getStatus() != null ? appointment.getStatus() : "Scheduled");
+            Job job = jobMap.get(appointment.getJobId());
+            if (job != null && customerToNameMap != null) {
+                CustomerDTO.GetDetails customer = customerToNameMap.get(job.getCustomerId());
+                if (customer != null) {
+                    dto.setCustomerName(customer.getName());
+                }
+            }
+            JobMappingTask jobMappingTask = jobMappingTaskMap.get(appointment.getJobTaskId());
+            if (jobMappingTask != null) {
+                dto.setTaskName(jobMappingTask.getTaskName());
+            }
             responseList.add(dto);
         }
 
