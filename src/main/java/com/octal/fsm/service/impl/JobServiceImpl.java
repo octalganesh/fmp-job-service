@@ -2207,7 +2207,7 @@ public class JobServiceImpl implements JobService {
                 Optional<JobTaskMappingTechnician> taskMapping = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.get().getUuid());
                 JobDTO.TechnicianForFrontOffice details = new JobDTO.TechnicianForFrontOffice();
                 if (job.isPresent() && jobTask.isPresent() && taskMapping.isPresent()) {
-                    if (TextUtils.isEmpty(job.get().getFrontOfficeId())) {
+                    if (!TextUtils.isEmpty(job.get().getFrontOfficeId())) {
                         ResponseEntity<ApiResponse> frontOfficeResponse = adminClient.getFrontOfficeById(job.get().getFrontOfficeId(), tenantId);
                         if (frontOfficeResponse != null && frontOfficeResponse.getBody() != null && frontOfficeResponse.getBody().getData() != null) {
                             Gson gson = new Gson();
@@ -2259,8 +2259,14 @@ public class JobServiceImpl implements JobService {
                     }
 
                     // Get job type
+                    Optional<JobType> byUuid = jobTypeRepository.findByUuid(job.get().getJobTypeId());
 
                     // Get customer details
+                    ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId()).getBody();
+                    if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
+                        Gson gson = new Gson();
+                        CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
+                    }
 
                     List<String> jobTags = new ArrayList<>();
                     List<JobMappingTags> jobMappingTags = job.get().getJobMappingTags();

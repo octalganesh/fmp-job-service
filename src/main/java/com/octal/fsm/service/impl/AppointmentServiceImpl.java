@@ -195,7 +195,13 @@ public class AppointmentServiceImpl implements AppointmentService {
             if (jobMappingTask != null) {
                 dto.setTaskName(jobMappingTask.getTaskName());
             }
-            responseList.add(dto);
+            if(!TextUtils.isEmpty(listRequest.getFrontOfficeId())){
+                if(job != null && job.getFrontOfficeId().equalsIgnoreCase(listRequest.getFrontOfficeId())){
+                    responseList.add(dto);
+                }
+            }else{
+                responseList.add(dto);
+            }
         }
 
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, listRequest.getPageNumber(),
