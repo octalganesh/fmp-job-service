@@ -10,10 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -60,6 +57,17 @@ public class AppointmentController extends BaseController {
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Appointment added successfully", appointmentService.listAllAppointmentsWithTechnicianId(list,tenantId,isSuperAdmin, userName), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error updating job task status: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/update-status/{id}")
+    public ResponseEntity<ApiResponse> updateAppointmentStatus(@PathVariable("id") String id, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Status Update successfully", appointmentService.updateAppointmentStatus(id), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
             return handleException(e);
         }
     }

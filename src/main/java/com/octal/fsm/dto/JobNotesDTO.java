@@ -12,6 +12,7 @@ public class JobNotesDTO {
     @Data
     @AllArgsConstructor
     public static class Add {
+        private String id;
         private String jobId;
         private String notes;
         private String createdBy;

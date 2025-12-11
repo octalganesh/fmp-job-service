@@ -140,7 +140,7 @@ public class JobTransformer {
         job.setFrontOfficeId(addJobDTO.getFrontOfficeId());
         job.setTenantId(tenantId);
         jobRepository.save(job);
-        return job.getUuid();
+        return job.getJobId();
     }
 
     public ResponseEntity<com.octal.fsm.common.ApiResponse> updateJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
