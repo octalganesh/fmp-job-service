@@ -14,13 +14,15 @@ public interface JobService {
 
     String addJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException;
 
+    ResponseEntity<com.octal.fsm.common.ApiResponse> updateJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException;
+
     void createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
     PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException;
 
     void updateJobTags(String jobId, JobDTO.UpdateJobTags updateJobTags, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
-    PageItem<JobDTO.JobListResponse> getAllJobs(String txt, int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail, String location, Long tenantId, Boolean isSuperAdmin, String frontOfficeId) throws CodeException;
+    PageItem<JobDTO.JobListResponse> getAllJobs(String txt, int page, int size, String sortBy, Boolean order, String jobType, String jobStatus, String jobTag, Double serviceLocationLat, Double serviceLocationLng, String customerType, String fromStartDate, String toStartDate, String loggedInUserEmail, String location, Long tenantId, Boolean isSuperAdmin, String frontOfficeId,List<String> customerIds) throws CodeException;
 
     //    JobDTO.Detail updateJob(JobDTO.Update updateJobDTO) throws CodeException;
 //

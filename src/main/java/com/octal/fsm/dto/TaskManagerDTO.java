@@ -19,6 +19,8 @@ public class TaskManagerDTO {
     private String description;
     private String jobId;
     private String technicianName;
+    private String customerName;
+    private String JobTypeName;
 
 
     public TaskManagerDTO(String jobId, String taskId, String taskName, String taskStatus, String createdAt) {

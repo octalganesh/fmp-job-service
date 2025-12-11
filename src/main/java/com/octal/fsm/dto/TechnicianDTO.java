@@ -16,6 +16,7 @@ public class TechnicianDTO {
         private String name;
         private String email;
         private String mobileNumber;
+        private String countryCode;
         private String employeeId;
         private String profilePicture;
         private String address;
