@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,8 +38,33 @@ public class JobNotesServiceImpl implements JobNotesService {
     @Override
     public String addNotes(JobNotesDTO.Add addNotes, boolean isSuperAdmin) throws CodeException {
         try{
+
+            if (!TextUtils.isEmpty(addNotes.getId())) {
+                Optional<JobNotes> opt = jobNotesRepository.findByUuid(addNotes.getId());
+                if (opt.isEmpty()) {
+                    throw new CodeException("Note not found", ErrorCode.BAD_REQUEST);
+                }
+                JobNotes jobNotes = opt.get();
+                jobNotes.setNotes(addNotes.getNotes());
+                jobNotes.setUpdatedAt(LocalDateTime.now());
+                jobNotes.setCreatedBy(addNotes.getCreatedBy());
+
+                JobNotes saved = jobNotesRepository.save(jobNotes);
+
+                SystemEventLogDTO systemEventLogDTO = new SystemEventLogDTO();
+                systemEventLogDTO.setEventType(SystemEventType.NOTE_UPDATED);
+                systemEventLogDTO.setDescription("Job note updated successfully");
+                systemEventLogDTO.setPerformedBy(addNotes.getCreatedBy());
+                systemEventLogDTO.setReferenceId(saved.getJobId());
+                systemEventLogDTO.setProfileUrl("");
+                eventPublisherService.publish(systemEventLogDTO);
+
+                return saved.getUuid();
+            }
+
             if(TextUtils.isEmpty(addNotes.getJobId()))
                 throw new CodeException("Job id is required to save job notes", ErrorCode.COMMON);
+
             JobNotes jobNotes = new JobNotes();
             jobNotes.setNotes(addNotes.getNotes());
             jobNotes.setJobId(addNotes.getJobId());
@@ -57,8 +83,10 @@ public class JobNotesServiceImpl implements JobNotesService {
             
             return uuid;
 
-        }catch (Exception exception){
-            throw new RuntimeException(exception.getMessage());
+        }catch (CodeException ce) {
+            throw ce;
+        } catch (Exception exception) {
+            throw new CodeException(exception.getMessage(), ErrorCode.COMMON);
         }
     }
 

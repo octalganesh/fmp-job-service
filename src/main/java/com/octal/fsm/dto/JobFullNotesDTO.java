@@ -14,6 +14,7 @@ public class JobFullNotesDTO {
 
     @Data
     public static class JobNotesDTO {
+        private String id;
         private String note;
         private LocalDateTime createdAt;
     }
