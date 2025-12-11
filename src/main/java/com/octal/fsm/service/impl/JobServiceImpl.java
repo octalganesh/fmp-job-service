@@ -2128,6 +2128,7 @@ public class JobServiceImpl implements JobService {
                     jobNotes.stream()
                             .map(n -> {
                                 JobFullNotesDTO.JobNotesDTO dto = new JobFullNotesDTO.JobNotesDTO();
+                                dto.setId(n.getUuid());
                                 dto.setNote(n.getNotes());
                                 dto.setCreatedAt(n.getCreatedAt());
                                 return dto;
