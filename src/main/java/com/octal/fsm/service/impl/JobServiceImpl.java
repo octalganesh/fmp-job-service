@@ -1442,13 +1442,10 @@ public class JobServiceImpl implements JobService {
 
                     } else {
                         jobOptional.get().setCurrentTaskId(null);
-                        List<JobStatusMaster> completedStatusList = jobStatusMasterRepository.findByName("Complete");
-                        if (!completedStatusList.isEmpty()) {
-                            JobStatusMaster completedStatus = completedStatusList.get(0);
-                            jobOptional.get().setJobStatusMaster(completedStatus);
-                            jobOptional.get().setJobStatus(completedStatus.getName());
-                        } else {
-                            jobOptional.get().setJobStatus("Complete");
+                        List<JobStatusMaster> jobStatus = jobStatusMasterRepository.findByName(currentTask.getJobTaskStatus());
+                        if (!jobStatus.isEmpty()) {
+                            jobOptional.get().setJobStatusMaster(jobStatus.get(0));
+                            jobOptional.get().setJobStatus(jobStatus.get(0).getName());
                         }
                     }
                     jobRepository.save(jobOptional.get());
