@@ -2464,11 +2464,7 @@ public class JobServiceImpl implements JobService {
 //        }
 //
 //    }
-    public PageItem<TaskManagerDTO> generateDataUsingSpecification(
-            List<String> technicianIds,
-            com.octal.fsm.models.request.PageRequest.List listReq,
-            Long tenantId) {
-
+    public PageItem<TaskManagerDTO> generateDataUsingSpecification(List<String> technicianIds, com.octal.fsm.models.request.PageRequest.List listReq, Long tenantId) {
         try {
             if (technicianIds == null) {
                 technicianIds = new ArrayList<>();
@@ -2479,31 +2475,17 @@ public class JobServiceImpl implements JobService {
             // 1. Fetch technician mappings
             if (!technicianIds.isEmpty()) {
                 techMappings = jobTaskMappingTechnicianRepository.findByTechnicianIdIn(technicianIds);
-                if(techMappings == null || techMappings.isEmpty()){
-                    return new PageItem<>(
-                            0,
-                            0,
-                            new ArrayList<TaskManagerDTO>(),
-                            listReq.getPageNumber(),
-                            listReq.getPageSize()
-                    );
+                if (techMappings == null || techMappings.isEmpty()) {
+                    return new PageItem<>(0, 0, new ArrayList<TaskManagerDTO>(), listReq.getPageNumber(), listReq.getPageSize());
                 }
-                mappingIds = techMappings.stream()
-                        .map(JobTaskMappingTechnician::getJobTaskMappingId)
-                        .collect(Collectors.toSet());
+                mappingIds = techMappings.stream().map(JobTaskMappingTechnician::getJobTaskMappingId).collect(Collectors.toSet());
             }
-
-
             // 2. Prepare Pageable
-            Sort sort = Boolean.TRUE.equals(listReq.getAsc())
-                    ? Sort.by(listReq.getShortingField()).ascending()
-                    : Sort.by(listReq.getShortingField()).descending();
+            Sort sort = Boolean.TRUE.equals(listReq.getAsc()) ? Sort.by(listReq.getShortingField()).ascending() : Sort.by(listReq.getShortingField()).descending();
 
             Pageable pageable = PageRequest.of(listReq.getPageNumber(), listReq.getPageSize(), sort);
-
             // 3. Prepare spec builder
             GenericSpecificationsBuilder<JobMappingTask> builder = new GenericSpecificationsBuilder<>();
-
             if (!technicianIds.isEmpty()) {
                 prepareTechnicianTaskFilters(listReq, builder, technicianIds, tenantId, new ArrayList<>(mappingIds));
             } else if (technicianIds.isEmpty()) {
@@ -2515,80 +2497,53 @@ public class JobServiceImpl implements JobService {
             }
             // 4. Build technician details lookup map
             Map<String, TechnicianDTO.GetDetails> technicianMap;
-
             if (!techMappings.isEmpty()) {
-                List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(technicianIds),tenantId);
-                if(techDetails != null) {
-                    technicianMap = techDetails.stream()
-                            .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
-                }else {
+                List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(technicianIds), tenantId);
+                if (techDetails != null) {
+                    technicianMap = techDetails.stream().collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
+                } else {
                     technicianMap = Collections.emptyMap();
                 }
             } else {
                 technicianMap = Collections.emptyMap();
             }
-
             // Build mapping -> technicianTime lookup to avoid repeated stream operations later
-            Map<String, JobTaskMappingTechnician> mappingTechMap = techMappings.stream()
-                    .collect(Collectors.toMap(JobTaskMappingTechnician::getJobTaskMappingId, m -> m));
+            Map<String, JobTaskMappingTechnician> mappingTechMap = techMappings.stream().collect(Collectors.toMap(JobTaskMappingTechnician::getJobTaskMappingId, m -> m));
             final Map<String, CustomerDTO.GetDetails> customerToNameMap = new HashMap<>();
 
-            ApiResponse customerResponse = adminClient.getCustomerByIds(new ArrayList<>(pageData.getContent().stream().map(task -> task.getJob().getCustomerId()).collect(Collectors.toList())), tenantId, false).getBody();
-
-            if (customerResponse != null && "200".equalsIgnoreCase(customerResponse.getStatus()) && customerResponse.getData() != null) {
-                List<CustomerDTO.GetDetails> customerDetails = objectMapper.convertValue(
-                        customerResponse.getData(),
-                        new TypeReference<List<CustomerDTO.GetDetails>>() {
-                        }
-                );
-                customerDetails.forEach(t -> customerToNameMap.put(t.getId(), t));
-                // List<JobType>jobTypeList=jobTypeRepository.findByUuidAndDeletedFalse()
+            List<CustomerDTO.GetDetails> customerList = adminClientService.getCustomerList(new ArrayList<>(pageData.getContent().stream().map(task -> task.getJob().getCustomerId()).collect(Collectors.toList())), tenantId, false);
+            if(customerList != null){
+                customerList.forEach(t -> customerToNameMap.put(t.getId(), t));
             }
             List<JobType> jobTypeList = jobTypeRepository.findByUuidAndDeletedFalse(pageData.getContent().stream().map(task -> task.getJob().getJobTypeId()).collect(Collectors.toList()));
-            Map<String, String> jobTypeMap = jobTypeList.stream()
-                    .collect(Collectors.toMap(JobType::getUuid, JobType::getName));
+            Map<String, String> jobTypeMap = jobTypeList.stream().collect(Collectors.toMap(JobType::getUuid, JobType::getName));
 
             // 5. Prepare DTO response
-            List<TaskManagerDTO> responseList = pageData.getContent().stream()
-                    .map(task -> {
-                        JobTaskMappingTechnician tech = mappingTechMap.get(task.getUuid());
-                        TechnicianDTO.GetDetails details = (tech != null)
-                                ? technicianMap.get(tech.getTechnicianId())
-                                : null;
+            List<TaskManagerDTO> responseList = pageData.getContent().stream().map(task -> {
+                JobTaskMappingTechnician tech = mappingTechMap.get(task.getUuid());
+                TechnicianDTO.GetDetails details = (tech != null) ? technicianMap.get(tech.getTechnicianId()) : null;
 
-                        TaskManagerDTO dto = new TaskManagerDTO();
-                        dto.setJobId(task.getJob().getJobId());
-                        dto.setTaskId(task.getUuid());
-                        dto.setTaskShowId(task.getTaskShowId());
-                        dto.setTaskName(task.getTaskName());
-                        dto.setTaskStatus(task.getJobTaskStatus());
-                        dto.setDate(String.valueOf(task.getCreatedAt()));
-                        dto.setCustomerName(
-                                customerToNameMap.containsKey(task.getJob().getCustomerId())
-                                        ? customerToNameMap.get(task.getJob().getCustomerId()).getName()
-                                        : "N/A"
-                        );
-                        //dto.setTime(null);
-                        dto.setJobTypeName(jobTypeMap.get(task.getJob().getJobTypeId()));
-                        dto.setDescription("Description");
+                TaskManagerDTO dto = new TaskManagerDTO();
+                dto.setJobId(task.getJob().getJobId());
+                dto.setTaskId(task.getUuid());
+                dto.setTaskShowId(task.getTaskShowId());
+                dto.setTaskName(task.getTaskName());
+                dto.setTaskStatus(task.getJobTaskStatus());
+                dto.setDate(String.valueOf(task.getCreatedAt()));
+                dto.setCustomerName(customerToNameMap.containsKey(task.getJob().getCustomerId()) ? customerToNameMap.get(task.getJob().getCustomerId()).getName() : "N/A");
+                //dto.setTime(null);
+                dto.setJobTypeName(jobTypeMap.get(task.getJob().getJobTypeId()));
+                dto.setDescription("Description");
 
-                        if (tech != null) {
-                            dto.setStartTime(String.valueOf(tech.getStartTime()));
-                            dto.setEndTime(String.valueOf(tech.getEndTime()));
-                        }
+                if (tech != null) {
+                    dto.setStartTime(String.valueOf(tech.getStartTime()));
+                    dto.setEndTime(String.valueOf(tech.getEndTime()));
+                }
+                dto.setTechnicianName(details != null ? details.getName() : "Assigned to CSR");
+                return dto;
+            }).collect(Collectors.toList());
 
-                        dto.setTechnicianName(details != null ? details.getName() : "Assigned to CSR");
-
-                        return dto;
-                    }).collect(Collectors.toList());
-
-            return new PageItem<>(
-                    pageData.getTotalPages(),
-                    pageData.getTotalElements(),
-                    responseList,
-                    listReq.getPageNumber(),
-                    listReq.getPageSize()
-            );
+            return new PageItem<>(pageData.getTotalPages(), pageData.getTotalElements(), responseList, listReq.getPageNumber(), listReq.getPageSize());
 
         } catch (Exception ex) {
             throw new RuntimeException(ex);
