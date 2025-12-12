@@ -52,6 +52,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     private AdminClient adminClient;
     @Autowired
     private JobRepository jobRepository;
+    @Autowired
+    private AppointmentTypeRepository appointmentTypeRepository;
 
     @Override
     public String addAppointment(AppointmentDTO.Add add, String userName) throws CodeException {
@@ -89,6 +91,12 @@ public class AppointmentServiceImpl implements AppointmentService {
             }
             appointment = announcementOptional.get();
             appointment.setUpdatedAt(LocalDateTime.now());
+        }
+        if(!TextUtils.isEmpty(add.getAppointmentTypeId())){
+            Optional<AppointmentType> byUuid = appointmentTypeRepository.findByUuid(add.getAppointmentTypeId());
+            if(byUuid.isPresent()){
+                appointment.setAppointmentType(byUuid.get());
+            }
         }
         appointment.setActive(true);
         appointment.setDeleted(false);
@@ -184,6 +192,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             dto.setEndDateTime(appointment.getEndDateTime());
             dto.setTechnicianId(appointment.getTechnicianId());
             dto.setStatus(appointment.getStatus() != null ? appointment.getStatus() : "Scheduled");
+            dto.setAppointmentTypeId(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getUuid() : null);
             Job job = jobMap.get(appointment.getJobId());
             if (job != null && customerToNameMap != null) {
                 CustomerDTO.GetDetails customer = customerToNameMap.get(job.getCustomerId());
@@ -195,6 +204,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             if (jobMappingTask != null) {
                 dto.setTaskName(jobMappingTask.getTaskName());
             }
+            dto.setAppointmentTypeId(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getUuid() : null);
             responseList.add(dto);
         }
 
@@ -249,6 +259,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             dto.setEndDateTime(appointment.getEndDateTime());
             dto.setTechnicianId(appointment.getTechnicianId());
             dto.setStatus(appointment.getStatus() != null ? appointment.getStatus() : "Scheduled");
+            dto.setAppointmentTypeId(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getUuid() : null);
             responseList.add(dto);
         }
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, listRequest.getPageNumber(),

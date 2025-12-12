@@ -5,6 +5,7 @@ import com.octal.fsm.common.CommonConstants;
 import com.octal.fsm.dto.AppointmentDTO;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.service.AppointmentService;
+import com.octal.fsm.service.AppointmentTypeService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,9 @@ public class AppointmentController extends BaseController {
 
     @Autowired
     private AppointmentService appointmentService;
+
+    @Autowired
+    private AppointmentTypeService appointmentTypeService;
 
     @PostMapping("/add")
     public ResponseEntity<ApiResponse> addAppointment(@RequestBody AppointmentDTO.Add add, HttpServletRequest request) {
@@ -68,6 +72,17 @@ public class AppointmentController extends BaseController {
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Status Update successfully", appointmentService.updateAppointmentStatus(id), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/appointment-type-list")
+    public ResponseEntity<ApiResponse>getAppointmentTypeList(HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Role list fetched successfully!", appointmentTypeService.getAllAppointmentType(tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
             return handleException(e);
         }
     }
