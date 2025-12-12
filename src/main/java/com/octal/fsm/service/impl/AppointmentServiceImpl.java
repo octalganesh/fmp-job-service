@@ -13,6 +13,7 @@ import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.*;
+import com.octal.fsm.service.AdminClientService;
 import com.octal.fsm.service.AppointmentService;
 import com.octal.fsm.service.TechnicianClientService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
@@ -56,6 +57,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Autowired
     private TechnicianClientService technicianClientService;
+
+    @Autowired
+    private AdminClientService adminClientService;
 
     @Override
     public String addAppointment(AppointmentDTO.Add add, String userName) throws CodeException {
@@ -140,18 +144,12 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .collect(Collectors.toMap(JobMappingTask::getTaskShowId, j -> j));
 
         if(!byUuidIn.isEmpty()) {
-            ApiResponse customerResponse = adminClient.getCustomerByIds(new ArrayList<>(byUuidIn.stream().map(Job::getCustomerId).filter(Objects::nonNull).distinct().collect(Collectors.toList())), tenantId, false).getBody();
-            if (customerResponse != null && "200".equalsIgnoreCase(customerResponse.getStatus()) && customerResponse.getData() != null) {
-                List<CustomerDTO.GetDetails> customerDetails = objectMapper.convertValue(
-                        customerResponse.getData(),
-                        new TypeReference<List<CustomerDTO.GetDetails>>() {
-                        }
-                );
-                customerToNameMap = customerDetails.stream()
+            List<CustomerDTO.GetDetails> customerList = adminClientService.getCustomerList(new ArrayList<>(byUuidIn.stream().map(Job::getCustomerId).filter(Objects::nonNull).distinct().collect(Collectors.toList())), tenantId, false);
+            if(customerList != null){
+                customerToNameMap = customerList.stream()
                         .collect(Collectors.toMap(CustomerDTO.GetDetails::getId, t -> t));
             }
         }
-
         List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).collect(Collectors.toList())),tenantId);
         if(techDetails != null){
             techMap = techDetails.stream()
