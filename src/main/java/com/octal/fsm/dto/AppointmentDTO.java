@@ -27,6 +27,7 @@ public class AppointmentDTO {
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
         private LocalDateTime endDateTime;
         private String additionalNotes;
+        private String status;
     }
 
     @Data
@@ -47,5 +48,8 @@ public class AppointmentDTO {
         private LocalTime endTime;
         private String additionalNotes;
         private Boolean isActive;
+        private String status;
+        private String customerName;
+        private String taskName;
     }
 }

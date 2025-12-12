@@ -39,6 +39,9 @@ public class Appointment extends AbstractPersistable {
     @Column(name = "additional_notes", length = 2000)
     private String additionalNotes;
 
+    @Column(name = "status")
+    private String status;
+
     @JoinColumn(name = "appointment_type_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private AppointmentType appointmentType;
