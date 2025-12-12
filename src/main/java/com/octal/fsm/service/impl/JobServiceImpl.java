@@ -2479,6 +2479,15 @@ public class JobServiceImpl implements JobService {
             // 1. Fetch technician mappings
             if (!technicianIds.isEmpty()) {
                 techMappings = jobTaskMappingTechnicianRepository.findByTechnicianIdIn(technicianIds);
+                if(techMappings == null || techMappings.isEmpty()){
+                    return new PageItem<>(
+                            0,
+                            0,
+                            new ArrayList<TaskManagerDTO>(),
+                            listReq.getPageNumber(),
+                            listReq.getPageSize()
+                    );
+                }
                 mappingIds = techMappings.stream()
                         .map(JobTaskMappingTechnician::getJobTaskMappingId)
                         .collect(Collectors.toSet());
