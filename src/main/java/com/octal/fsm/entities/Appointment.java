@@ -43,7 +43,7 @@ public class Appointment extends AbstractPersistable {
     private String status;
 
     @JoinColumn(name = "appointment_type_id")
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     private AppointmentType appointmentType;
 
 }
