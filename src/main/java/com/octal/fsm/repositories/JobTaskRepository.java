@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -14,4 +15,6 @@ public interface JobTaskRepository extends JpaRepository<JobTask, Long>, JpaSpec
     Boolean existsByUuid(String uuid);
 
     Optional<JobTask> findByUuid(String id);
+
+    List<JobTask> findByUuidIn(List<String> uuids);
 }

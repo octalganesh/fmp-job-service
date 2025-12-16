@@ -7,6 +7,7 @@ import com.octal.fsm.clients.AdminClient;
 import com.octal.fsm.dto.ApiResponse;
 import com.octal.fsm.dto.CustomerDTO;
 import com.octal.fsm.dto.FrontOfficeStaffDTO;
+import com.octal.fsm.dto.TechnicianDTO;
 import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -86,5 +87,27 @@ public class AdminClientService {
             return Collections.emptyList();
         }
 
+    }
+
+    public List<FrontOfficeStaffDTO.list> getFrontOfficeList(List<String> ids, Long tenantId) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> uniqueIds = ids.stream().distinct().collect(Collectors.toList());
+        if (uniqueIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        ResponseEntity<ApiResponse> responseEntity = adminClient.getFrontOfficeByIds(uniqueIds, tenantId);
+
+        ApiResponse frontOfficeResponse = responseEntity.getBody();
+
+        if (frontOfficeResponse == null || frontOfficeResponse.getStatus() == null || !frontOfficeResponse.getStatus().equalsIgnoreCase("200")
+                || frontOfficeResponse.getData() == null) {
+            return Collections.emptyList();
+        }
+        return objectMapper.convertValue(frontOfficeResponse.getData(), new TypeReference<List<FrontOfficeStaffDTO.list>>() {
+                }
+        );
     }
 }

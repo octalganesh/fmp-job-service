@@ -46,4 +46,7 @@ public interface AdminClient {
     @GetMapping("/front-office/get-front-office-by-id/{id}")
     ResponseEntity<ApiResponse> getFrontOfficeById(@PathVariable("id") String id, @RequestHeader("tenantId") Long tenantId);
 
+    @PostMapping("/front-office/get-by-ids")
+    ResponseEntity<ApiResponse> getFrontOfficeByIds(@RequestBody List<String> ids, @RequestHeader("tenantId") Long tenantId);
+
 }
