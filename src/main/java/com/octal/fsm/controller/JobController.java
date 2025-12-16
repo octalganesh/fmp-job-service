@@ -543,12 +543,24 @@ public class JobController extends BaseController {
         }
     }
 
-    @GetMapping("/get-job-by-customer/{id}")
-    public ResponseEntity<ApiResponse> getJobByCustomer(@PathVariable("id") String id, HttpServletRequest request) {
+    @PostMapping("/get-job-for-customer")
+    public ResponseEntity<ApiResponse> getJobByCustomer(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
         try {
             Long tenantId = getTenantId(request);
             boolean isSuperAdmin = isSuperAdmin(request);
-            return jobService.getJobByCustomerId(id, tenantId, isSuperAdmin);
+            return jobService.getJobByCustomerId(listRequest, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/get-job-mapping-for-technician")
+    public ResponseEntity<ApiResponse> getJobMappingTaskByTechnicianId(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.getJobMappingTaskByTechnician(listRequest, tenantId, isSuperAdmin);
         } catch (Exception e) {
             logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
             return handleException(e);

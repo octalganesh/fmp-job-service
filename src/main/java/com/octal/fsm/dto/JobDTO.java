@@ -429,5 +429,17 @@ public class JobDTO {
         private String endDate;
     }
 
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class JobMappingTaskTechnician {
+        private String jobType;
+        private String jobId;
+        private String id;
+        private String taskStatus;
+        private String createdAt;
+        private String taskShowId;
+        private String taskName;
+    }
 
 }
