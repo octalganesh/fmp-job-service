@@ -2353,7 +2353,7 @@ public class JobServiceImpl implements JobService {
             if (byUuidAndDeletedFalse.isPresent()) {
                 JobTaskMappingTechnician entity = byUuidAndDeletedFalse.get();
                 entity.setDrawingJson(details.getDrawingJsonData());
-                entity.setDrawingImage(details.getDrawingImage());
+                entity.setDrawingImage(awsS3BaseUrl+details.getDrawingImage());
                 JobTaskMappingTechnician save = jobTaskMappingTechnicianRepository.save(entity);
                 return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Drawing data updated successfully", save.getUuid(), "200", HttpStatus.OK), HttpStatus.OK);
             }
