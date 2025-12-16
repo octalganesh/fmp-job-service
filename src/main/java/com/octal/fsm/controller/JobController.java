@@ -555,7 +555,7 @@ public class JobController extends BaseController {
         }
     }
 
-    @PostMapping("/get-job-mapping-for-technician")
+    @PostMapping("/task-mapping-for-technician")
     public ResponseEntity<ApiResponse> getJobMappingTaskByTechnicianId(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
         try {
             Long tenantId = getTenantId(request);

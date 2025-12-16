@@ -2408,50 +2408,63 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public ResponseEntity<com.octal.fsm.common.ApiResponse> getJobMappingTaskByTechnician(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
-        if(!listRequest.getTechnicianId().isEmpty()){
-            List<JobTaskMappingTechnician> technicianMappings = jobTaskMappingTechnicianRepository.findByTechnicianId(listRequest.getTechnicianId().get(0));
-            if (technicianMappings.isEmpty()) {
-                return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Data fetch successfully", Collections.emptyList(), "200", HttpStatus.OK), HttpStatus.OK);
-            }
 
-            List<String> mappingIds = technicianMappings.stream()
-                    .map(JobTaskMappingTechnician::getJobTaskMappingId)
-                    .filter(Objects::nonNull).distinct().collect(Collectors.toList());
-
-            List<JobMappingTask> jobMappingTasks = jobMappingTaskRepository.findByUuidIn(mappingIds);
-
-            List<String> jobTypeIds = jobMappingTasks.stream()
-                    .map(task -> task.getJob().getJobTypeId())
-                    .filter(Objects::nonNull).distinct().collect(Collectors.toList());
-
-            List<JobType> byUuidAndDeletedFalse = jobTypeRepository.findByUuidAndDeletedFalse(jobTypeIds);
-            Map<String, JobType> jobTypeMap = byUuidAndDeletedFalse.stream()
-                    .collect(Collectors.toMap(JobType::getUuid, jt -> jt));
-
-            Map<String, JobMappingTask> jobMappingTaskMap = jobMappingTasks.stream()
-                    .collect(Collectors.toMap(JobMappingTask::getUuid, jt -> jt));
-
-            List<JobDTO.JobMappingTaskTechnician> responseList = jobMappingTasks.stream()
-                    .map(task -> {
-                        Job job = task.getJob();
-                        JobDTO.JobMappingTaskTechnician dto = new JobDTO.JobMappingTaskTechnician();
-
-                        dto.setJobId(job.getJobId());
-
-                        JobType jobType = jobTypeMap.get(job.getJobTypeId());
-                        dto.setJobType(jobType != null ? jobType.getName() : null);
-
-                        dto.setId(task.getUuid());
-                        dto.setTaskShowId(task.getTaskShowId());
-                        dto.setTaskName(task.getTaskName());
-                        dto.setTaskStatus(task.getJobTaskStatus());
-                        dto.setCreatedAt(job.getCreatedAt() != null ? job.getCreatedAt().toString() : null);
-                        return dto;
-                    })
-                    .collect(Collectors.toList());
-            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Data fetch successfully", responseList, "200", HttpStatus.OK), HttpStatus.OK);
+        if (listRequest.getTechnicianId() == null || listRequest.getTechnicianId().isEmpty()) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, "Technician Id is required", null, "500", HttpStatus.BAD_REQUEST), HttpStatus.OK);
         }
-        return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Task Not Available", null, "200", HttpStatus.OK), HttpStatus.OK);
+
+        Page<JobTaskMappingTechnician> pagedResult = getJobTaskMappingData(listRequest, tenantId, isSuperAdmin);
+        List<JobTaskMappingTechnician> jobTaskMappingTechnicians = pagedResult.getContent();
+        if (jobTaskMappingTechnicians.isEmpty()) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Data fetch successfully", Collections.emptyList(), "200", HttpStatus.OK), HttpStatus.OK);
+        }
+
+        List<String> mappingIds = jobTaskMappingTechnicians.stream()
+                .map(JobTaskMappingTechnician::getJobTaskMappingId)
+                .filter(Objects::nonNull).distinct().collect(Collectors.toList());
+
+        List<JobMappingTask> jobMappingTasks = jobMappingTaskRepository.findByUuidIn(mappingIds);
+
+        List<String> jobTypeIds = jobMappingTasks.stream()
+                .map(task -> task.getJob().getJobTypeId())
+                .filter(Objects::nonNull).distinct().collect(Collectors.toList());
+
+        List<JobType> byUuidAndDeletedFalse = jobTypeRepository.findByUuidAndDeletedFalse(jobTypeIds);
+        Map<String, JobType> jobTypeMap = byUuidAndDeletedFalse.stream()
+                .collect(Collectors.toMap(JobType::getUuid, jt -> jt,(existing, replacement) -> existing ));
+
+        Map<String, JobMappingTask> technicianTaskMap = jobMappingTasks.stream()
+                .collect(Collectors.toMap(JobMappingTask::getUuid, jt -> jt,(existing, replacement) -> existing ));
+
+        List<JobDTO.JobMappingTaskTechnician> responseList = jobTaskMappingTechnicians.stream()
+                .map(task -> {
+                    JobMappingTask jobMappingTask = technicianTaskMap.get(task.getJobTaskMappingId());
+                    Job job = jobMappingTask.getJob();
+                    JobDTO.JobMappingTaskTechnician dto = new JobDTO.JobMappingTaskTechnician();
+
+                    dto.setJobId(job.getJobId());
+
+                    JobType jobType = jobTypeMap.get(job.getJobTypeId());
+                    dto.setJobType(jobType != null ? jobType.getName() : null);
+
+                    dto.setId(jobMappingTask.getUuid());
+                    dto.setTaskShowId(jobMappingTask.getTaskShowId());
+                    dto.setTaskName(jobMappingTask.getTaskName());
+
+                    dto.setTaskStatus(task.getTaskStatus());
+                    dto.setCreatedAt(job.getCreatedAt() != null ? job.getCreatedAt().toString() : null);
+
+                    return dto;
+                })
+                .collect(Collectors.toList());
+        PageItem<JobDTO.JobMappingTaskTechnician> jobMappingTaskTechnicianPageItem = new PageItem<>(
+                pagedResult.getTotalPages(),
+                pagedResult.getTotalElements(),
+                responseList,
+                listRequest.getPageNumber(),
+                listRequest.getPageSize()
+        );
+        return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Data fetch successfully", jobMappingTaskTechnicianPageItem, "200", HttpStatus.OK), HttpStatus.OK);
     }
 
     private DocumentDTO.Add convertDocumentToDto(Documents doc) {
@@ -2520,6 +2533,11 @@ public class JobServiceImpl implements JobService {
 //        if (!TextUtils.isEmpty(tenantId)) {
 //            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("tenantId", tenantId));
 //        }
+
+        if(!listRequest.getTechnicianId().isEmpty()){
+            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("technicianId", listRequest.getTechnicianId().get(0)));
+        }
+
         if (listRequest.getIsActive() != null) {
             builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
         }
