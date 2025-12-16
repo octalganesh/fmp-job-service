@@ -2363,6 +2363,37 @@ public class JobServiceImpl implements JobService {
         }
     }
 
+    @Override
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> getJobByCustomerId(String id, Long tenantId, boolean isSuperAdmin) throws CodeException {
+        List<Job> jobs = jobRepository.findByCustomerId(id);
+        if(jobs.isEmpty()){
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Drawing data updated successfully", Collections.emptyList(), "200", HttpStatus.OK), HttpStatus.OK);
+        }
+        List<String> jobTypeIds = jobs.stream().map(Job::getJobTypeId).distinct().collect(Collectors.toList());
+        List<JobType> byUuidAndDeletedFalse = jobTypeRepository.findByUuidAndDeletedFalse(jobTypeIds);
+        Map<String, JobType> jobTypeMap = byUuidAndDeletedFalse.stream()
+                .collect(Collectors.toMap(JobType::getUuid, jt -> jt));
+
+        List<JobDTO.JobCustomerDTO> jobCustomerDTOList = jobs.stream()
+                .map(job -> {
+                    JobDTO.JobCustomerDTO dto = new JobDTO.JobCustomerDTO();
+
+                    JobType jobType = jobTypeMap.get(job.getJobTypeId());
+
+                    dto.setJobType(jobType != null ? jobType.getName() : null);
+                    dto.setJobId(job.getJobId());
+                    dto.setId(job.getUuid());
+                    dto.setStatus(job.getJobStatus());
+                    dto.setCreatedAt(job.getCreatedAt().toString());
+                    dto.setStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
+                    dto.setEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
+                    return dto;
+                })
+                .collect(Collectors.toList());
+        return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Drawing data updated successfully", jobCustomerDTOList, "200", HttpStatus.OK), HttpStatus.OK);
+
+    }
+
     private DocumentDTO.Add convertDocumentToDto(Documents doc) {
         DocumentDTO.Add dto = new DocumentDTO.Add();
         dto.setFileName(doc.getFileName());

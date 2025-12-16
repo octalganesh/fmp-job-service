@@ -108,4 +108,6 @@ public interface JobService {
 
     ResponseEntity<com.octal.fsm.common.ApiResponse> updateDrawingData(JobDTO.UpdateDrawingDetails details, Long tenantId, boolean isSuperAdmin) throws CodeException;
 
+    ResponseEntity<com.octal.fsm.common.ApiResponse> getJobByCustomerId(String id , Long tenantId, boolean isSuperAdmin) throws CodeException;
+
 }

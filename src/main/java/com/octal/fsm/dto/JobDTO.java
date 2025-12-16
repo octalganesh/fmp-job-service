@@ -415,4 +415,19 @@ public class JobDTO {
         private String drawingJsonData;
         private String drawingImage;
     }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class JobCustomerDTO {
+        private String jobType;
+        private String jobId;
+        private String id;
+        private String status;
+        private String createdAt;
+        private String startDate;
+        private String endDate;
+    }
+
+
 }
