@@ -16,6 +16,7 @@ import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
 import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -34,6 +35,9 @@ public class JobTypeServiceImpl implements JobTypeService {
     private SpecificationFactory<JobType> jobTypeSpecificationFactory;
     @Autowired
     private JobStatusMasterRepository jobStatusMasterRepository;
+
+    @Value("${aws.base-url}")
+    private String awsS3BaseUrl;
 
     @Override
     public String addJobType(JobTypeDTO.Add add, Long tenantId, Boolean isSuperAdmin) throws CodeException {
@@ -100,12 +104,28 @@ public class JobTypeServiceImpl implements JobTypeService {
             jobTypeRecord.setCreatedAt(LocalDateTime.now());
             jobTypeRecord.setDeleted(false);
             jobTypeRecord.setTenantId(tenantId);
+            if (add.getDocuments() != null && !add.getDocuments().isEmpty()) {
+                List<String> finalDocs = add.getDocuments()
+                        .stream()
+                        .filter(Objects::nonNull)
+                        .map(doc -> awsS3BaseUrl + doc)
+                        .collect(Collectors.toList());
+                jobTypeRecord.getJobTypeDocuments().addAll(finalDocs);
+            }
         }
 // UPDATE case
         else {
             jobTypeRecord = jobTypeRepository.findByUuid(add.getId())
                     .orElseThrow(() -> new CodeException("JobType not found!", ErrorCode.COMMON));
             jobTypeRecord.setUpdatedAt(LocalDateTime.now());
+
+            if (add.getDocuments() != null && !add.getDocuments().isEmpty()) {
+                Set<String> uniqueDocs = add.getDocuments()
+                        .stream().filter(Objects::nonNull)
+                        .map(doc -> doc.startsWith("https")
+                                ? doc : awsS3BaseUrl + doc).collect(Collectors.toCollection(LinkedHashSet::new));
+                jobTypeRecord.setJobTypeDocuments(new ArrayList<>(uniqueDocs));
+            }
         }
 
 // Update common fields
@@ -224,6 +244,9 @@ public class JobTypeServiceImpl implements JobTypeService {
             jobType.setId(jobTypeOptional.get().getUuid());
             jobType.setIsActive(jobTypeOptional.get().getActive());
             jobType.setCreatedAt(jobTypeOptional.get().getCreatedAt().toString());
+            if(jobTypeOptional.get().getJobTypeDocuments() != null){
+                jobType.setDocuments(jobTypeOptional.get().getJobTypeDocuments());
+            }
             return jobType;
         } else {
             throw new CodeException(CommonConstants.JOB_TYPE_NOT_FOUND + id, ErrorCode.COMMON);
@@ -275,6 +298,9 @@ public class JobTypeServiceImpl implements JobTypeService {
             dto.setCreatedAt(String.valueOf(jobType.getCreatedAt()));
             dto.setUpdatedAt(String.valueOf(jobType.getUpdatedAt()));
             dto.setDescription(jobType.getDescription());
+            if(jobType.getJobTypeDocuments() != null){
+                dto.setDocuments(jobType.getJobTypeDocuments());
+            }
             dto.setJobTasks(jobType.getJobTasks().stream()
                     .map(entity -> {
                         JobTaskDTO.Detail taskDto = new JobTaskDTO.Detail();
@@ -309,6 +335,9 @@ public class JobTypeServiceImpl implements JobTypeService {
             dto.setCreatedAt(String.valueOf(jobType.getCreatedAt()));
             dto.setUpdatedAt(String.valueOf(jobType.getUpdatedAt()));
             dto.setDescription(jobType.getDescription());
+            if(jobType.getJobTypeDocuments() != null){
+                dto.setDocuments(jobType.getJobTypeDocuments());
+            }
             jobTypeDTOS.add(dto);
         }
         return jobTypeDTOS;

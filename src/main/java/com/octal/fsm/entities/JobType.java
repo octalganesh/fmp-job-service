@@ -35,6 +35,12 @@ public class JobType extends AbstractPersistable {
     @Column(name = "tenant_id")
     private Long tenantId;
 
+    @Column(name = "document_url")
+    @ElementCollection
+    @CollectionTable(name = "job_type_documents", joinColumns = @JoinColumn(name = "job_type_id"))
+    private List<String> jobTypeDocuments = new ArrayList<>();
+
+
 }
 
 

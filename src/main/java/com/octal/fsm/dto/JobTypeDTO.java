@@ -18,6 +18,7 @@ public class JobTypeDTO {
         private Boolean isActive;
         private String description;
         private List<JobTaskDTO.Add> jobTasks;
+        private List<String> documents;
     }
 
     @Data
@@ -31,6 +32,7 @@ public class JobTypeDTO {
         private Boolean isActive;
         private String description;
         private List<JobTaskDTO.Detail> jobTasks;
+        private List<String> documents;
     }
 
     @Data
