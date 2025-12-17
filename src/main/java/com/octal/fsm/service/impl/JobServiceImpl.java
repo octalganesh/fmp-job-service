@@ -149,7 +149,7 @@ public class JobServiceImpl implements JobService {
     public ResponseEntity<com.octal.fsm.common.ApiResponse> updateJob(JobDTO.Add addJobDTO, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
             addJobDTO.setTenantId(!isSuperAdmin ? tenantId : 1L);
-            if(addJobDTO.getJobUuiId() == null)
+            if (addJobDTO.getJobUuiId() == null)
                 throw new CodeException("Job Uuid required", ErrorCode.COMMON);
             if (TextUtils.isEmpty(addJobDTO.getServiceLocation()))
                 throw new CodeException("Service Location is required", ErrorCode.COMMON);
@@ -2353,7 +2353,7 @@ public class JobServiceImpl implements JobService {
             if (byUuidAndDeletedFalse.isPresent()) {
                 JobTaskMappingTechnician entity = byUuidAndDeletedFalse.get();
                 entity.setDrawingJson(details.getDrawingJsonData());
-                entity.setDrawingImage(awsS3BaseUrl+details.getDrawingImage());
+                entity.setDrawingImage(awsS3BaseUrl + details.getDrawingImage());
                 JobTaskMappingTechnician save = jobTaskMappingTechnicianRepository.save(entity);
                 return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Drawing data updated successfully", save.getUuid(), "200", HttpStatus.OK), HttpStatus.OK);
             }
@@ -2365,11 +2365,11 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public ResponseEntity<com.octal.fsm.common.ApiResponse> getJobByCustomerId(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
-        if(listRequest.getCustomerId() != null){
+        if (listRequest.getCustomerId() != null) {
             Page<Job> pagedResult = getJobMappingData(listRequest, tenantId, isSuperAdmin);
             List<Job> jobs = pagedResult.getContent();
 
-            if(jobs.isEmpty()){
+            if (jobs.isEmpty()) {
                 return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job data fetch successfully", Collections.emptyList(), "200", HttpStatus.OK), HttpStatus.OK);
             }
             List<String> jobTypeIds = jobs.stream().map(Job::getJobTypeId).distinct().collect(Collectors.toList());
@@ -2431,10 +2431,10 @@ public class JobServiceImpl implements JobService {
 
         List<JobType> byUuidAndDeletedFalse = jobTypeRepository.findByUuidAndDeletedFalse(jobTypeIds);
         Map<String, JobType> jobTypeMap = byUuidAndDeletedFalse.stream()
-                .collect(Collectors.toMap(JobType::getUuid, jt -> jt,(existing, replacement) -> existing ));
+                .collect(Collectors.toMap(JobType::getUuid, jt -> jt, (existing, replacement) -> existing));
 
         Map<String, JobMappingTask> technicianTaskMap = jobMappingTasks.stream()
-                .collect(Collectors.toMap(JobMappingTask::getUuid, jt -> jt,(existing, replacement) -> existing ));
+                .collect(Collectors.toMap(JobMappingTask::getUuid, jt -> jt, (existing, replacement) -> existing));
 
         List<JobDTO.JobMappingTaskTechnician> responseList = jobTaskMappingTechnicians.stream()
                 .map(task -> {
@@ -2534,7 +2534,7 @@ public class JobServiceImpl implements JobService {
 //            builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("tenantId", tenantId));
 //        }
 
-        if(!listRequest.getTechnicianId().isEmpty()){
+        if (listRequest.getTechnicianId() != null && !listRequest.getTechnicianId().isEmpty()) {
             builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("technicianId", listRequest.getTechnicianId().get(0)));
         }
 
@@ -2559,7 +2559,7 @@ public class JobServiceImpl implements JobService {
             builder.with(jobSpecificationFactory.isEqual("tenantId", tenantId));
         }
 
-        if(listRequest.getCustomerId() != null){
+        if (listRequest.getCustomerId() != null) {
             builder.with(jobSpecificationFactory.isEqual("customerId", listRequest.getCustomerId()));
         }
 
@@ -2650,7 +2650,7 @@ public class JobServiceImpl implements JobService {
             // 1. Fetch technician mappings
             if (!technicianIds.isEmpty()) {
                 techMappings = jobTaskMappingTechnicianRepository.findByTechnicianIdIn(technicianIds);
-                if(techMappings == null || techMappings.isEmpty()){
+                if (techMappings == null || techMappings.isEmpty()) {
                     return new PageItem<>(
                             0,
                             0,
