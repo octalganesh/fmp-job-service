@@ -11,6 +11,7 @@ import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.JobStatusMasterRepository;
 import com.octal.fsm.repositories.JobTypeRepository;
+import com.octal.fsm.service.GeneralSettingService;
 import com.octal.fsm.service.JobTypeService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
@@ -35,6 +36,9 @@ public class JobTypeServiceImpl implements JobTypeService {
     private SpecificationFactory<JobType> jobTypeSpecificationFactory;
     @Autowired
     private JobStatusMasterRepository jobStatusMasterRepository;
+
+    @Autowired
+    private GeneralSettingService generalSettingService;
 
     @Value("${aws.base-url}")
     private String awsS3BaseUrl;
@@ -278,6 +282,8 @@ public class JobTypeServiceImpl implements JobTypeService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobType> builder = new GenericSpecificationsBuilder<>();
+        int pageSize = generalSettingService.getPageSize(tenantId);
+        listRequest.setPageSize(pageSize);
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
@@ -350,6 +356,8 @@ public class JobTypeServiceImpl implements JobTypeService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobType> builder = new GenericSpecificationsBuilder<>();
+        int pageSize = generalSettingService.getPageSize(tenantId);
+        listRequest.setPageSize(pageSize);
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
