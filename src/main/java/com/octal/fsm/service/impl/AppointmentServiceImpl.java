@@ -14,6 +14,7 @@ import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.*;
 import com.octal.fsm.service.AppointmentService;
+import com.octal.fsm.service.GeneralSettingService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
 import com.octal.fsm.utils.TextUtils;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Type;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -52,6 +54,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     private AdminClient adminClient;
     @Autowired
     private JobRepository jobRepository;
+
+    @Autowired
+    private GeneralSettingService generalSettingService;
 
     @Override
     public String addAppointment(AppointmentDTO.Add add, String userName) throws CodeException {
@@ -113,6 +118,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<Appointment> builder = new GenericSpecificationsBuilder<>();
+        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
@@ -209,6 +215,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<Appointment> builder = new GenericSpecificationsBuilder<>();
+        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());

@@ -17,7 +17,7 @@ public interface JobNotesService {
 
     List<JobNotesDTO.Details> getJobNotesByJobId(String jobId);
 
-    PageItem<JobNotesDTO.Details> getAllJobNotes(PageRequest.List listRequest);
+    PageItem<JobNotesDTO.Details> getAllJobNotes(PageRequest.List listRequest,Long tenantId);
 
 
 }

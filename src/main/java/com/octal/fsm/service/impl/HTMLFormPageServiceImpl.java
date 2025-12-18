@@ -8,6 +8,7 @@ import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.HTMLFormPageRepository;
+import com.octal.fsm.service.GeneralSettingService;
 import com.octal.fsm.service.HTMLFormPageService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -29,12 +31,15 @@ public class HTMLFormPageServiceImpl implements HTMLFormPageService {
 
     @Autowired
     private SpecificationFactory<HTMLFormPage> htmlPageSpecificationFactory;
+    @Autowired
+    private GeneralSettingService generalSettingService;
 
 
     @Override
     public PageItem<HTMLFormDTO.Details> getAllFormsPage(PageRequest.List listRequest, Long tenantId) {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
+        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         GenericSpecificationsBuilder<HTMLFormPage> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
@@ -45,13 +50,14 @@ public class HTMLFormPageServiceImpl implements HTMLFormPageService {
         prepareHTMLFormsTypeSearchFilter(listRequest, builder, tenantId);
         Page<HTMLFormPage> pagedResult = htmlFormPageRepository.findAll(builder.build(), pageable);
         List<HTMLFormDTO.Details> responseList = new ArrayList<>();
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
         for (HTMLFormPage forms : pagedResult.getContent()) {
             HTMLFormDTO.Details dto = new HTMLFormDTO.Details();
             dto.setId(forms.getUuid());
             dto.setName(forms.getName());
             dto.setContent(forms.getContent());
-            dto.setCreatedAt(String.valueOf(forms.getCreatedAt()));
-            dto.setUpdatedAt(String.valueOf(forms.getUpdatedAt()));
+            dto.setCreatedAt(forms.getCreatedAt().format(dateTimeFormatter));
+            dto.setUpdatedAt(forms.getUpdatedAt().format(dateTimeFormatter));
             dto.setActive(forms.getActive());
             responseList.add(dto);
         }

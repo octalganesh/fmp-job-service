@@ -19,6 +19,7 @@ import com.octal.fsm.listener.events.SendMailAndPushEvent;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.repositories.*;
 import com.octal.fsm.service.DocumentService;
+import com.octal.fsm.service.GeneralSettingService;
 import com.octal.fsm.service.JobService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
@@ -121,6 +122,8 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private JobNotesRepository jobNotesRepository;
+    @Autowired
+    private GeneralSettingService generalSettingService;
 
     @Autowired
     private JobService jobService;
@@ -234,11 +237,12 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException {
+    public PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail,Long tenantId) throws CodeException {
         Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(jobId);
         if (!jobExist)
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         GenericSpecificationsBuilder<JobInvoice> builder = new GenericSpecificationsBuilder<>();
+        size = generalSettingService.getPageSize(tenantId);
         Pageable pageable = null;
         if (Boolean.TRUE.equals(order)) {
             pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).ascending());
@@ -249,6 +253,7 @@ public class JobServiceImpl implements JobService {
         builder.with(jobInvoiceSpecificationFactory.isEqual("jobId", jobId));
         Page<JobInvoice> pagedResult = jobInvoiceRepository.findAll(builder.build(), pageable);
         List<JobDTO.InvoiceListResponse> responseList = new ArrayList<>();
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
         for (JobInvoice jobInvoice : pagedResult.getContent()) {
             JobDTO.InvoiceListResponse dto = new JobDTO.InvoiceListResponse();
             dto.setId(jobInvoice.getUuid());
@@ -256,9 +261,13 @@ public class JobServiceImpl implements JobService {
             dto.setInvoiceType(jobInvoice.getInvoiceType());
             dto.setAmount(jobInvoice.getAmount());
             dto.setSendOnEmail(jobInvoice.getSendOnEmail());
-            dto.setDueDate(jobInvoice.getDueDate() != null ? jobInvoice.getDueDate().toString() : null);
+            if(jobInvoice.getDueDate() != null){
+                dto.setDueDate(dateTimeFormatter != null ? jobInvoice.getDueDate().format(dateTimeFormatter) : jobInvoice.getDueDate().toString());
+            }
             dto.setNote(jobInvoice.getNote());
-            dto.setCreatedAt(jobInvoice.getCreatedAt() != null ? jobInvoice.getCreatedAt().toString() : null);
+            if(jobInvoice.getCreatedAt() != null){
+                dto.setCreatedAt(dateTimeFormatter != null ? jobInvoice.getCreatedAt().format(dateTimeFormatter) : jobInvoice.getCreatedAt().toString());
+            }
             dto.setPaid(jobInvoice.getPaid());
             dto.setJobId(jobId);
             responseList.add(dto);
@@ -297,6 +306,7 @@ public class JobServiceImpl implements JobService {
 
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
+        size = generalSettingService.getPageSize(tenantId);
         if (Boolean.TRUE.equals(order)) {
             pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).ascending());
         } else {
@@ -369,6 +379,7 @@ public class JobServiceImpl implements JobService {
         }
         Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageable);
         List<JobDTO.JobListResponse> responseList = new ArrayList<>();
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
         for (Job job : pagedResult.getContent()) {
             JobDTO.JobListResponse dto = new JobDTO.JobListResponse();
             dto.setId(job.getUuid());
@@ -376,8 +387,12 @@ public class JobServiceImpl implements JobService {
             dto.setServiceLocation(job.getServiceLocation());
             Optional<JobType> jobTypeOpt = jobTypeRepository.findByUuid(job.getJobTypeId());
             jobTypeOpt.ifPresent(type -> dto.setJobType(type.getName()));
-            dto.setJobStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
-            dto.setJobEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
+            if(job.getJobStartDate() != null){
+                dto.setJobStartDate(dateTimeFormatter != null ? job.getJobStartDate().format(dateTimeFormatter) : job.getJobStartDate().toString());
+            }
+            if(job.getJobEndDate() != null){
+                dto.setJobStartDate(dateTimeFormatter != null ? job.getJobEndDate().format(dateTimeFormatter) : job.getJobEndDate().toString());
+            }
             try {
                 ApiResponse apiResponse = adminClient.getJobDetailsWithLeadAndCustomerDetails(job.getCustomerId(), job.getLeadSourceId(), loggedInUserEmail, tenantId, isSuperAdmin).getBody();
                 if (apiResponse != null && apiResponse.getData() != null) {
@@ -458,6 +473,8 @@ public class JobServiceImpl implements JobService {
         response.setLeadReceivedDate(job.getLeadReceivedDate() != null ? job.getLeadReceivedDate().toString() : null);
         List<JobMappingTags> jobTags = job.getJobMappingTags();
         List<JobTagDTO.Detail> jobTagList = new ArrayList<>();
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
+
         for (JobMappingTags tag : jobTags) {
             Optional<JobTag> jobTagOptional = jobTagRepository.findByUuid(tag.getTagId());
             if (jobTagOptional.isPresent()) {
@@ -471,8 +488,12 @@ public class JobServiceImpl implements JobService {
         response.setJobTags(jobTagList);
         response.setJobDescription(job.getJobDescription());
         response.setAdditionalNotes(job.getAdditionalNotes());
-        response.setJobStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
-        response.setJobEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
+        if(job.getJobStartDate() != null){
+            response.setJobStartDate(dateTimeFormatter != null ? job.getJobStartDate().format(dateTimeFormatter) : job.getJobStartDate().toString());
+        }
+        if(job.getJobEndDate() != null){
+            response.setJobStartDate(dateTimeFormatter != null ? job.getJobEndDate().format(dateTimeFormatter) : job.getJobEndDate().toString());
+        }
         response.setServiceLocation(job.getServiceLocation());
         response.setServiceLocationLat(job.getServiceLocationLat());
         response.setServiceLocationLng(job.getServiceLocationLng());
@@ -603,7 +624,10 @@ public class JobServiceImpl implements JobService {
                 try {
                     assignJobToTechnician.setTaskName(jobMappingTask.get().getTaskName());
                     assignJobToTechnician.setTaskShowId(jobMappingTask.get().getTaskShowId());
-                    applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician, save, loggedInUserEmail, tenantId, isSuperAdmin));
+                    boolean notificationEnabled = generalSettingService.isNotificationEnabled(tenantId);
+                    if(notificationEnabled){
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician, save, loggedInUserEmail, tenantId, isSuperAdmin));
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -649,7 +673,10 @@ public class JobServiceImpl implements JobService {
                 try {
                     assignJobToTechnician.setTaskName(jobMappingTask.get().getTaskName());
                     assignJobToTechnician.setTaskShowId(jobMappingTask.get().getTaskShowId());
-                    applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician, JobTaskMappingTechnician, loggedInUserEmail, tenantId, isSuperAdmin));
+                    boolean notificationEnabled = generalSettingService.isNotificationEnabled(tenantId);
+                    if(notificationEnabled){
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician, JobTaskMappingTechnician, loggedInUserEmail, tenantId, isSuperAdmin));
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -824,6 +851,7 @@ public class JobServiceImpl implements JobService {
     public PageItem<JobDTO.JobHistoryDTO> jobLeaveReassignHistory(int page, int size, String sortBy, Boolean order, String fromStartDate, String toStartDate, String jobId, String userName, Long tenantId, boolean isSuperAdmin) {
 
         GenericSpecificationsBuilder<JobHistory> builder = new GenericSpecificationsBuilder<>();
+        size = generalSettingService.getPageSize(tenantId);
         Pageable pageable = null;
         if (Boolean.TRUE.equals(order)) {
             pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).ascending());
@@ -985,7 +1013,10 @@ public class JobServiceImpl implements JobService {
             }
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
             try {
-                applicationEventPublisher.publishEvent(new SendMailAndPushEvent(taskMappingTechnician, tenantId, userName));
+                boolean notificationEnabled = generalSettingService.isNotificationEnabled(tenantId);
+                if(notificationEnabled){
+                    applicationEventPublisher.publishEvent(new SendMailAndPushEvent(taskMappingTechnician, tenantId, userName));
+                }
             } catch (Exception exception) {
                 throw new CodeException("Error while sending mail and notification", ErrorCode.COMMON);
             }
@@ -997,7 +1028,8 @@ public class JobServiceImpl implements JobService {
     private List<JobDTO.DetailsForTechnician> buildTechnicianJobTaskDetails
             (List<JobTaskMappingTechnician> taskMappings, String txt, String loggedInUserEmail, Long tenantId) {
         List<JobDTO.DetailsForTechnician> responseList = new ArrayList<>();
-
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
+        DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
         for (JobTaskMappingTechnician taskMapping : taskMappings) {
             Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(taskMapping.getJobTaskMappingId());
             if (jobMappingTask.isPresent()) {
@@ -1068,13 +1100,21 @@ public class JobServiceImpl implements JobService {
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
                     details.setJobNote(job.get().getAdditionalNotes());
-                    details.setJobStartDate(job.get().getJobStartDate().toString());
-                    details.setJobEndDate(job.get().getJobEndDate().toString());
+                    if(job.get().getJobStartDate() != null){
+                        details.setJobStartDate(dateTimeFormatter != null ? job.get().getJobStartDate().format(dateFormatter) : job.get().getJobStartDate().toString());
+                    }
+                    if(job.get().getJobEndDate() != null){
+                        details.setJobEndDate(dateTimeFormatter != null ? job.get().getJobEndDate().format(dateFormatter) : job.get().getJobEndDate().toString());
+                    }
                     details.setTaskDescription(jobTask.get().getDescription());
                     details.setJobTitle(jobTask.get().getName());
                     details.setJobDescription(job.get().getJobDescription());
-                    details.setStartDate(taskMapping.getStartDate() != null ? taskMapping.getStartDate().toString() : null);
-                    details.setEndDate(taskMapping.getEndDate() != null ? taskMapping.getEndDate().toString() : null);
+                    if(taskMapping.getStartDate() != null){
+                        details.setStartDate(dateTimeFormatter != null ? taskMapping.getStartDate().format(dateFormatter) : taskMapping.getStartDate().toString());
+                    }
+                    if(taskMapping.getEndDate() != null){
+                        details.setEndDate(dateTimeFormatter != null ? taskMapping.getEndDate().format(dateFormatter) : taskMapping.getEndDate().toString());
+                    }
                     details.setServiceLocationLat(job.get().getServiceLocationLat());
                     details.setServiceLocationLng(job.get().getServiceLocationLng());
                     if (taskMapping.getTaskStatus().equalsIgnoreCase("ASSIGNED")) {
@@ -1163,7 +1203,9 @@ public class JobServiceImpl implements JobService {
                             htmlFormDTO.setId(htmlFormPage.getUuid());
                             htmlFormDTO.setContent(htmlFormPage.getContent());
                             htmlFormDTO.setActive(htmlFormPage.getActive());
-                            htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt().toString());
+                            if(htmlFormPage.getCreatedAt() != null){
+                                htmlFormDTO.setCreatedAt(dateTimeFormatter != null ? htmlFormPage.getCreatedAt().format(dateTimeFormatter) : htmlFormPage.getCreatedAt().toString());
+                            }
                             htmlFormDTO.setFormId(htmlFormPage.getFormId() != null ? htmlFormPage.getFormId() : "");
                             list.add(htmlFormDTO);
                         }
@@ -1186,7 +1228,7 @@ public class JobServiceImpl implements JobService {
             GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
             builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("deleted", false));
             builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("technicianId", technicianId));
-
+            filterRequest.setPage(generalSettingService.getPageSize(tenantId));
             int page = filterRequest.getPage() != null ? filterRequest.getPage() : 0;
             int limit = filterRequest.getLimit() != null ? filterRequest.getLimit() : 10;
             Pageable pageable = PageRequest.of(page, limit, Sort.by("createdAt").descending());
@@ -1622,7 +1664,7 @@ public class JobServiceImpl implements JobService {
                 );
                 Map<String, TechnicianDTO.GetDetails> techMap = techDetails.stream()
                         .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
-
+                DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
                 for (JobTaskMappingTechnician record : pagedResult.getContent()) {
 
                     TechnicianDTO.GetDetails tech = techMap.get(record.getTechnicianId());
@@ -1640,8 +1682,8 @@ public class JobServiceImpl implements JobService {
                     JobTaskListDTO dto = new JobTaskListDTO();
                     dto.setTechnicianId(record.getTechnicianId());
                     dto.setTechnicianName(tech.getName());
-                    dto.setStartDate(record.getStartDate().toString());
-                    dto.setEndDate(record.getEndDate().toString());
+                    dto.setStartDate(dateFormatter != null ? record.getStartDate().format(dateFormatter) : record.getStartDate().toString());
+                    dto.setEndDate(dateFormatter != null ? record.getEndDate().format(dateFormatter) : record.getEndDate().toString());
                     dto.setTaskStatus(record.getTaskStatus());
                     dto.setTaskName(jobType.getName());
                     dto.setJobId(record.getJobTaskMappingId());
@@ -1693,6 +1735,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public PageItem<JobInvoiceListDTO> getJobCompletedInvoiceList(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
+            listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
             Page<Job> pagedResult = getJobMappingData(listRequest, tenantId, isSuperAdmin);
             List<Job> jobs = pagedResult.getContent();
 
@@ -1761,7 +1804,7 @@ public class JobServiceImpl implements JobService {
                     .collect(Collectors.toMap(JobType::getUuid, jt -> jt));
 
             List<JobInvoiceListDTO> results = new ArrayList<>();
-
+            DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
             for (Job job : jobs) {
                 CustomerDTO.GetDetails customer = customerMap.get(job.getCustomerId());
                 JobType jobType = jobTypeMap.get(job.getJobTypeId());
@@ -1785,9 +1828,12 @@ public class JobServiceImpl implements JobService {
                 } else {
                     dto.setPaymentStatus("Pending");
                 }
-                dto.setStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
-                dto.setEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
-
+                if(job.getJobStartDate() != null){
+                    dto.setStartDate(dateFormatter != null ? job.getJobStartDate().format(dateFormatter) : job.getJobStartDate().toString());
+                }
+                if(job.getJobEndDate() != null){
+                    dto.setEndDate(dateFormatter != null ? job.getJobEndDate().format(dateFormatter) : job.getJobEndDate().toString());
+                }
                 results.add(dto);
             }
 
@@ -1844,13 +1890,14 @@ public class JobServiceImpl implements JobService {
         try {
             Optional<JobMappingTask> byUuid = jobMappingTaskRepository.findByUuid(taskId);
             if (byUuid.isPresent()) {
+                DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
                 JobMappingTask entity = byUuid.get();
                 TaskManagerDTO dto = new TaskManagerDTO();
                 dto.setTaskStatus(entity.getJobTaskStatus());
                 dto.setTaskName(entity.getTaskName());
                 dto.setTaskId(entity.getTaskId());
                 dto.setTaskShowId(entity.getTaskShowId());
-                dto.setDate(entity.getCreatedAt().toLocalDate().toString());
+                dto.setDate(dateTimeFormatter != null ? entity.getCreatedAt().toLocalDate().format(dateTimeFormatter) : entity.getCreatedAt().toLocalDate().toString());
                 //dto.setTime(null);
                 dto.setDescription("Description");
                 dto.setJobId(entity.getJob().getJobId());
@@ -1880,6 +1927,7 @@ public class JobServiceImpl implements JobService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
+        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
@@ -1895,6 +1943,7 @@ public class JobServiceImpl implements JobService {
         if (listRequest.getTechnicianId() == null)
             listRequest.setTechnicianId(new ArrayList<>());
         GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
+        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         prepareDispatchSearchFilter(listRequest, builder);
 
         List<JobTaskMappingTechnician> techMappings = jobTaskMappingTechnicianRepository.findAll(builder.build());
@@ -1993,7 +2042,7 @@ public class JobServiceImpl implements JobService {
 
             final Map<String, JobTag> tagIdToNameMap = jobTags.stream()
                     .collect(Collectors.toMap(JobTag::getUuid, jt -> jt));
-
+            DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
             List<DispatchBoardDataResponseDTO> collect = techMappings.stream()
                     .map(tech -> {
                         JobMappingTask task = taskMap.get(tech.getJobTaskMappingId());
@@ -2011,9 +2060,12 @@ public class JobServiceImpl implements JobService {
 
                         CustomerDTO.GetDetails customer = customerToNameMap.get(job.getCustomerId());
                         dto.setCustomerName(customer != null ? customer.getName() : "Unknown");
-
-                        dto.setStartDate(tech.getStartDate() != null ? tech.getStartDate().toString() : null);
-                        dto.setEndDate(tech.getEndDate() != null ? tech.getEndDate().toString() : null);
+                        if(tech.getStartDate() != null){
+                            dto.setStartDate(dateFormatter != null ? tech.getStartDate().format(dateFormatter) : tech.getStartDate().toString());
+                        }
+                        if(tech.getEndDate() != null){
+                            dto.setEndDate(dateFormatter != null ? tech.getEndDate().format(dateFormatter) : tech.getEndDate().toString());
+                        }
                         dto.setStartTime(tech.getStartTime() != null ? tech.getStartTime().toString() : null);
                         dto.setEndTime(tech.getEndTime() != null ? tech.getEndTime().toString() : null);
                         dto.setJobId(job.getJobId());
@@ -2222,8 +2274,9 @@ public class JobServiceImpl implements JobService {
 //
                     String jobId = job.get().getJobId() != null ? job.get().getJobId().toLowerCase() : "";
                     String taskShowId = jobMappingTask.get().getTaskShowId() != null ? jobMappingTask.get().getTaskShowId().toLowerCase() : "";
-
-//
+                    DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
+                    DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
+                    DateTimeFormatter timeFormatter = generalSettingService.buildTenantTimeFormatter(tenantId);
                     details.setId(taskMapping.get().getUuid());
                     details.setTaskName(jobTask.get().getName());
                     details.setNote(taskMapping.get().getTechnicianNote());
@@ -2246,10 +2299,18 @@ public class JobServiceImpl implements JobService {
                     details.setAssignType(jobMappingTask.get().getAssignType().toString());
                     details.setTaskDescription(jobTask.get().getDescription());
                     details.setJobDescription(job.get().getJobDescription());
-                    details.setStartDate(taskMapping.get().getStartDate() != null ? taskMapping.get().getStartDate().toString() : null);
-                    details.setEndDate(taskMapping.get().getEndDate() != null ? taskMapping.get().getEndDate().toString() : null);
-                    details.setStartTime(taskMapping.get().getStartTime() != null ? taskMapping.get().getStartTime().toString() : null);
-                    details.setEndTime(taskMapping.get().getEndTime() != null ? taskMapping.get().getEndTime().toString() : null);
+                    if(taskMapping.get().getStartDate() != null){
+                        details.setStartDate(dateFormatter != null ? taskMapping.get().getStartDate().format(dateFormatter) : taskMapping.get().getStartDate().toString());
+                    }
+                    if(taskMapping.get().getEndDate() != null){
+                        details.setEndDate(dateFormatter != null ? taskMapping.get().getEndDate().format(dateFormatter) : taskMapping.get().getEndDate().toString());
+                    }
+                    if(taskMapping.get().getStartTime() != null){
+                        details.setStartTime(timeFormatter != null  ? taskMapping.get().getStartTime().toLocalTime().format(timeFormatter) : taskMapping.get().getStartTime().toString());
+                    }
+                    if(taskMapping.get().getEndTime() != null){
+                        details.setEndTime(timeFormatter != null  ? taskMapping.get().getEndTime().toLocalTime().format(timeFormatter) : taskMapping.get().getEndTime().toString());
+                    }
                     details.setServiceLocationLat(job.get().getServiceLocationLat());
                     details.setServiceLocationLng(job.get().getServiceLocationLng());
                     if (taskMapping.get().getTaskStatus().equalsIgnoreCase("ASSIGNED")) {
@@ -2321,7 +2382,7 @@ public class JobServiceImpl implements JobService {
                             htmlFormDTO.setId(htmlFormPage.getUuid());
                             htmlFormDTO.setContent(htmlFormPage.getContent());
                             htmlFormDTO.setActive(htmlFormPage.getActive());
-                            htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt().toString());
+                            htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt() != null ? htmlFormPage.getCreatedAt().format(dateTimeFormatter) : null);
                             list.add(htmlFormDTO);
                         }
                         details.setFormList(list);
@@ -2366,6 +2427,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public ResponseEntity<com.octal.fsm.common.ApiResponse> getJobByCustomerId(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
         if (listRequest.getCustomerId() != null) {
+            listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
             Page<Job> pagedResult = getJobMappingData(listRequest, tenantId, isSuperAdmin);
             List<Job> jobs = pagedResult.getContent();
 
@@ -2376,7 +2438,8 @@ public class JobServiceImpl implements JobService {
             List<JobType> byUuidAndDeletedFalse = jobTypeRepository.findByUuidAndDeletedFalse(jobTypeIds);
             Map<String, JobType> jobTypeMap = byUuidAndDeletedFalse.stream()
                     .collect(Collectors.toMap(JobType::getUuid, jt -> jt));
-
+            DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
+            DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
             List<JobDTO.JobCustomerDTO> jobCustomerDTOList = jobs.stream()
                     .map(job -> {
                         JobDTO.JobCustomerDTO dto = new JobDTO.JobCustomerDTO();
@@ -2387,9 +2450,13 @@ public class JobServiceImpl implements JobService {
                         dto.setJobId(job.getJobId());
                         dto.setId(job.getUuid());
                         dto.setStatus(job.getJobStatus());
-                        dto.setCreatedAt(job.getCreatedAt().toString());
-                        dto.setStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
-                        dto.setEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
+                        dto.setCreatedAt(job.getCreatedAt() != null ? job.getCreatedAt().format(dateTimeFormatter) : null);
+                        if(job.getJobStartDate() != null){
+                            dto.setStartDate(dateFormatter != null ? job.getJobStartDate().format(dateFormatter) : job.getJobStartDate().toString());
+                        }
+                        if(job.getJobEndDate() != null){
+                            dto.setEndDate(dateFormatter != null ? job.getJobEndDate().format(dateFormatter) : job.getJobEndDate().toString());
+                        }
                         return dto;
                     })
                     .collect(Collectors.toList());
@@ -2412,7 +2479,7 @@ public class JobServiceImpl implements JobService {
         if (listRequest.getTechnicianId() == null || listRequest.getTechnicianId().isEmpty()) {
             return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, "Technician Id is required", null, "500", HttpStatus.BAD_REQUEST), HttpStatus.OK);
         }
-
+        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         Page<JobTaskMappingTechnician> pagedResult = getJobTaskMappingData(listRequest, tenantId, isSuperAdmin);
         List<JobTaskMappingTechnician> jobTaskMappingTechnicians = pagedResult.getContent();
         if (jobTaskMappingTechnicians.isEmpty()) {
@@ -2435,7 +2502,7 @@ public class JobServiceImpl implements JobService {
 
         Map<String, JobMappingTask> technicianTaskMap = jobMappingTasks.stream()
                 .collect(Collectors.toMap(JobMappingTask::getUuid, jt -> jt, (existing, replacement) -> existing));
-
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
         List<JobDTO.JobMappingTaskTechnician> responseList = jobTaskMappingTechnicians.stream()
                 .map(task -> {
                     JobMappingTask jobMappingTask = technicianTaskMap.get(task.getJobTaskMappingId());
@@ -2452,8 +2519,9 @@ public class JobServiceImpl implements JobService {
                     dto.setTaskName(jobMappingTask.getTaskName());
 
                     dto.setTaskStatus(task.getTaskStatus());
-                    dto.setCreatedAt(job.getCreatedAt() != null ? job.getCreatedAt().toString() : null);
-
+                    if(job.getCreatedAt() != null){
+                        dto.setCreatedAt(job.getCreatedAt().format(dateTimeFormatter));
+                    }
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -2641,6 +2709,7 @@ public class JobServiceImpl implements JobService {
             Long tenantId) {
 
         try {
+            listReq.setPageSize(generalSettingService.getPageSize(tenantId));
             if (technicianIds == null) {
                 technicianIds = new ArrayList<>();
             }
@@ -2730,6 +2799,8 @@ public class JobServiceImpl implements JobService {
                     .collect(Collectors.toMap(JobType::getUuid, JobType::getName));
 
             // 5. Prepare DTO response
+            DateTimeFormatter timeFormatter = generalSettingService.buildTenantTimeFormatter(tenantId);
+            DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
             List<TaskManagerDTO> responseList = pageData.getContent().stream()
                     .map(task -> {
                         JobTaskMappingTechnician tech = mappingTechMap.get(task.getUuid());
@@ -2743,7 +2814,7 @@ public class JobServiceImpl implements JobService {
                         dto.setTaskShowId(task.getTaskShowId());
                         dto.setTaskName(task.getTaskName());
                         dto.setTaskStatus(task.getJobTaskStatus());
-                        dto.setDate(String.valueOf(task.getCreatedAt()));
+                        dto.setDate(task.getCreatedAt() != null ? task.getCreatedAt().format(dateTimeFormatter) : null);
                         dto.setCustomerName(
                                 customerToNameMap.containsKey(task.getJob().getCustomerId())
                                         ? customerToNameMap.get(task.getJob().getCustomerId()).getName()
@@ -2754,8 +2825,8 @@ public class JobServiceImpl implements JobService {
                         dto.setDescription("Description");
 
                         if (tech != null) {
-                            dto.setStartTime(String.valueOf(tech.getStartTime()));
-                            dto.setEndTime(String.valueOf(tech.getEndTime()));
+                            dto.setStartTime(tech.getStartTime() != null ? tech.getStartTime().toLocalTime().format(timeFormatter) : tech.getStartTime().toString());
+                            dto.setEndTime(tech.getEndTime() != null ? tech.getEndTime().toLocalTime().format(timeFormatter) : tech.getEndTime().toString());
                         }
 
                         dto.setTechnicianName(details != null ? details.getName() : "Assigned to CSR");
@@ -2830,6 +2901,7 @@ public class JobServiceImpl implements JobService {
         try {
             String trimmedText = listReq.getSearchText().trim();
             listReq.setSearchText(trimmedText);
+            listReq.setPageSize(generalSettingService.getPageSize(tenantId));
             GenericSpecificationsBuilder<JobMappingTask> builder = new GenericSpecificationsBuilder<>();
             Pageable pageable1 = null;
             if (Boolean.TRUE.equals(listReq.getAsc())) {
@@ -2855,6 +2927,7 @@ public class JobServiceImpl implements JobService {
                 customerDetails.forEach(t -> customerToNameMap.put(t.getId(), t));
                 // List<JobType>jobTypeList=jobTypeRepository.findByUuidAndDeletedFalse()
             }
+            DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
             List<JobType> jobTypeList = jobTypeRepository.findByUuidAndDeletedFalse(page.getContent().stream().map(task -> task.getJob().getJobTypeId()).collect(Collectors.toList()));
             Map<String, String> jobTypeMap = jobTypeList.stream()
                     .collect(Collectors.toMap(JobType::getUuid, JobType::getName));
@@ -2865,7 +2938,7 @@ public class JobServiceImpl implements JobService {
                 dto.setTaskId(department.getUuid());
                 dto.setTaskName(department.getTaskName());
                 dto.setTaskStatus(department.getJobTaskStatus());
-                dto.setDate(String.valueOf(department.getCreatedAt()));
+                dto.setDate(department.getCreatedAt() != null ? department.getCreatedAt().format(dateTimeFormatter) : null);
                 dto.setDescription("Description");
                 dto.setCustomerName(
                         customerToNameMap.containsKey(department.getJob().getCustomerId())
