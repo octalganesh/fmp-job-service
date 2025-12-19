@@ -46,4 +46,6 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
     List<Job> findByJobIdIn(List<String> jobIds);
 
     List<Job> findByCustomerId(String customerId);
+
+    List<Job> findByFrontOfficeIdAndDeletedFalse(String frontOfficeId);
 }
