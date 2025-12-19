@@ -553,12 +553,13 @@ public class JobServiceImpl implements JobService {
             Optional<JobTaskMappingTechnician> jobTaskMappingToTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(assignJobToTechnician.getJobTaskMappingId());
             if (jobTaskMappingToTechnician.isPresent()) {
                 boolean checkIfTaskAssignedToTechnician = checkIfTaskAssignedToTechnician(assignJobToTechnician);
-                if (!checkIfTaskAssignedToTechnician) {
+                if (!checkIfTaskAssignedToTechnician && !jobTaskMappingToTechnician.get().getTaskStatus().equalsIgnoreCase("cancelled")) {
                     throw new CodeException("Technician is already assigned to another task during the selected time period.", ErrorCode.COMMON);
                 }
                 //Todo need to create log for all assignment and reassignment of technician
                 jobTaskMappingToTechnician.get().setTechnicianId(assignJobToTechnician.getTechnicianId());
                 jobTaskMappingToTechnician.get().setNote(assignJobToTechnician.getNote());
+                jobTaskMappingToTechnician.get().setTaskStatus("ASSIGNED");
                 if (!TextUtils.isEmpty(assignJobToTechnician.getStartDate())) {
                     try {
                         LocalDate startDate = LocalDate.parse(assignJobToTechnician.getStartDate());
