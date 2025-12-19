@@ -195,6 +195,38 @@ public class JobTransformer {
                 }
             }
 
+            if(addJobDTO.getJobTypeId() != null){
+                job.setJobTypeId(addJobDTO.getJobTypeId());
+            }
+            if(addJobDTO.getLeadSourceId() != null){
+                job.setLeadSourceId(addJobDTO.getLeadSourceId());
+            }
+            if(addJobDTO.getJobTaskId() != null && !addJobDTO.getJobTaskId().isEmpty()){
+                List<JobMappingTask> jobMappingTask = new ArrayList<>();
+                for (String jobTaskId : addJobDTO.getJobTaskId()) {
+                    Optional<JobTask> jobTaskExist = jobTaskRepository.findByUuid(jobTaskId);
+                    if (jobTaskExist.isPresent()) {
+                        if (jobTaskExist.get().getSequence() == 1) {
+                            job.setCurrentTaskId(jobTaskId);
+                            job.setJobStatusMaster(jobTaskExist.get().getJobStatusMaster());
+                            job.setJobStatus(jobTaskExist.get().getName());
+                        }
+                        JobMappingTask task = new JobMappingTask();
+                        task.setTaskId(jobTaskId);
+                        task.setTaskName(jobTaskExist.get().getName());
+                        task.setTaskShowId(codeGenerator.generateTaskId());
+                        task.setTaskSequence(jobTaskExist.get().getSequence());
+                        task.setJobTaskStatus(jobTaskExist.get().getJobStatusMaster().getName());
+                        task.setAssignType(jobTaskExist.get().getAssignedType());
+                        task.setJob(job);
+                        jobMappingTask.add(task);
+                    }
+                }
+                if(!jobMappingTask.isEmpty())
+                    job.setJobMappingTasks(jobMappingTask);
+            }
+
+
             if (addJobDTO.getAdditionalNotes() != null)
                 job.setAdditionalNotes(addJobDTO.getAdditionalNotes());
 
