@@ -1413,9 +1413,11 @@ public class JobServiceImpl implements JobService {
                     throw new CodeException("Error while uploading documents: " + e.getMessage(), ErrorCode.EXCEPTION_OCCUR);
                 }
             }
-            if (TextUtils.isEmpty(updateJobTaskDetails.getNote()))
-                throw new CodeException("Note is required to update the task details", ErrorCode.BAD_REQUEST);
-            jobMappingTask.get().setNote(updateJobTaskDetails.getNote());
+//            if (TextUtils.isEmpty(updateJobTaskDetails.getNote()))
+//                throw new CodeException("Note is required to update the task details", ErrorCode.BAD_REQUEST);
+            if (!TextUtils.isEmpty(updateJobTaskDetails.getNote())){
+                jobMappingTask.get().setNote(updateJobTaskDetails.getNote());
+            }
             jobMappingTaskRepository.save(jobMappingTask.get());
         }
         if (updateJobTaskDetails.getIsDone()) {
