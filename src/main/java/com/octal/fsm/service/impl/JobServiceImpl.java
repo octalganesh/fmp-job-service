@@ -1861,6 +1861,7 @@ public class JobServiceImpl implements JobService {
                 //dto.setTime(null);
                 dto.setDescription("Description");
                 dto.setJobId(entity.getJob().getJobId());
+                dto.setJobUuid(entity.getJob().getUuid());
                 return dto;
             }
             return null;
