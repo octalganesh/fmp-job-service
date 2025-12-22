@@ -513,6 +513,8 @@ public class JobServiceImpl implements JobService {
                 if (jobTaskMappingTechnician.isPresent()) {
                     dto.setCreatedAt(jobTaskMappingTechnician.get().getCreatedAt() != null ? jobTaskMappingTechnician.get().getCreatedAt().toString() : null);
                     dto.setTaskStatus(jobTaskMappingTechnician.get().getTaskStatus());
+                    dto.setNote(jobTaskMappingTechnician.get().getNote());
+                    dto.setDocuments(jobTaskMappingTechnician.get().getDocuments());
                     ApiResponse technicianResponse = technicianClient.getTechnicianById(jobTaskMappingTechnician.get().getTechnicianId(), loggedInUserEmail).getBody();
                     if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
                         try {

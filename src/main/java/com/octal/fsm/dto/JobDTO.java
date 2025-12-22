@@ -187,6 +187,8 @@ public class JobDTO {
         private String technicianId;
         private TaskAssignedType assignedType;
         private Integer sequenceNumber;
+        private String note;
+        private String documents;
     }
 
     @Data
