@@ -36,5 +36,4 @@ public interface JobMappingTaskRepository extends JpaRepository<JobMappingTask, 
 
     List<JobMappingTask> findByTaskShowIdIn(List<String> taskShowId);
 
-    List<JobMappingTask> findByUuidIn(List<String> uuids);
 }
