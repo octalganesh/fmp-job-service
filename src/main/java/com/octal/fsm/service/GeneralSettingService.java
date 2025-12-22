@@ -30,7 +30,7 @@ public class GeneralSettingService {
 
     public int getPageSize(Long tenantId) {
         if (tenantId == null) {
-            return 5;
+            return 10;
         }
         return getInt(tenantId, SettingKey.RECORDS_PER_PAGE);
     }
@@ -75,7 +75,7 @@ public class GeneralSettingService {
         try {
             return Integer.parseInt(Objects.requireNonNull(getSettingValue(tenantId, key)));
         } catch (Exception e) {
-            return 5;
+            return 10;
         }
     }
 

@@ -253,7 +253,7 @@ public class JobServiceImpl implements JobService {
         builder.with(jobInvoiceSpecificationFactory.isEqual("jobId", jobId));
         Page<JobInvoice> pagedResult = jobInvoiceRepository.findAll(builder.build(), pageable);
         List<JobDTO.InvoiceListResponse> responseList = new ArrayList<>();
-        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
         for (JobInvoice jobInvoice : pagedResult.getContent()) {
             JobDTO.InvoiceListResponse dto = new JobDTO.InvoiceListResponse();
             dto.setId(jobInvoice.getUuid());
@@ -379,7 +379,7 @@ public class JobServiceImpl implements JobService {
         }
         Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageable);
         List<JobDTO.JobListResponse> responseList = new ArrayList<>();
-        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
+        DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
         for (Job job : pagedResult.getContent()) {
             JobDTO.JobListResponse dto = new JobDTO.JobListResponse();
             dto.setId(job.getUuid());
@@ -388,10 +388,10 @@ public class JobServiceImpl implements JobService {
             Optional<JobType> jobTypeOpt = jobTypeRepository.findByUuid(job.getJobTypeId());
             jobTypeOpt.ifPresent(type -> dto.setJobType(type.getName()));
             if(job.getJobStartDate() != null){
-                dto.setJobStartDate(dateTimeFormatter != null ? job.getJobStartDate().format(dateTimeFormatter) : job.getJobStartDate().toString());
+                dto.setJobStartDate(dateFormatter != null ? job.getJobStartDate().format(dateFormatter) : job.getJobStartDate().toString());
             }
             if(job.getJobEndDate() != null){
-                dto.setJobStartDate(dateTimeFormatter != null ? job.getJobEndDate().format(dateTimeFormatter) : job.getJobEndDate().toString());
+                dto.setJobEndDate(dateFormatter != null ? job.getJobEndDate().format(dateFormatter) : job.getJobEndDate().toString());
             }
             try {
                 ApiResponse apiResponse = adminClient.getJobDetailsWithLeadAndCustomerDetails(job.getCustomerId(), job.getLeadSourceId(), loggedInUserEmail, tenantId, isSuperAdmin).getBody();
@@ -473,7 +473,7 @@ public class JobServiceImpl implements JobService {
         response.setLeadReceivedDate(job.getLeadReceivedDate() != null ? job.getLeadReceivedDate().toString() : null);
         List<JobMappingTags> jobTags = job.getJobMappingTags();
         List<JobTagDTO.Detail> jobTagList = new ArrayList<>();
-        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
 
         for (JobMappingTags tag : jobTags) {
             Optional<JobTag> jobTagOptional = jobTagRepository.findByUuid(tag.getTagId());
@@ -1102,19 +1102,19 @@ public class JobServiceImpl implements JobService {
                     details.setJobId(job.get().getJobId());
                     details.setJobNote(job.get().getAdditionalNotes());
                     if(job.get().getJobStartDate() != null){
-                        details.setJobStartDate(dateTimeFormatter != null ? job.get().getJobStartDate().format(dateFormatter) : job.get().getJobStartDate().toString());
+                        details.setJobStartDate(dateFormatter != null ? job.get().getJobStartDate().format(dateFormatter) : job.get().getJobStartDate().toString());
                     }
                     if(job.get().getJobEndDate() != null){
-                        details.setJobEndDate(dateTimeFormatter != null ? job.get().getJobEndDate().format(dateFormatter) : job.get().getJobEndDate().toString());
+                        details.setJobEndDate(dateFormatter != null ? job.get().getJobEndDate().format(dateFormatter) : job.get().getJobEndDate().toString());
                     }
                     details.setTaskDescription(jobTask.get().getDescription());
                     details.setJobTitle(jobTask.get().getName());
                     details.setJobDescription(job.get().getJobDescription());
                     if(taskMapping.getStartDate() != null){
-                        details.setStartDate(dateTimeFormatter != null ? taskMapping.getStartDate().format(dateFormatter) : taskMapping.getStartDate().toString());
+                        details.setStartDate(dateFormatter != null ? taskMapping.getStartDate().format(dateFormatter) : taskMapping.getStartDate().toString());
                     }
                     if(taskMapping.getEndDate() != null){
-                        details.setEndDate(dateTimeFormatter != null ? taskMapping.getEndDate().format(dateFormatter) : taskMapping.getEndDate().toString());
+                        details.setEndDate(dateFormatter != null ? taskMapping.getEndDate().format(dateFormatter) : taskMapping.getEndDate().toString());
                     }
                     details.setServiceLocationLat(job.get().getServiceLocationLat());
                     details.setServiceLocationLng(job.get().getServiceLocationLng());
