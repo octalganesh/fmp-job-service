@@ -84,6 +84,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (TextUtils.isEmpty(add.getId())) {
             appointment = new Appointment();
             appointment.setCreatedAt(LocalDateTime.now());
+            appointment.setStatus("Scheduled");
         } else {
             Optional<Appointment> announcementOptional = appointmentRepository.findByUuidAndDeletedFalse(add.getId());
             if (announcementOptional.isEmpty()) {
@@ -100,7 +101,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         appointment.setActive(true);
         appointment.setDeleted(false);
-        appointment.setStatus("Scheduled");
         appointment.setAdditionalNotes(add.getAdditionalNotes());
         appointment.setJobId(add.getJobId());
         Gson gson = new Gson();

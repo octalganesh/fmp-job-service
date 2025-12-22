@@ -31,7 +31,8 @@ public class AppointmentController extends BaseController {
     public ResponseEntity<ApiResponse> addAppointment(@RequestBody AppointmentDTO.Add add, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Appointment added successfully", appointmentService.addAppointment(add, userName), "200", HttpStatus.OK), HttpStatus.OK);
+            String message = add.getId() == null ? "Appointment added successfully" : "Appointment updated successfully";
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, message, appointmentService.addAppointment(add, userName), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error updating job task status: {}", e.getMessage(), e);
             return handleException(e);
