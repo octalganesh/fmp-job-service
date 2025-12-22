@@ -13,8 +13,10 @@ import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.*;
+import com.octal.fsm.service.AdminClientService;
 import com.octal.fsm.service.AppointmentService;
 import com.octal.fsm.service.GeneralSettingService;
+import com.octal.fsm.service.TechnicianClientService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
 import com.octal.fsm.utils.TextUtils;
@@ -54,6 +56,12 @@ public class AppointmentServiceImpl implements AppointmentService {
     private AdminClient adminClient;
     @Autowired
     private JobRepository jobRepository;
+
+    @Autowired
+    private TechnicianClientService technicianClientService;
+
+    @Autowired
+    private AdminClientService adminClientService;
 
     @Autowired
     private GeneralSettingService generalSettingService;
@@ -156,26 +164,14 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .collect(Collectors.toMap(JobMappingTask::getTaskShowId, j -> j));
 
         if(!byUuidIn.isEmpty()) {
-            ApiResponse customerResponse = adminClient.getCustomerByIds(new ArrayList<>(byUuidIn.stream().map(Job::getCustomerId).filter(Objects::nonNull).distinct().collect(Collectors.toList())), tenantId, false).getBody();
-            if (customerResponse != null && "200".equalsIgnoreCase(customerResponse.getStatus()) && customerResponse.getData() != null) {
-                List<CustomerDTO.GetDetails> customerDetails = objectMapper.convertValue(
-                        customerResponse.getData(),
-                        new TypeReference<List<CustomerDTO.GetDetails>>() {
-                        }
-                );
-                customerToNameMap = customerDetails.stream()
+            List<CustomerDTO.GetDetails> customerList = adminClientService.getCustomerList(new ArrayList<>(byUuidIn.stream().map(Job::getCustomerId).filter(Objects::nonNull).distinct().collect(Collectors.toList())), tenantId, false);
+            if(customerList != null){
+                customerToNameMap = customerList.stream()
                         .collect(Collectors.toMap(CustomerDTO.GetDetails::getId, t -> t));
             }
         }
-
-        ApiResponse technicianResponse = technicianClient.getTechByIds(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).filter(Objects::nonNull).distinct().collect(Collectors.toList())), tenantId).getBody();
-        if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
-            List<TechnicianDTO.GetDetails> techDetails = objectMapper.convertValue(
-                    technicianResponse.getData(),
-                    new TypeReference<List<TechnicianDTO.GetDetails>>() {
-                    }
-            );
-
+        List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).collect(Collectors.toList())),tenantId);
+        if(techDetails != null){
             techMap = techDetails.stream()
                     .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
         }
@@ -241,14 +237,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         Map<String, TechnicianDTO.GetDetails> techMap = null;
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        ApiResponse technicianResponse = technicianClient.getTechByIds(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).collect(Collectors.toList())), tenantId).getBody();
-        if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
-            List<TechnicianDTO.GetDetails> techDetails = objectMapper.convertValue(
-                    technicianResponse.getData(),
-                    new TypeReference<List<TechnicianDTO.GetDetails>>() {
-                    }
-            );
 
+        List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).collect(Collectors.toList())), tenantId);
+        if(techDetails != null){
             techMap = techDetails.stream()
                     .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
         }

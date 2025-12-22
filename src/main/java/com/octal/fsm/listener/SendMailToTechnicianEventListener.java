@@ -10,6 +10,7 @@ import com.octal.fsm.entities.JobTaskMappingTechnician;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.service.EmailService;
 import com.octal.fsm.service.JobService;
+import com.octal.fsm.service.NotificationClientService;
 import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
@@ -40,6 +41,9 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
     @Autowired
     private TechnicianClient technicianClient;
 
+    @Autowired
+    private NotificationClientService notificationClientService;
+
     @Override
     @Async("sendMailToTechnicianEvent")
     public void onApplicationEvent(SendMailToTechnicianEvent event) {
@@ -60,13 +64,11 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
                     TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
                     if (getDetails != null && getDetails.getEmail() != null) {
                         PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
-                        ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
-                        ApiResponse body = notificationSlugContent.getBody();
-                        if (body != null) {
-                            NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
-                            content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", getDetails.getName()));
-                            sendBulkNotificationToUsers.setTitle(content.getTitle());
-                            sendBulkNotificationToUsers.setBody(content.getMessage());
+                        NotificationContentDTO.Request notificationContent = notificationClientService.getNotificationContent(PushNotificationType.TASK_STATUS_CHANGE.toString());
+                        if (notificationContent != null) {
+                            notificationContent.setMessage(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#technicianName", getDetails.getName()));
+                            sendBulkNotificationToUsers.setTitle(notificationContent.getTitle());
+                            sendBulkNotificationToUsers.setBody(notificationContent.getMessage());
                             sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
                             sendBulkNotificationToUsers.setTypeId(jobTaskMappingTech.getUuid());
                             sendBulkNotificationToUsers.setTaskId(jobTaskMappingTech.getUuid());
