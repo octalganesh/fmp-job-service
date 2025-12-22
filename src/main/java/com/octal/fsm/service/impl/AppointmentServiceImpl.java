@@ -121,13 +121,27 @@ public class AppointmentServiceImpl implements AppointmentService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<Appointment> builder = new GenericSpecificationsBuilder<>();
+        List<String> jobIds = new ArrayList<>();
+        if (listRequest.getFrontOfficeId() != null) {
+            jobIds = jobRepository.findByFrontOfficeIdAndDeletedFalse(listRequest.getFrontOfficeId())
+                    .stream().map(Job::getJobId).filter(Objects::nonNull)
+                    .distinct().collect(Collectors.toList());
+        }
+        if (jobIds.isEmpty()) {
+            return new PageItem<>(0, 1, Collections.emptyList(), listRequest.getPageNumber(), listRequest.getPageSize());
+        }
+        if (!TextUtils.isEmpty(listRequest.getJobId())) {
+            if (!jobIds.contains(listRequest.getJobId())) {
+                return new PageItem<>(0, 1, Collections.emptyList(), listRequest.getPageNumber(), listRequest.getPageSize());
+            }
+        }
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
         } else {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
         }
-        prepareJobTypeSearchFilter(listRequest, builder);
+        prepareJobTypeSearchFilter(listRequest, builder,jobIds);
         Page<Appointment> pagedResult = appointmentRepository.findAll(builder.build(), pageable);
         Map<String, TechnicianDTO.GetDetails> techMap = null;
         Map<String, CustomerDTO.GetDetails> customerToNameMap = null;
@@ -280,13 +294,15 @@ public class AppointmentServiceImpl implements AppointmentService {
         return appointment.getUuid();
     }
 
-    private void prepareJobTypeSearchFilter(PageRequest.List listRequest, GenericSpecificationsBuilder<Appointment> builder) {
+    private void prepareJobTypeSearchFilter(PageRequest.List listRequest, GenericSpecificationsBuilder<Appointment> builder,List<String> jobIds) {
         builder.with(appointmentSpecificationFactory.isEqual("deleted", false));
         if (listRequest.getIsActive() != null) {
             builder.with(appointmentSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
         }
         if (!TextUtils.isEmpty(listRequest.getJobId())) {
             builder.with(appointmentSpecificationFactory.like("jobId", listRequest.getJobId()).or(appointmentSpecificationFactory.isEqual("jobId", listRequest.getJobId())));
+        }else if (jobIds != null && !jobIds.isEmpty()) {
+            builder.with(appointmentSpecificationFactory.in("jobId", jobIds));
         }
         if (listRequest.getStartDate() != null) {
             builder.with(appointmentSpecificationFactory.isGreaterThanOrEquals("createdAt", listRequest.getStartDate().atStartOfDay()));
