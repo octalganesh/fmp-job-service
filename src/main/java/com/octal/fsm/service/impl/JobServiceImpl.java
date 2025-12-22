@@ -481,7 +481,9 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public PageItem<JobDTO.JobTaskListResponse> getJobTask(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException {
+    public PageItem<JobDTO.JobTaskListResponse> getJobTask(int page, int size, String sortBy, Boolean order, String jobId,Long tenantId,Boolean isSuperAdmin, String loggedInUserEmail) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
         Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(jobId);
         if (!jobExist)
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
@@ -509,12 +511,12 @@ public class JobServiceImpl implements JobService {
                 dto.setTaskDescription(jobTask.get().getDescription());
                 dto.setAssignedType(jobMappingTask.getAssignType());
                 dto.setSequenceNumber(jobTask.get().getSequence());
+                dto.setNote(jobMappingTask.getNote());
+                dto.setDocuments(documentService.getJobDocuments(jobMappingTask.getUuid(),tenantId,false));
                 Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.getUuid());
                 if (jobTaskMappingTechnician.isPresent()) {
                     dto.setCreatedAt(jobTaskMappingTechnician.get().getCreatedAt() != null ? jobTaskMappingTechnician.get().getCreatedAt().toString() : null);
                     dto.setTaskStatus(jobTaskMappingTechnician.get().getTaskStatus());
-                    dto.setNote(jobTaskMappingTechnician.get().getNote());
-                    dto.setDocuments(jobTaskMappingTechnician.get().getDocuments());
                     ApiResponse technicianResponse = technicianClient.getTechnicianById(jobTaskMappingTechnician.get().getTechnicianId(), loggedInUserEmail).getBody();
                     if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
                         try {

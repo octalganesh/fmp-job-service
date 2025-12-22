@@ -188,7 +188,7 @@ public class JobDTO {
         private TaskAssignedType assignedType;
         private Integer sequenceNumber;
         private String note;
-        private String documents;
+        private List<DocumentDTO.ListResponse> documents;
     }
 
     @Data
