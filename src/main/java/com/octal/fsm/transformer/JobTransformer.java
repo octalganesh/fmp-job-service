@@ -116,6 +116,30 @@ public class JobTransformer {
         // Documents
         List<Documents> documentsList = new ArrayList<>();
         List<JobMappingDocuments> documents = new ArrayList<>();
+
+        Optional<JobType> jobTypeOptional = jobTypeRepository.findByUuid(addJobDTO.getJobTypeId());
+        if(jobTypeOptional.isPresent()){
+            if(jobTypeOptional.get().getJobTypeDocuments() != null && !jobTypeOptional.get().getJobTypeDocuments().isEmpty()){
+                for (String documentUrl : jobTypeOptional.get().getJobTypeDocuments()) {
+                    Documents document = new Documents();
+                    document.setFileName(TextUtils.getFileNameFromFileUrl(documentUrl));
+                    document.setFileType(TextUtils.getFileTypeFromFileUrl(documentUrl));
+                    document.setDocumentUrl(documentUrl);
+                    document.setAttachType("JOB");
+                    document.setAttachTypeId(job.getJobId());
+                    document.setUploadedByType(addJobDTO.getUploadedByType());
+                    document.setUploadedByTypeId(addJobDTO.getUploadedByTypeId());
+                    document.setUploadedByUserName(addJobDTO.getUploadedByUserName());
+                    documentsList.add(document);
+
+                    JobMappingDocuments jobMappingDocuments = new JobMappingDocuments();
+                    jobMappingDocuments.setJob(job);
+                    jobMappingDocuments.setDocumentId(document.getUuid());
+                    documents.add(jobMappingDocuments);
+                }
+            }
+        }
+
         if (addJobDTO.getDocuments() != null && !addJobDTO.getDocuments().isEmpty()) {
             for (String documentUrl : addJobDTO.getDocuments()) {
                 Documents document = new Documents();
@@ -134,7 +158,11 @@ public class JobTransformer {
                 jobMappingDocuments.setDocumentId(document.getUuid());
                 documents.add(jobMappingDocuments);
             }
+        }
+        if (!documentsList.isEmpty()) {
             documentsRepository.saveAll(documentsList);
+        }
+        if (!documents.isEmpty()) {
             job.setJobMappingDocuments(documents);
         }
         job.setFrontOfficeId(addJobDTO.getFrontOfficeId());
@@ -166,6 +194,38 @@ public class JobTransformer {
                     }
                 }
             }
+
+            if(addJobDTO.getJobTypeId() != null){
+                job.setJobTypeId(addJobDTO.getJobTypeId());
+            }
+            if(addJobDTO.getLeadSourceId() != null){
+                job.setLeadSourceId(addJobDTO.getLeadSourceId());
+            }
+            if(addJobDTO.getJobTaskId() != null && !addJobDTO.getJobTaskId().isEmpty()){
+                List<JobMappingTask> jobMappingTask = new ArrayList<>();
+                for (String jobTaskId : addJobDTO.getJobTaskId()) {
+                    Optional<JobTask> jobTaskExist = jobTaskRepository.findByUuid(jobTaskId);
+                    if (jobTaskExist.isPresent()) {
+                        if (jobTaskExist.get().getSequence() == 1) {
+                            job.setCurrentTaskId(jobTaskId);
+                            job.setJobStatusMaster(jobTaskExist.get().getJobStatusMaster());
+                            job.setJobStatus(jobTaskExist.get().getName());
+                        }
+                        JobMappingTask task = new JobMappingTask();
+                        task.setTaskId(jobTaskId);
+                        task.setTaskName(jobTaskExist.get().getName());
+                        task.setTaskShowId(codeGenerator.generateTaskId());
+                        task.setTaskSequence(jobTaskExist.get().getSequence());
+                        task.setJobTaskStatus(jobTaskExist.get().getJobStatusMaster().getName());
+                        task.setAssignType(jobTaskExist.get().getAssignedType());
+                        task.setJob(job);
+                        jobMappingTask.add(task);
+                    }
+                }
+                if(!jobMappingTask.isEmpty())
+                    job.setJobMappingTasks(jobMappingTask);
+            }
+
 
             if (addJobDTO.getAdditionalNotes() != null)
                 job.setAdditionalNotes(addJobDTO.getAdditionalNotes());
