@@ -639,6 +639,21 @@ public class JobServiceImpl implements JobService {
                         e.printStackTrace();
                     }
                 }
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                try{
+                    if (assignJobToTechnician.getStartDateTime() != null) {
+                        LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), formatter);
+                        Time sqlTime = Time.valueOf(ldt.toLocalTime());
+                        jobTaskMappingTechnician.setStartTime(sqlTime);
+                    }
+                    if (assignJobToTechnician.getEndDateTime() != null) {
+                        LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), formatter);
+                        Time sqlTime = Time.valueOf(ldt.toLocalTime());
+                        jobTaskMappingTechnician.setEndTime(sqlTime);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 Gson gson = new Gson();
                 if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
                     List<String> documentsWithUrl = assignJobToTechnician.getDocuments().stream()
