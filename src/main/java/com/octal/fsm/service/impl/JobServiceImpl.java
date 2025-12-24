@@ -1285,7 +1285,7 @@ public class JobServiceImpl implements JobService {
 
         List<JobStatusMaster> statusMasters;
         //Long tenantIdToUse = isSuperAdmin ? 1L : tenantId;
-        statusMasters = jobStatusMasterRepository.findAllByDeletedFalse();
+        statusMasters = jobStatusMasterRepository.findDistinctNamesByDeletedFalse();
 
         List<JobStatusDetail> statusDetails = statusMasters.stream()
                 .map(statusMaster -> new JobStatusDetail(statusMaster.getUuid(), statusMaster.getName(), statusMaster.getColorCode()))
