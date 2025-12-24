@@ -54,7 +54,7 @@ public class DrawingToolAssetServiceImpl implements DrawingToolAssetService {
 
     private DrawingToolAssetDTO.ListResponse toCategoryDto(DrawingToolAsset entity) {
         DrawingToolAssetDTO.ListResponse dto = new DrawingToolAssetDTO.ListResponse();
-        dto.setCategory_name(entity.getName().name());
+        dto.setCategoryName(entity.getName().name());
         List<DrawingToolAssetDTO.AssetItemResponseDTO> assetDtos =
                 entity.getAssets()
                         .stream()

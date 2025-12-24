@@ -24,7 +24,7 @@ public class DrawingToolAssetDTO {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class ListResponse {
-        private String category_name;
+        private String categoryName;
         private List<AssetItemResponseDTO> assets;
     }
 
