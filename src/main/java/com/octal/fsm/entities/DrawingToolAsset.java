@@ -1,12 +1,12 @@
 package com.octal.fsm.entities;
 
+import com.octal.fsm.entities.enums.Category;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Lob;
-import javax.persistence.Table;
+import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -14,13 +14,12 @@ import javax.persistence.Table;
 @Table(name = "drawing_tool_assets")
 public class DrawingToolAsset extends AbstractPersistable{
 
-    @Column(name = "file_name", nullable = false)
-    private String fileName;
 
-    @Lob
-    @Column(name = "file_url", nullable = false)
-    private String fileUrl;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category_name", nullable = false)
+    private Category name;
 
-    @Column(name = "file_type", nullable = false)
-    private String fileType;
+    @OneToMany(mappedBy = "category",cascade = CascadeType.ALL,orphanRemoval = true)
+    private List<AssetItem> assets = new ArrayList<>();
+
 }
