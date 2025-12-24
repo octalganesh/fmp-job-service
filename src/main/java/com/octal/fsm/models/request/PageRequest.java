@@ -45,6 +45,7 @@ public class PageRequest {
         private String locationName;
         private String jobTypeId;
         private String customerId;
+        private String listId;
 
     }
 
