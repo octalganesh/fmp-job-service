@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.octal.fsm.client.QuickBooksClient;
+import com.octal.fsm.clients.QuickBookClientService;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.entities.QuickBooksToken;
 import com.octal.fsm.exceptions.*;
@@ -12,6 +13,7 @@ import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.validation.Valid;
@@ -26,6 +28,8 @@ public class QuickBooksCustomerService {
     private QuickBooksTokenStore tokenStore;
     @Autowired
     private CodeGenerator codeGenerator;
+    @Autowired
+    private QuickBookClientService quickBookClientService;
 
     @Value("${quickbooks.api.minorversion}")
     private String minorVersion;
@@ -278,6 +282,7 @@ public class QuickBooksCustomerService {
 
     public String addNewCustomer(@Valid QuickBookDTO.CreateCustomer quickBookDTO) throws Exception {
         CustomerRequest customerRequest = new CustomerRequest();
+        CustomerRestDTO.CreateQueue createQueue = new CustomerRestDTO.CreateQueue();
         String displayName;
         if (quickBookDTO.getEmail() != null && !quickBookDTO.getEmail().isEmpty()) {
             displayName = quickBookDTO.getName() + "-" + quickBookDTO.getEmail();
@@ -290,6 +295,7 @@ public class QuickBooksCustomerService {
             CustomerRequest.PrimaryEmailAddr primaryEmailAddr = new CustomerRequest.PrimaryEmailAddr();
             primaryEmailAddr.setAddress(quickBookDTO.getEmail());
             customerRequest.setPrimaryEmailAddr(primaryEmailAddr);
+
         }
 //      CustomerRequest.PrimaryEmailAddr primaryEmailAddr = new CustomerRequest.PrimaryEmailAddr();
 //      primaryEmailAddr.setAddress(quickBookDTO.getEmail());
@@ -301,8 +307,27 @@ public class QuickBooksCustomerService {
         billAddr.setCountry(quickBookDTO.getPrimaryLocation());
         billAddr.setLine1(quickBookDTO.getAddress());
         customerRequest.setBillAddr(billAddr);
-        JsonNode node = createCustomer(customerRequest);
 
+        createQueue.setEmail(quickBookDTO.getEmail());
+        createQueue.setActive(true);
+        createQueue.setFullName(displayName);
+        createQueue.setAddress(quickBookDTO.getAddress());
+        createQueue.setMobile(quickBookDTO.getMobileNumber());
+        String customerQueueId = null;
+        try{
+            ApiResponse customerQueueResponse = quickBookClientService.createCustomerQueue(createQueue, 1L).getBody();
+            if (customerQueueResponse == null) {
+                throw new CodeException("Customer service returned empty response", ErrorCode.COMMON);
+            }
+            if ("200".equalsIgnoreCase(customerQueueResponse.getStatus()) && customerQueueResponse.getData() != null) {
+                customerQueueId = (String) customerQueueResponse.getData();
+            }
+        }
+        catch (Exception e) {
+            throw new CodeException("Customer creation failed: " +e.getMessage(), ErrorCode.COMMON);
+        }
+
+        JsonNode node = createCustomer(customerRequest);
         ObjectMapper mapper = new ObjectMapper();
         QuickBooksCustomerResponseDTO.DataObject dataObject = mapper.treeToValue(node, QuickBooksCustomerResponseDTO.DataObject.class);
 
