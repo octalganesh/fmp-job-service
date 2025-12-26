@@ -7,6 +7,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.octal.fsm.clients.AdminClient;
 import com.octal.fsm.clients.NotificationClient;
+import com.octal.fsm.clients.QuickBookClientService;
 import com.octal.fsm.clients.TechnicianClient;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.dto.JobDTO.JobStatusDetail;
@@ -41,6 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.validation.Valid;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -121,6 +123,9 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private JobNotesRepository jobNotesRepository;
+
+    @Autowired
+    private QuickBookClientService quickBookClientService;
 
     @Autowired
     private JobService jobService;
@@ -205,6 +210,22 @@ public class JobServiceImpl implements JobService {
             invoiceRequest.setPrivateNote(createUpFrontInvoice.getNote());
         }
         try {
+            // Queue Invoice Creation
+            InvoiceRestDTO.Add invoiceDto = new InvoiceRestDTO.Add();
+            invoiceDto.setRefId(createUpFrontInvoice.getJobId() + "_UPFRONT_" + System.currentTimeMillis());
+            invoiceDto.setListId(null);
+            invoiceDto.setCustomerListId(customerRefId);
+//            invoiceDto.setCustomerFullName(job.get().get());
+            invoiceDto.setSyncStatus("QUEUE");
+            invoiceDto.setAmount(BigDecimal.valueOf(createUpFrontInvoice.getAmount()).stripTrailingZeros().toPlainString());
+            Gson gson1 = new Gson();
+            invoiceDto.setCreateInvoiceJsonResponse(gson1.toJson(invoiceRequest));
+            invoiceDto.setCreateInvoiceXmlResponse(null);
+            invoiceDto.setStatusCode(null);
+            invoiceDto.setStatusSeverity(null);
+            invoiceDto.setStatusMessage("Invoice queued for creation");
+            quickBookClientService.createInvoiceQueue(invoiceDto,1L);
+
             invoiceResponse = quickBooksCustomerService.createInvoice(invoiceRequest);
             //Send Mail
             JsonNode sendMailResponse = quickBooksCustomerService.sendInvoice(invoiceResponse.getInvoice().getId(), createUpFrontInvoice.getEmail());
@@ -232,6 +253,8 @@ public class JobServiceImpl implements JobService {
             e.printStackTrace();
         }
     }
+
+
 
     @Override
     public PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException {
