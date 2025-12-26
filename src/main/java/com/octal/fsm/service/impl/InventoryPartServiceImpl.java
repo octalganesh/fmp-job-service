@@ -11,13 +11,18 @@ import com.octal.fsm.service.InventoryPartService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
 import com.octal.fsm.utils.TextUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -31,10 +36,29 @@ public class InventoryPartServiceImpl implements InventoryPartService {
     private SpecificationFactory<InventoryPart> inventoryPartSpecificationFactory;
 
     public void saveInventoryData(List<InventoryPartDTO.Add> addList) {
-        try{
-            List<InventoryPart> entities = addList.stream().map(this::toEntity).collect(Collectors.toList());
-            inventoryPartRepository.saveAll(entities);
-        } catch (Exception e){
+        if (addList == null || addList.isEmpty()) {
+            return;
+        }
+        try {
+            List<String> listIds = addList.stream()
+                    .map(InventoryPartDTO.Add::getListId)
+                    .collect(Collectors.toList());
+
+            Set<String> existingListIds = inventoryPartRepository.findByListIdIn(listIds)
+                    .stream()
+                    .map(InventoryPart::getListId)
+                    .collect(Collectors.toSet());
+
+            List<InventoryPart> entitiesToSave = new ArrayList<>();
+            for (InventoryPartDTO.Add dto : addList) {
+                if (!existingListIds.contains(dto.getListId())) {
+                    entitiesToSave.add(toEntity(dto));
+                }
+            }
+            if (!entitiesToSave.isEmpty()) {
+                inventoryPartRepository.saveAll(entitiesToSave);
+            }
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

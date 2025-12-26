@@ -5,10 +5,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface InventoryPartRepository extends JpaRepository<InventoryPart, Long>, JpaSpecificationExecutor<InventoryPart> {
 
     Optional<InventoryPart> findByListId(String listId);
+
+    List<InventoryPart> findByListIdIn(List<String> listIds);
 }
