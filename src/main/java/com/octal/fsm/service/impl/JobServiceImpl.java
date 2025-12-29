@@ -699,6 +699,10 @@ public class JobServiceImpl implements JobService {
         if (byTechnicianId != null && !byTechnicianId.isEmpty()) {
             for (JobTaskMappingTechnician existing : byTechnicianId) {
 
+                if ("Completed".equalsIgnoreCase(existing.getTaskStatus())) {
+                    continue;
+                }
+
                 LocalDate exStartDate = existing.getStartDate();
                 LocalDate exEndDate = existing.getEndDate();
                 if (existing.getStartTime() == null || existing.getEndTime() == null) {
