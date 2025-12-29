@@ -17,6 +17,7 @@ public class InventoryRequestDTO {
     @Data
     public static class Item {
         private String inventoryListId;
+        private String inventoryName;
         private Integer quantity;
     }
 

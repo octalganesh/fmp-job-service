@@ -2,6 +2,7 @@ package com.octal.fsm.controller;
 
 import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.common.CommonConstants;
+import com.octal.fsm.dto.InventoryApprovalDTO;
 import com.octal.fsm.dto.InventoryRequestDTO;
 import com.octal.fsm.dto.JobDTO;
 import com.octal.fsm.models.request.PageRequest;
@@ -48,6 +49,19 @@ public class InventoryRequestController extends BaseController{
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Inventory data fetch Successfully.", inventoryRequestService.getAllListRequest(listRequest, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error while fetch inventory request data: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/approved-inventory-request")
+    public ResponseEntity<ApiResponse> approved(@RequestBody InventoryApprovalDTO approvalDTO, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            String msg = approvalDTO.getAction().equalsIgnoreCase("CANCEL") ? "Inventory request Cancelled Successfully." : "Inventory request Approved Successfully.";
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, msg, inventoryRequestService.approvalInventoryRequest(approvalDTO, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error while approved inventory request data: {}", e.getMessage(), e);
             return handleException(e);
         }
     }

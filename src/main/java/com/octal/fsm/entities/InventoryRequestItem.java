@@ -16,6 +16,9 @@ public class InventoryRequestItem extends AbstractPersistable{
     @Column(name = "inventory_list_id",nullable = false)
     private String inventoryListId;
 
+    @Column(name = "inventory_name")
+    private String inventoryName;
+
     @Column(name = "requested_qty",nullable = false)
     private Integer requestedQty;
 

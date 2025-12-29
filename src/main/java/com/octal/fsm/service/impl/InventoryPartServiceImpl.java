@@ -101,8 +101,8 @@ public class InventoryPartServiceImpl implements InventoryPartService {
         if (listRequest.getIsActive() != null) {
             builder.with(inventoryPartSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
         }
-        if (!TextUtils.isEmpty(listRequest.getJobStatus())) {
-            builder.with(inventoryPartSpecificationFactory.isEqual("jobStatus", listRequest.getJobStatus()));
+        if (!TextUtils.isEmpty(listRequest.getSearchText())) {
+            builder.with(inventoryPartSpecificationFactory.like("name", listRequest.getSearchText()).or(inventoryPartSpecificationFactory.like("fullName", listRequest.getSearchText())));
         }
 
         if (listRequest.getStartDate() != null) {

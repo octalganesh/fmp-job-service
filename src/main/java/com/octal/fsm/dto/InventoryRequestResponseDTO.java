@@ -24,5 +24,6 @@ public class InventoryRequestResponseDTO {
         private String inventoryListId;
         private Integer requestedQty;
         private Integer approvedQty;
+        private String inventoryName;
     }
 }

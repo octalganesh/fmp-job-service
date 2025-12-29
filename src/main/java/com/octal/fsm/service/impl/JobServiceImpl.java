@@ -202,7 +202,7 @@ public class JobServiceImpl implements JobService {
         lineItem.setSalesItemLineDetail(salesItemLineDetail);
         lineItems.add(lineItem);
         invoiceRequest.setLine(lineItems);
-        CreateInvoiceDTO invoiceResponse = null;
+//        CreateInvoiceDTO invoiceResponse = null;
         if (!TextUtils.isEmpty(createUpFrontInvoice.getDueDate())) {
             invoiceRequest.setDueDate(createUpFrontInvoice.getDueDate());
         }
@@ -214,7 +214,7 @@ public class JobServiceImpl implements JobService {
             InvoiceRestDTO.Add invoiceDto = new InvoiceRestDTO.Add();
             invoiceDto.setRefId(createUpFrontInvoice.getJobId() + "_UPFRONT_" + System.currentTimeMillis());
             invoiceDto.setListId(null);
-            invoiceDto.setCustomerListId(customerRefId);
+            invoiceDto.setCustomerListId(job.get().getCustomerId());
 //            invoiceDto.setCustomerFullName(job.get().get());
             invoiceDto.setSyncStatus("QUEUE");
             invoiceDto.setAmount(BigDecimal.valueOf(createUpFrontInvoice.getAmount()).stripTrailingZeros().toPlainString());
@@ -224,14 +224,27 @@ public class JobServiceImpl implements JobService {
             invoiceDto.setStatusCode(null);
             invoiceDto.setStatusSeverity(null);
             invoiceDto.setStatusMessage("Invoice queued for creation");
-            quickBookClientService.createInvoiceQueue(invoiceDto,1L);
 
-            invoiceResponse = quickBooksCustomerService.createInvoice(invoiceRequest);
-            //Send Mail
-            JsonNode sendMailResponse = quickBooksCustomerService.sendInvoice(invoiceResponse.getInvoice().getId(), createUpFrontInvoice.getEmail());
             JobInvoice jobInvoice = new JobInvoice();
+            Gson gson = new Gson();
             jobInvoice.setJobId(createUpFrontInvoice.getJobId());
-            jobInvoice.setInvoiceId(invoiceResponse.getInvoice().getId());
+            try{
+                ApiResponse invoiceQueue = quickBookClientService.createInvoiceQueue(invoiceDto, 1L).getBody();
+                if (invoiceQueue == null) {
+                    throw new CodeException("Quick Book service returned empty response", ErrorCode.COMMON);
+                }
+                if ("200".equalsIgnoreCase(invoiceQueue.getStatus()) && invoiceQueue.getData() != null) {
+                    String invoiceQueueId = (String) invoiceQueue.getData();
+                    jobInvoice.setInvoiceId(invoiceQueueId);
+                    jobInvoice.setResponseDTO(gson.toJson(invoiceQueue));
+                }
+            }
+            catch (Exception e) {
+                throw new CodeException("Invoice creation failed: " +e.getMessage(), ErrorCode.COMMON);
+            }
+//            invoiceResponse = quickBooksCustomerService.createInvoice(invoiceRequest);
+            //Send Mail
+//            JsonNode sendMailResponse = quickBooksCustomerService.sendInvoice(invoiceResponse.getInvoice().getId(), createUpFrontInvoice.getEmail());
             jobInvoice.setAmount(createUpFrontInvoice.getAmount());
             jobInvoice.setSendOnEmail(createUpFrontInvoice.getEmail());
             if (!TextUtils.isEmpty(createUpFrontInvoice.getDueDate())) {
@@ -242,10 +255,8 @@ public class JobServiceImpl implements JobService {
                     e.printStackTrace();
                 }
             }
-            Gson gson = new Gson();
             jobInvoice.setNote(createUpFrontInvoice.getNote());
             jobInvoice.setRequestDTO(gson.toJson(invoiceRequest));
-            jobInvoice.setResponseDTO(gson.toJson(invoiceResponse));
             jobInvoice.setPaid(false);
             jobInvoice.setInvoiceType(createUpFrontInvoice.getInvoiceType());
             jobInvoiceRepository.save(jobInvoice);

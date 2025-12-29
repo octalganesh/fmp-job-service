@@ -309,6 +309,7 @@ public class QuickBooksCustomerService {
         customerRequest.setBillAddr(billAddr);
 
         createQueue.setEmail(quickBookDTO.getEmail());
+        createQueue.setCustomerId(quickBookDTO.getId());//internal customer id
         createQueue.setActive(true);
         createQueue.setFullName(displayName);
         createQueue.setAddress(quickBookDTO.getAddress());
@@ -326,13 +327,10 @@ public class QuickBooksCustomerService {
         catch (Exception e) {
             throw new CodeException("Customer creation failed: " +e.getMessage(), ErrorCode.COMMON);
         }
-
-        JsonNode node = createCustomer(customerRequest);
-        ObjectMapper mapper = new ObjectMapper();
-        QuickBooksCustomerResponseDTO.DataObject dataObject = mapper.treeToValue(node, QuickBooksCustomerResponseDTO.DataObject.class);
-
-
-        String customerId = dataObject.getCustomer().getId();
-        return customerId;
+//        JsonNode node = createCustomer(customerRequest);
+//        ObjectMapper mapper = new ObjectMapper();
+//        QuickBooksCustomerResponseDTO.DataObject dataObject = mapper.treeToValue(node, QuickBooksCustomerResponseDTO.DataObject.class);
+//        String customerId = dataObject.getCustomer().getId();
+        return customerQueueId;
     }
 }

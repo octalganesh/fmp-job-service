@@ -10,6 +10,7 @@ public class QuickBookDTO {
 
     @Data
     public static class CreateCustomer {
+        private String id;
         private String name;
         private String email;
         private String mobileNumber;
