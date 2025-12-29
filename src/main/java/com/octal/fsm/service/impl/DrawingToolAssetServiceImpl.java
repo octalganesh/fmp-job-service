@@ -1,7 +1,9 @@
 package com.octal.fsm.service.impl;
 
 import com.octal.fsm.dto.DrawingToolAssetDTO;
+import com.octal.fsm.entities.AssetItem;
 import com.octal.fsm.entities.DrawingToolAsset;
+import com.octal.fsm.entities.enums.Category;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.repositories.DrawingToolAssetRepository;
 import com.octal.fsm.service.DrawingToolAssetService;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class DrawingToolAssetServiceImpl implements DrawingToolAssetService {
@@ -20,34 +23,55 @@ public class DrawingToolAssetServiceImpl implements DrawingToolAssetService {
 
     @Override
     public void uploadFiles(DrawingToolAssetDTO.Add add) throws CodeException {
-        if(add.getFileUrls().isEmpty()){
-            throw new CodeException("No files to upload", null);
-        }
-        List<DrawingToolAsset> drawingToolAssets = new ArrayList<>();
-        for(String fileUrl : add.getFileUrls()){
-            DrawingToolAsset toolAsset = new DrawingToolAsset();
-            toolAsset.setFileName(TextUtils.getFileNameFromFileUrl(fileUrl));
-            toolAsset.setFileType(TextUtils.getFileTypeFromFileUrl(fileUrl));
-            toolAsset.setFileUrl(fileUrl);
-            drawingToolAssets.add(toolAsset);
-        }
-        drawingToolAssetRepository.saveAll(drawingToolAssets);
+        DrawingToolAsset category = new DrawingToolAsset();
+        category.setName(Category.valueOf(add.getCategoryName()));
+        List<AssetItem> assetItems =
+                add.getAssets()
+                        .stream()
+                        .map(dto -> toAssetEntity(dto, category))
+                        .collect(Collectors.toList());
+
+        category.setAssets(assetItems);
+        drawingToolAssetRepository.save(category);
+    }
+
+    private AssetItem toAssetEntity(DrawingToolAssetDTO.AssetItemAddRequestDTO dto, DrawingToolAsset category) {
+        AssetItem item = new AssetItem();
+        item.setName(TextUtils.getFileNameFromFileUrl(dto.getImageUrl()));
+        item.setFileType(TextUtils.getFileTypeFromFileUrl(dto.getImageUrl()));
+        item.setImageUrl(dto.getImageUrl());
+        item.setWidth(dto.getWidth() != null ? dto.getWidth() : 100f);
+        item.setHeight(dto.getHeight() != null ? dto.getHeight() : 100f);
+        item.setCategory(category);
+        return item;
     }
 
     @Override
     public List<DrawingToolAssetDTO.ListResponse> getAllDrawingToolAssets() throws CodeException {
-        List<DrawingToolAsset> drawingToolAssets = drawingToolAssetRepository.findAll();
-        List<DrawingToolAssetDTO.ListResponse> responseList = new ArrayList<>();
-        for(DrawingToolAsset asset : drawingToolAssets){
-            DrawingToolAssetDTO.ListResponse response = new DrawingToolAssetDTO.ListResponse();
-            response.setId(asset.getUuid());
-            response.setFileName(asset.getFileName());
-            response.setFileType(asset.getFileType());
-            response.setFileUrl(asset.getFileUrl());
-            response.setCreatedAt(asset.getCreatedAt().toString());
-            response.setActive(asset.getActive());
-            responseList.add(response);
-        }
-        return responseList;
+        return drawingToolAssetRepository.findAll()
+                .stream().map(this::toCategoryDto).collect(Collectors.toList());
+    }
+
+    private DrawingToolAssetDTO.ListResponse toCategoryDto(DrawingToolAsset entity) {
+        DrawingToolAssetDTO.ListResponse dto = new DrawingToolAssetDTO.ListResponse();
+        dto.setCategoryName(entity.getName().name());
+        List<DrawingToolAssetDTO.AssetItemResponseDTO> assetDtos =
+                entity.getAssets()
+                        .stream()
+                        .map(this::toAssetDto)
+                        .collect(Collectors.toList());
+        dto.setAssets(assetDtos);
+        return dto;
+    }
+
+    private DrawingToolAssetDTO.AssetItemResponseDTO toAssetDto(AssetItem item) {
+        DrawingToolAssetDTO.AssetItemResponseDTO dto = new DrawingToolAssetDTO.AssetItemResponseDTO();
+        dto.setId(item.getUuid());
+        dto.setName(item.getName());
+        dto.setImageUrl(item.getImageUrl());
+        dto.setFileType(item.getFileType());
+        dto.setWidth(item.getWidth());
+        dto.setHeight(item.getHeight());
+        return dto;
     }
 }

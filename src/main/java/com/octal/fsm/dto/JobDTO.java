@@ -189,6 +189,10 @@ public class JobDTO {
         private Integer sequenceNumber;
         private String note;
         private List<DocumentDTO.ListResponse> documents;
+        private String startDate;
+        private String endDate;
+        private String startTime;
+        private String endTime;
     }
 
     @Data

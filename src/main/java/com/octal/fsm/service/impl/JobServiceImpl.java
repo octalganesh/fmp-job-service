@@ -551,6 +551,10 @@ public class JobServiceImpl implements JobService {
                 if (jobTaskMappingTechnician.isPresent()) {
                     dto.setCreatedAt(jobTaskMappingTechnician.get().getCreatedAt() != null ? jobTaskMappingTechnician.get().getCreatedAt().toString() : null);
                     dto.setTaskStatus(jobTaskMappingTechnician.get().getTaskStatus());
+                    dto.setStartDate(jobTaskMappingTechnician.get().getStartDate() != null ? jobTaskMappingTechnician.get().getStartDate().toString() : null);
+                    dto.setEndDate(jobTaskMappingTechnician.get().getEndDate() != null ? jobTaskMappingTechnician.get().getEndDate().toString() : null);
+                    dto.setStartTime(jobTaskMappingTechnician.get().getStartTime() != null ? jobTaskMappingTechnician.get().getStartTime().toString() : null);
+                    dto.setEndTime(jobTaskMappingTechnician.get().getEndTime() != null ? jobTaskMappingTechnician.get().getEndTime().toString() : null);
                     ApiResponse technicianResponse = technicianClient.getTechnicianById(jobTaskMappingTechnician.get().getTechnicianId(), loggedInUserEmail).getBody();
                     if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
                         try {
@@ -732,6 +736,10 @@ public class JobServiceImpl implements JobService {
 
         if (byTechnicianId != null && !byTechnicianId.isEmpty()) {
             for (JobTaskMappingTechnician existing : byTechnicianId) {
+
+                if ("Completed".equalsIgnoreCase(existing.getTaskStatus())) {
+                    continue;
+                }
 
                 LocalDate exStartDate = existing.getStartDate();
                 LocalDate exEndDate = existing.getEndDate();
@@ -1319,7 +1327,7 @@ public class JobServiceImpl implements JobService {
 
         List<JobStatusMaster> statusMasters;
         //Long tenantIdToUse = isSuperAdmin ? 1L : tenantId;
-        statusMasters = jobStatusMasterRepository.findAllByDeletedFalse();
+        statusMasters = jobStatusMasterRepository.findDistinctNamesByDeletedFalse();
 
         List<JobStatusDetail> statusDetails = statusMasters.stream()
                 .map(statusMaster -> new JobStatusDetail(statusMaster.getUuid(), statusMaster.getName(), statusMaster.getColorCode()))
