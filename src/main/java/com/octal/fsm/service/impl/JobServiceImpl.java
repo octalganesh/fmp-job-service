@@ -212,10 +212,21 @@ public class JobServiceImpl implements JobService {
         try {
             // Queue Invoice Creation
             InvoiceRestDTO.Add invoiceDto = new InvoiceRestDTO.Add();
+            invoiceDto.setCustomerFullName("Unknown");
+            try {
+                ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId()).getBody();
+                if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
+                    Gson gson = new Gson();
+                    CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
+                    invoiceDto.setCustomerFullName(customerDetails.getName());
+                }
+            } catch (Exception e) {
+                logger.error("Error fetching customer details: {}", e.getMessage());
+            }
+
             invoiceDto.setRefId(createUpFrontInvoice.getJobId() + "_UPFRONT_" + System.currentTimeMillis());
             invoiceDto.setListId(null);
             invoiceDto.setCustomerListId(job.get().getCustomerId());
-//            invoiceDto.setCustomerFullName(job.get().get());
             invoiceDto.setSyncStatus("QUEUE");
             invoiceDto.setAmount(BigDecimal.valueOf(createUpFrontInvoice.getAmount()).stripTrailingZeros().toPlainString());
             Gson gson1 = new Gson();
