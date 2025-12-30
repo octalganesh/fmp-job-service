@@ -224,7 +224,6 @@ public class JobServiceImpl implements JobService {
                 logger.error("Error fetching customer details: {}", e.getMessage());
             }
 
-            invoiceDto.setRefId(createUpFrontInvoice.getJobId() + "_UPFRONT_" + System.currentTimeMillis());
             invoiceDto.setListId(null);
             invoiceDto.setCustomerListId(job.get().getCustomerId());
             invoiceDto.setSyncStatus("QUEUE");
@@ -239,6 +238,7 @@ public class JobServiceImpl implements JobService {
             JobInvoice jobInvoice = new JobInvoice();
             Gson gson = new Gson();
             jobInvoice.setJobId(createUpFrontInvoice.getJobId());
+            invoiceDto.setRefId(jobInvoice.getUuid());
             try{
                 ApiResponse invoiceQueue = quickBookClientService.createInvoiceQueue(invoiceDto, 1L).getBody();
                 if (invoiceQueue == null) {
@@ -2541,6 +2541,19 @@ public class JobServiceImpl implements JobService {
                 listRequest.getPageSize()
         );
         return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Data fetch successfully", jobMappingTaskTechnicianPageItem, "200", HttpStatus.OK), HttpStatus.OK);
+    }
+
+    @Override
+    public void updateInvoiceDetails(InvoiceRestDTO.Add add) throws CodeException {
+        if(add.getRefId() != null){
+            Optional<JobInvoice> byUuid = jobInvoiceRepository.getByUuid(add.getRefId());
+            if(byUuid.isPresent() && add.getListId() != null){
+                JobInvoice jobInvoice = byUuid.get();
+                jobInvoice.setInvoiceId(add.getListId());
+                jobInvoice.setUpdatedAt(LocalDateTime.now());
+                jobInvoiceRepository.save(jobInvoice);
+            }
+        }
     }
 
     private DocumentDTO.Add convertDocumentToDto(Documents doc) {

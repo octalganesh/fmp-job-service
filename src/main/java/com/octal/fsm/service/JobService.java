@@ -112,5 +112,6 @@ public interface JobService {
 
     ResponseEntity<com.octal.fsm.common.ApiResponse> getJobMappingTaskByTechnician(PageRequest.List listRequest,Long tenantId, boolean isSuperAdmin) throws CodeException;
 
-
+    //update invoice details from quick books
+    void updateInvoiceDetails(InvoiceRestDTO.Add add) throws CodeException;
 }
