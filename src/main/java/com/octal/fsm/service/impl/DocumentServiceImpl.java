@@ -266,6 +266,7 @@ public class DocumentServiceImpl implements DocumentService {
         dto.setCreatedAt(doc.getCreatedAt() != null ? doc.getCreatedAt().format(dateTimeFormatter) : null);
         dto.setUploadedByTypeId(doc.getUploadedByTypeId());
         dto.setCreatedAtInDate(doc.getCreatedAt());
+        dto.setAttachTypeId(doc.getAttachTypeId());
         return dto;
     }
 

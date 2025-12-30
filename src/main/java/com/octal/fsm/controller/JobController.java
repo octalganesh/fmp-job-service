@@ -175,7 +175,9 @@ public class JobController extends BaseController {
                                                   @RequestParam(defaultValue = "true") Boolean order, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task List.", jobService.getJobTask(page, size, sortBy, order, jobId, userName), "200", HttpStatus.OK), HttpStatus.OK);
+            Boolean isSuperAdmin = isSuperAdmin(request);
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job Task List.", jobService.getJobTask(page, size, sortBy, order, jobId, tenantId,isSuperAdmin,userName), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving job: {}", e.getMessage(), e);
             return handleException(e);

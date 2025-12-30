@@ -132,13 +132,14 @@ public class AppointmentServiceImpl implements AppointmentService {
             jobIds = jobRepository.findByFrontOfficeIdAndDeletedFalse(listRequest.getFrontOfficeId())
                     .stream().map(Job::getJobId).filter(Objects::nonNull)
                     .distinct().collect(Collectors.toList());
-        }
-        if (jobIds.isEmpty()) {
-            return new PageItem<>(0, 1, Collections.emptyList(), listRequest.getPageNumber(), listRequest.getPageSize());
-        }
-        if (!TextUtils.isEmpty(listRequest.getJobId())) {
-            if (!jobIds.contains(listRequest.getJobId())) {
-                return new PageItem<>(0, 1, Collections.emptyList(), listRequest.getPageNumber(), listRequest.getPageSize());
+
+            if (jobIds.isEmpty()) {
+                return new PageItem<>(0, 0, Collections.emptyList(), listRequest.getPageNumber(), listRequest.getPageSize());
+            }
+            if (!TextUtils.isEmpty(listRequest.getJobId())) {
+                if (!jobIds.contains(listRequest.getJobId())) {
+                    return new PageItem<>(0, 0, Collections.emptyList(), listRequest.getPageNumber(), listRequest.getPageSize());
+                }
             }
         }
         Pageable pageable = null;
@@ -288,7 +289,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         if (!TextUtils.isEmpty(listRequest.getJobId())) {
             builder.with(appointmentSpecificationFactory.like("jobId", listRequest.getJobId()).or(appointmentSpecificationFactory.isEqual("jobId", listRequest.getJobId())));
-        }else if (jobIds != null && !jobIds.isEmpty()) {
+        }
+        if (jobIds != null && !jobIds.isEmpty()) {
             builder.with(appointmentSpecificationFactory.in("jobId", jobIds));
         }
         if (listRequest.getStartDate() != null) {

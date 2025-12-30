@@ -30,7 +30,7 @@ public interface JobService {
 //
     JobDTO.Detail getJobById(String id, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
-    PageItem<JobDTO.JobTaskListResponse> getJobTask(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException;
+    PageItem<JobDTO.JobTaskListResponse> getJobTask(int page, int size, String sortBy, Boolean order, String jobId, Long tenantId, Boolean isSuperAdmin, String loggedInUserEmail) throws CodeException;
 
     void assignJobToTechnician(JobDTO.AssignJobToTechnician assignJobToTechnician, Long tenantId, Boolean isSuperAdmin, String loggedInUserEmail) throws CodeException;
 
