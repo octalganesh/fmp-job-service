@@ -18,6 +18,7 @@ public class TaskManagerDTO {
     private String endTime;
     private String description;
     private String jobId;
+    private String jobUuid;
     private String technicianName;
     private String customerName;
     private String JobTypeName;

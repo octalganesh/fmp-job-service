@@ -481,7 +481,9 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public PageItem<JobDTO.JobTaskListResponse> getJobTask(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException {
+    public PageItem<JobDTO.JobTaskListResponse> getJobTask(int page, int size, String sortBy, Boolean order, String jobId,Long tenantId,Boolean isSuperAdmin, String loggedInUserEmail) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
         Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(jobId);
         if (!jobExist)
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
@@ -509,6 +511,8 @@ public class JobServiceImpl implements JobService {
                 dto.setTaskDescription(jobTask.get().getDescription());
                 dto.setAssignedType(jobMappingTask.getAssignType());
                 dto.setSequenceNumber(jobTask.get().getSequence());
+                dto.setNote(jobMappingTask.getNote());
+                dto.setDocuments(documentService.getJobDocuments(jobMappingTask.getUuid(),tenantId,false));
                 Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.getUuid());
                 if (jobTaskMappingTechnician.isPresent()) {
                     dto.setCreatedAt(jobTaskMappingTechnician.get().getCreatedAt() != null ? jobTaskMappingTechnician.get().getCreatedAt().toString() : null);
@@ -635,6 +639,21 @@ public class JobServiceImpl implements JobService {
                         e.printStackTrace();
                     }
                 }
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                try{
+                    if (assignJobToTechnician.getStartDateTime() != null) {
+                        LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), formatter);
+                        Time sqlTime = Time.valueOf(ldt.toLocalTime());
+                        jobTaskMappingTechnician.setStartTime(sqlTime);
+                    }
+                    if (assignJobToTechnician.getEndDateTime() != null) {
+                        LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), formatter);
+                        Time sqlTime = Time.valueOf(ldt.toLocalTime());
+                        jobTaskMappingTechnician.setEndTime(sqlTime);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 Gson gson = new Gson();
                 if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
                     List<String> documentsWithUrl = assignJobToTechnician.getDocuments().stream()
@@ -679,6 +698,10 @@ public class JobServiceImpl implements JobService {
 
         if (byTechnicianId != null && !byTechnicianId.isEmpty()) {
             for (JobTaskMappingTechnician existing : byTechnicianId) {
+
+                if ("Completed".equalsIgnoreCase(existing.getTaskStatus())) {
+                    continue;
+                }
 
                 LocalDate exStartDate = existing.getStartDate();
                 LocalDate exEndDate = existing.getEndDate();
@@ -1266,7 +1289,7 @@ public class JobServiceImpl implements JobService {
 
         List<JobStatusMaster> statusMasters;
         //Long tenantIdToUse = isSuperAdmin ? 1L : tenantId;
-        statusMasters = jobStatusMasterRepository.findAllByDeletedFalse();
+        statusMasters = jobStatusMasterRepository.findDistinctNamesByDeletedFalse();
 
         List<JobStatusDetail> statusDetails = statusMasters.stream()
                 .map(statusMaster -> new JobStatusDetail(statusMaster.getUuid(), statusMaster.getName(), statusMaster.getColorCode()))
@@ -1857,6 +1880,7 @@ public class JobServiceImpl implements JobService {
                 //dto.setTime(null);
                 dto.setDescription("Description");
                 dto.setJobId(entity.getJob().getJobId());
+                dto.setJobUuid(entity.getJob().getUuid());
                 return dto;
             }
             return null;
