@@ -224,16 +224,9 @@ public class JobServiceImpl implements JobService {
                 logger.error("Error fetching customer details: {}", e.getMessage());
             }
 
-            invoiceDto.setListId(null);
             invoiceDto.setCustomerListId(job.get().getCustomerId());
             invoiceDto.setSyncStatus("QUEUE");
             invoiceDto.setAmount(BigDecimal.valueOf(createUpFrontInvoice.getAmount()).stripTrailingZeros().toPlainString());
-            Gson gson1 = new Gson();
-            invoiceDto.setCreateInvoiceJsonResponse(gson1.toJson(invoiceRequest));
-            invoiceDto.setCreateInvoiceXmlResponse(null);
-            invoiceDto.setStatusCode(null);
-            invoiceDto.setStatusSeverity(null);
-            invoiceDto.setStatusMessage("Invoice queued for creation");
 
             JobInvoice jobInvoice = new JobInvoice();
             Gson gson = new Gson();
