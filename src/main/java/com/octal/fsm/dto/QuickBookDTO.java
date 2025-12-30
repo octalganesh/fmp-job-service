@@ -16,5 +16,7 @@ public class QuickBookDTO {
         private String mobileNumber;
         private String primaryLocation;
         private String address;
+        private String customerTypeId;
+        private String customerTypeName;
     }
 }

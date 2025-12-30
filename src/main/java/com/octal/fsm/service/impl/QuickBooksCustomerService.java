@@ -315,6 +315,8 @@ public class QuickBooksCustomerService {
         createQueue.setAddress(quickBookDTO.getAddress());
         createQueue.setMobile(quickBookDTO.getMobileNumber());
         createQueue.setCustomerUuid(quickBookDTO.getId());
+        createQueue.setCustomerTypeId(quickBookDTO.getCustomerTypeId());
+        createQueue.setCustomerTypeName(quickBookDTO.getCustomerTypeName());
         String customerQueueId = null;
         try{
             ApiResponse customerQueueResponse = quickBookClientService.createCustomerQueue(createQueue, 1L).getBody();
