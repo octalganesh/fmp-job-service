@@ -43,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.validation.Valid;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -219,19 +220,21 @@ public class JobServiceImpl implements JobService {
                     Gson gson = new Gson();
                     CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
                     invoiceDto.setCustomerFullName(customerDetails.getName());
+                    if(customerDetails.getQuickBookUserId() != null){
+                        invoiceDto.setCustomerListId(customerDetails.getQuickBookUserId());
+                    }else{
+                        invoiceDto.setCustomerListId(customerDetails.getId());
+                    }
                 }
             } catch (Exception e) {
                 logger.error("Error fetching customer details: {}", e.getMessage());
             }
-
-            invoiceDto.setCustomerListId(job.get().getCustomerId());
             invoiceDto.setSyncStatus("QUEUE");
-            invoiceDto.setAmount(BigDecimal.valueOf(createUpFrontInvoice.getAmount()).stripTrailingZeros().toPlainString());
-
+            invoiceDto.setAmount(BigDecimal.valueOf(createUpFrontInvoice.getAmount()).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString());
             JobInvoice jobInvoice = new JobInvoice();
             Gson gson = new Gson();
             jobInvoice.setJobId(createUpFrontInvoice.getJobId());
-            invoiceDto.setRefId(jobInvoice.getUuid());
+            invoiceDto.setInvoiceId(jobInvoice.getUuid());
             try{
                 ApiResponse invoiceQueue = quickBookClientService.createInvoiceQueue(invoiceDto, 1L).getBody();
                 if (invoiceQueue == null) {
@@ -2538,11 +2541,11 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public void updateInvoiceDetails(InvoiceRestDTO.Add add) throws CodeException {
-        if(add.getRefId() != null){
-            Optional<JobInvoice> byUuid = jobInvoiceRepository.getByUuid(add.getRefId());
-            if(byUuid.isPresent() && add.getListId() != null){
+        if(add.getInvoiceId() != null){
+            Optional<JobInvoice> byUuid = jobInvoiceRepository.getByUuid(add.getInvoiceId());
+            if(byUuid.isPresent() && add.getRefId() != null){
                 JobInvoice jobInvoice = byUuid.get();
-                jobInvoice.setInvoiceId(add.getListId());
+                jobInvoice.setInvoiceId(add.getRefId());
                 jobInvoice.setUpdatedAt(LocalDateTime.now());
                 jobInvoiceRepository.save(jobInvoice);
             }

@@ -18,7 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @RestController
-@RequestMapping("inventory")
+@RequestMapping("/inventory")
 public class InventoryPartController extends BaseController{
 
     private static final Logger logger = LogManager.getLogger(InventoryPartController.class);

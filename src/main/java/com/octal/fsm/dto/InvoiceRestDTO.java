@@ -19,6 +19,7 @@ public class InvoiceRestDTO {
         private String statusSeverity;
         private String statusMessage;
         private String activeToken;
+        private String invoiceId;
     }
 
     @Data
