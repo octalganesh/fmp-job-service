@@ -474,10 +474,10 @@ public class JobServiceImpl implements JobService {
                 e.printStackTrace();
             }
         }
-        response.setLeadReceivedDate(job.getLeadReceivedDate() != null ? job.getLeadReceivedDate().toString() : null);
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
+        response.setLeadReceivedDate(job.getLeadReceivedDate() != null ? job.getLeadReceivedDate().format(dateTimeFormatter) : null);
         List<JobMappingTags> jobTags = job.getJobMappingTags();
         List<JobTagDTO.Detail> jobTagList = new ArrayList<>();
-        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
 
         for (JobMappingTags tag : jobTags) {
             Optional<JobTag> jobTagOptional = jobTagRepository.findByUuid(tag.getTagId());

@@ -182,6 +182,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<JobType>jobTypeList=jobTypeRepository.findByUuidAndDeletedFalse(pagedResult.getContent().stream().map(Appointment::getJobTypeId).collect(Collectors.toList()));
         Map<String, String> jobTypeMap = jobTypeList.stream()
                 .collect(Collectors.toMap(JobType::getUuid, JobType::getName));
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
         for (Appointment appointment : pagedResult.getContent()) {
             AppointmentDTO.ListResponse dto = new AppointmentDTO.ListResponse();
             if (techMap != null) {
@@ -197,8 +198,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             dto.setJobTypeId(appointment.getJobTypeId());
             dto.setJobTypeName(jobTypeMap.get(appointment.getJobTypeId()));
             dto.setJobTaskId(appointment.getJobTaskId());
-            dto.setStartDateTime(appointment.getStartDateTime());
-            dto.setEndDateTime(appointment.getEndDateTime());
+            dto.setStartDateTime(appointment.getStartDateTime() != null ? appointment.getStartDateTime().format(dateTimeFormatter) : null);
+            dto.setEndDateTime(appointment.getEndDateTime() != null ? appointment.getEndDateTime().format(dateTimeFormatter) : null);
             dto.setTechnicianId(appointment.getTechnicianId());
             dto.setStatus(appointment.getStatus() != null ? appointment.getStatus() : "Scheduled");
             Job job = jobMap.get(appointment.getJobId());
@@ -247,6 +248,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<AppointmentDTO.ListResponse> responseList = new ArrayList<>();
         Type listType = new TypeToken<List<String>>() {
         }.getType();
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
         for (Appointment appointment : pagedResult.getContent()) {
             AppointmentDTO.ListResponse dto = new AppointmentDTO.ListResponse();
             TechnicianDTO.GetDetails tech = Objects.requireNonNull(techMap).get(appointment.getTechnicianId());
@@ -258,8 +260,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             dto.setJobTags(new Gson().fromJson(appointment.getJobTags(), listType));
             dto.setJobTypeId(appointment.getJobTypeId());
             dto.setJobTaskId(appointment.getJobTaskId());
-            dto.setStartDateTime(appointment.getStartDateTime());
-            dto.setEndDateTime(appointment.getEndDateTime());
+            dto.setStartDateTime(appointment.getStartDateTime() != null ? appointment.getStartDateTime().format(dateTimeFormatter) : null);
+            dto.setEndDateTime(appointment.getEndDateTime() != null ? appointment.getEndDateTime().format(dateTimeFormatter) : null);
             dto.setTechnicianId(appointment.getTechnicianId());
             dto.setStatus(appointment.getStatus() != null ? appointment.getStatus() : "Scheduled");
             responseList.add(dto);
