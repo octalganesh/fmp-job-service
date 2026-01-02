@@ -496,7 +496,7 @@ public class JobServiceImpl implements JobService {
             response.setJobStartDate(dateTimeFormatter != null ? job.getJobStartDate().format(dateTimeFormatter) : job.getJobStartDate().toString());
         }
         if(job.getJobEndDate() != null){
-            response.setJobStartDate(dateTimeFormatter != null ? job.getJobEndDate().format(dateTimeFormatter) : job.getJobEndDate().toString());
+            response.setJobEndDate(dateTimeFormatter != null ? job.getJobEndDate().format(dateTimeFormatter) : job.getJobEndDate().toString());
         }
         response.setServiceLocation(job.getServiceLocation());
         response.setServiceLocationLat(job.getServiceLocationLat());
