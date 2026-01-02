@@ -64,8 +64,10 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
     @Override
     public PageItem<InventoryRequestResponseDTO> getAllListRequest(PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws Exception {
         try {
-            String trimmedText = listRequest.getSearchText().trim();
-            listRequest.setSearchText(trimmedText);
+            if(!TextUtils.isEmpty(listRequest.getSearchText())){
+                String trimmedText = listRequest.getSearchText().trim();
+                listRequest.setSearchText(trimmedText);
+            }
             GenericSpecificationsBuilder<InventoryRequest> builder = new GenericSpecificationsBuilder<>();
             Pageable pageable = null;
             if (Boolean.TRUE.equals(listRequest.getAsc())) {
@@ -135,29 +137,29 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
                     throw new CodeException("Item not found", ErrorCode.COMMON);
                 }
                 int approvedQty = approval.getApprovedQty() != null ? approval.getApprovedQty() : 0;
-                InventoryPart inventory = inventoryMap.get(item.getInventoryListId());
-                if (inventory == null) {
-                    throw new CodeException("Inventory not found", ErrorCode.COMMON);
-                }
-                int availableQty;
-                try {
-                    availableQty = Integer.parseInt(inventory.getQuantityOnHand());
-                } catch (Exception e) {
-                    throw new CodeException(
-                            "Invalid inventory quantity for " + item.getInventoryListId(),
-                            ErrorCode.COMMON
-                    );
-                }
-                if (availableQty < approvedQty) {
-                    throw new CodeException(
-                            "Insufficient stock for " + item.getInventoryListId(),
-                            ErrorCode.COMMON
-                    );
-                }
-                inventory.setQuantityOnHand(String.valueOf(availableQty - approvedQty));
+//                InventoryPart inventory = inventoryMap.get(item.getInventoryListId());
+//                if (inventory == null) {
+//                    throw new CodeException("Inventory not found", ErrorCode.COMMON);
+//                }
+//                int availableQty;
+//                try {
+//                    availableQty = Integer.parseInt(inventory.getQuantityOnHand());
+//                } catch (Exception e) {
+//                    throw new CodeException(
+//                            "Invalid inventory quantity for " + item.getInventoryListId(),
+//                            ErrorCode.COMMON
+//                    );
+//                }
+//                if (availableQty < approvedQty) {
+//                    throw new CodeException(
+//                            "Insufficient stock for " + item.getInventoryListId(),
+//                            ErrorCode.COMMON
+//                    );
+//                }
+//                inventory.setQuantityOnHand(String.valueOf(availableQty - approvedQty));
                 item.setApprovedQty(approvedQty);
             }
-            updateInventoryInQB(inventoryMap);
+//            updateInventoryInQB(inventoryMap);
             request.setApprovedBy(approvalDTO.getApprovedBy());
             request.setStatus("APPROVED");
             request.setApprovedAt(LocalDateTime.now());
