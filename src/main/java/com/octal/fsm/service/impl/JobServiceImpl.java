@@ -1882,7 +1882,7 @@ public class JobServiceImpl implements JobService {
                 dto.setTaskName(entity.getTaskName());
                 dto.setTaskId(entity.getTaskId());
                 dto.setTaskShowId(entity.getTaskShowId());
-                dto.setDate(dateTimeFormatter != null ? entity.getCreatedAt().toLocalDate().format(dateTimeFormatter) : entity.getCreatedAt().toLocalDate().toString());
+                dto.setDate(dateTimeFormatter != null ? entity.getCreatedAt().format(dateTimeFormatter) : entity.getCreatedAt().toString());
                 //dto.setTime(null);
                 dto.setDescription("Description");
                 dto.setJobId(entity.getJob().getJobId());
