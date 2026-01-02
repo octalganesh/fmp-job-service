@@ -2153,13 +2153,14 @@ public class JobServiceImpl implements JobService {
             List<JobNotes> jobNotes = jobNotesRepository.findByJobId(jobId);
             JobFullNotesDTO response = new JobFullNotesDTO();
             response.setJobId(jobId);
+            DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
             response.setJobNotes(
                     jobNotes.stream()
                             .map(n -> {
                                 JobFullNotesDTO.JobNotesDTO dto = new JobFullNotesDTO.JobNotesDTO();
                                 dto.setId(n.getUuid());
                                 dto.setNote(n.getNotes());
-                                dto.setCreatedAt(n.getCreatedAt());
+                                dto.setCreatedAt(n.getCreatedAt() != null ? n.getCreatedAt().format(dateTimeFormatter) : null);
                                 return dto;
                             }).collect(Collectors.toList())
             );
@@ -2176,7 +2177,7 @@ public class JobServiceImpl implements JobService {
                 taskDto.setTaskId(task.getUuid());
                 taskDto.setTaskName(task.getTaskName());
                 taskDto.setTaskNote(task.getNote());
-                taskDto.setCreatedAt(task.getCreatedAt());
+                taskDto.setCreatedAt(task.getCreatedAt() != null ? task.getCreatedAt().format(dateTimeFormatter) : null);
                 JobTaskMappingTechnician tech =
                         technicians.stream()
                                 .filter(x -> x.getJobTaskMappingId().equals(task.getUuid()))
@@ -2188,7 +2189,7 @@ public class JobServiceImpl implements JobService {
                     JobFullNotesDTO.TechnicianNotesDTO techDto = new JobFullNotesDTO.TechnicianNotesDTO();
                     techDto.setTechnicianId(tech.getTechnicianId());
                     techDto.setTaskNote(tech.getNote());
-                    techDto.setCreatedAt(tech.getCreatedAt());
+                    techDto.setCreatedAt(tech.getCreatedAt() != null ? tech.getCreatedAt().format(dateTimeFormatter) : null);
                     taskDto.setTechnicians(techDto);
                 }
                 taskNotesList.add(taskDto);
