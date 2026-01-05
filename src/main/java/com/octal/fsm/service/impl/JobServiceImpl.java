@@ -2760,8 +2760,8 @@ public class JobServiceImpl implements JobService {
                         dto.setDescription("Description");
 
                         if (tech != null) {
-                            dto.setStartTime(tech.getStartTime() != null ? tech.getStartTime().toLocalTime().format(timeFormatter) : tech.getStartTime().toString());
-                            dto.setEndTime(tech.getEndTime() != null ? tech.getEndTime().toLocalTime().format(timeFormatter) : tech.getEndTime().toString());
+                            dto.setStartTime(tech.getStartTime() != null ? tech.getStartTime().toLocalTime().format(timeFormatter) : null);
+                            dto.setEndTime(tech.getEndTime() != null ? tech.getEndTime().toLocalTime().format(timeFormatter) : null);
                         }
 
                         dto.setTechnicianName(details != null ? details.getName() : "Assigned to CSR");
