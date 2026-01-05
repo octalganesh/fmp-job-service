@@ -114,4 +114,7 @@ public interface JobService {
 
     //update invoice details from quick books
     void updateInvoiceDetails(InvoiceRestDTO.Add add) throws CodeException;
+
+    List<JobDetailsForInventory> getAllJobByTechnicianId(String technicianId, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException;
+
 }

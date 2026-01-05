@@ -580,4 +580,17 @@ public class JobController extends BaseController {
         }
     }
 
+    @GetMapping("/all-jobs-for-technician/{technicianId}")
+    public ResponseEntity<ApiResponse> getAllJobForTechnician(@PathVariable("technicianId") String technicianId, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job created successfully", jobService.getAllJobByTechnicianId(technicianId,userName, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving job task details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 }

@@ -2567,6 +2567,16 @@ public class JobServiceImpl implements JobService {
         return dto;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<JobDetailsForInventory> getAllJobByTechnicianId(String technicianId, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+
+        if (technicianId == null || technicianId.isBlank()) {
+            return Collections.emptyList();
+        }
+        return jobTaskMappingTechnicianRepository.findTaskDetailsByTechnicianId(technicianId);
+    }
+
 
     private void prepareDispatchSearchFilter(com.octal.fsm.models.request.PageRequest.List listRequest, GenericSpecificationsBuilder<JobTaskMappingTechnician> builder) {
         builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("deleted", false));
