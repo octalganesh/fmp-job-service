@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -564,6 +565,16 @@ public class JobController extends BaseController {
             Long tenantId = getTenantId(request);
             boolean isSuperAdmin = isSuperAdmin(request);
             return jobService.getJobMappingTaskByTechnician(listRequest, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/earliest-created-date")
+    public ResponseEntity<ApiResponse> getEarliestJobCreatedDate(@RequestParam Long tenantId, HttpServletRequest request) {
+        try {
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getEarliestJobCreatedDateOrNow(tenantId), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
             return handleException(e);

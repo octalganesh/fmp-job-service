@@ -7,10 +7,13 @@ import com.octal.fsm.dto.JobReportSummaryDTO;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.repositories.JobReportNativeRepository;
+import com.octal.fsm.repositories.JobRepository;
 import com.octal.fsm.service.JobReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +25,8 @@ public class JobReportServiceImpl implements JobReportService {
     @Autowired
     private JobReportNativeRepository jobReportNativeRepository;
 
+    @Autowired
+    private JobRepository jobRepository;
 
     @Override
     public JobReportSummaryDTO.Detail getJobReportSummary(JobReportSummaryDTO.Search data, Long tenantId) throws CodeException {
@@ -55,9 +60,10 @@ public class JobReportServiceImpl implements JobReportService {
 
     @Override
     public JobDashboardResponseDTO.Detail getDashboardData(JobDashboardResponseDTO.Search search, Long tenantId) throws CodeException {
-        if (search.getStartDate() == null || search.getEndDate() == null) {
-            throw new CodeException("Start date and end date are required", ErrorCode.COMMON);
-        }
+//        if (search.getStartDate() == null || search.getEndDate() == null) {
+//            throw new CodeException("Start date and end date are required", ErrorCode.COMMON);
+//        }
+
         JobDashboardResponseDTO.Detail dto = new JobDashboardResponseDTO.Detail();
         if (search.getStartDate() != null && search.getEndDate() != null) {
             Map<String, Object> result = jobReportNativeRepository.getJobDashboardReport(

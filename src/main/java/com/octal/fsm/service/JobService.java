@@ -7,6 +7,7 @@ import com.octal.fsm.models.request.PageRequest;
 import org.springframework.http.ResponseEntity;
 
 import javax.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 
@@ -113,4 +114,5 @@ public interface JobService {
     ResponseEntity<com.octal.fsm.common.ApiResponse> getJobMappingTaskByTechnician(PageRequest.List listRequest,Long tenantId, boolean isSuperAdmin) throws CodeException;
 
 
+    LocalDateTime getEarliestJobCreatedDateOrNow(Long tenantId);
 }
