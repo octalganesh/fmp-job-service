@@ -2944,9 +2944,4 @@ public class JobServiceImpl implements JobService {
         }
 
     }
-
-    @Override
-    public LocalDateTime getEarliestJobCreatedDateOrNow(Long tenantId) {
-        return jobRepository.findEarliestJobCreatedAtByTenantId(tenantId);
-    }
 }

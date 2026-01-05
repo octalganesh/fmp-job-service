@@ -570,15 +570,4 @@ public class JobController extends BaseController {
             return handleException(e);
         }
     }
-
-    @GetMapping("/earliest-created-date")
-    public ResponseEntity<ApiResponse> getEarliestJobCreatedDate(@RequestParam Long tenantId, HttpServletRequest request) {
-        try {
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", jobService.getEarliestJobCreatedDateOrNow(tenantId), "200", HttpStatus.OK), HttpStatus.OK);
-        } catch (Exception e) {
-            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
-            return handleException(e);
-        }
-    }
-
 }

@@ -60,9 +60,10 @@ public class JobReportServiceImpl implements JobReportService {
 
     @Override
     public JobDashboardResponseDTO.Detail getDashboardData(JobDashboardResponseDTO.Search search, Long tenantId) throws CodeException {
-//        if (search.getStartDate() == null || search.getEndDate() == null) {
+        if (search.getStartDate() == null || search.getEndDate() == null) {
 //            throw new CodeException("Start date and end date are required", ErrorCode.COMMON);
-//        }
+            normalizeSearchDates(search, tenantId);
+        }
 
         JobDashboardResponseDTO.Detail dto = new JobDashboardResponseDTO.Detail();
         if (search.getStartDate() != null && search.getEndDate() != null) {
@@ -79,6 +80,17 @@ public class JobReportServiceImpl implements JobReportService {
 
         }
         return dto;
+    }
+
+    private void normalizeSearchDates(JobDashboardResponseDTO.Search search, Long tenantId) {
+        if (search.getStartDate() == null && search.getEndDate() == null) {
+            LocalDateTime firstCreatedDate = jobRepository.findEarliestJobCreatedAtByTenantId(tenantId);
+            if (firstCreatedDate == null) {
+                firstCreatedDate = LocalDateTime.now();
+            }
+            search.setStartDate(firstCreatedDate.toLocalDate());
+            search.setEndDate(LocalDate.now());
+        }
     }
 
     private List<JobDashboardResponseDTO.LocationSummaryDTO> parsePopularServiceLocations(ObjectMapper mapper, Object rawJson) {

@@ -112,7 +112,4 @@ public interface JobService {
     ResponseEntity<com.octal.fsm.common.ApiResponse> getJobByCustomerId(PageRequest.List listRequest,Long tenantId, boolean isSuperAdmin) throws CodeException;
 
     ResponseEntity<com.octal.fsm.common.ApiResponse> getJobMappingTaskByTechnician(PageRequest.List listRequest,Long tenantId, boolean isSuperAdmin) throws CodeException;
-
-
-    LocalDateTime getEarliestJobCreatedDateOrNow(Long tenantId);
 }
