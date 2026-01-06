@@ -1741,7 +1741,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public PageItem<JobInvoiceListDTO> getJobCompletedInvoiceList(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
-            listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+            //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
             Page<Job> pagedResult = getJobMappingData(listRequest, tenantId, isSuperAdmin);
             List<Job> jobs = pagedResult.getContent();
 
@@ -1913,7 +1913,7 @@ public class JobServiceImpl implements JobService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
-        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
@@ -1929,7 +1929,7 @@ public class JobServiceImpl implements JobService {
         if (listRequest.getTechnicianId() == null)
             listRequest.setTechnicianId(new ArrayList<>());
         GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
-        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         prepareDispatchSearchFilter(listRequest, builder);
 
         List<JobTaskMappingTechnician> techMappings = jobTaskMappingTechnicianRepository.findAll(builder.build());
@@ -2400,7 +2400,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public ResponseEntity<com.octal.fsm.common.ApiResponse> getJobByCustomerId(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
         if (listRequest.getCustomerId() != null) {
-            listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+            //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
             Page<Job> pagedResult = getJobMappingData(listRequest, tenantId, isSuperAdmin);
             List<Job> jobs = pagedResult.getContent();
 
@@ -2452,7 +2452,7 @@ public class JobServiceImpl implements JobService {
         if (listRequest.getTechnicianId() == null || listRequest.getTechnicianId().isEmpty()) {
             return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, "Technician Id is required", null, "500", HttpStatus.BAD_REQUEST), HttpStatus.OK);
         }
-        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         Page<JobTaskMappingTechnician> pagedResult = getJobTaskMappingData(listRequest, tenantId, isSuperAdmin);
         List<JobTaskMappingTechnician> jobTaskMappingTechnicians = pagedResult.getContent();
         if (jobTaskMappingTechnicians.isEmpty()) {
