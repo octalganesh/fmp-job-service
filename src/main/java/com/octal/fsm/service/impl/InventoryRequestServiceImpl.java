@@ -190,7 +190,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
 
         InventoryRequestResponseDTO dto = new InventoryRequestResponseDTO();
 
-        dto.setRequestId(request.getUuid());
+        dto.setId(request.getUuid());
         dto.setTechnicianId(request.getTechnicianId());
         dto.setTaskId(request.getTaskId());
         dto.setRequestedAt(request.getRequestedAt().toString());

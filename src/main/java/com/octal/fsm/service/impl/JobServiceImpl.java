@@ -138,6 +138,8 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private QuickBookClientService quickBookClientService;
+    @Autowired
+    private InventoryRequestRepository inventoryRequestRepository;
 
     @Autowired
     private JobService jobService;
@@ -1019,8 +1021,39 @@ public class JobServiceImpl implements JobService {
 //            return new PageItem<>()
 //        }
         JobTaskMappingTechnician taskMapping = taskMappingOpt.get();
+        List<InventoryRequest> inventoryRequests = inventoryRequestRepository.findByTaskId(taskId);
+        List<InventoryRequestResponseDTO> dtoList = inventoryRequests.stream().map(this::toDto).collect(Collectors.toList());
+
         List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping), "", userName, tenantId);
+        if (!detailsList.isEmpty()) {
+            detailsList.get(0).setInventoryList(dtoList);
+        }
         return detailsList.isEmpty() ? null : detailsList.get(0);
+    }
+
+    private InventoryRequestResponseDTO toDto(InventoryRequest request) {
+        InventoryRequestResponseDTO dto = new InventoryRequestResponseDTO();
+        dto.setId(request.getUuid());
+        dto.setTechnicianId(request.getTechnicianId());
+        dto.setTaskId(request.getTaskId());
+        dto.setRequestedAt(request.getRequestedAt().toString());
+        dto.setApprovedAt(request.getApprovedAt() != null ? request.getApprovedAt().toString() : null);
+        dto.setApprovedBy(request.getApprovedBy());
+        dto.setStatus(request.getStatus());
+        dto.setRejectionReason(request.getRejectionReason());
+        List<InventoryRequestResponseDTO.Item> items = request.getItems().stream()
+                .map(item -> {
+                    InventoryRequestResponseDTO.Item i =
+                            new InventoryRequestResponseDTO.Item();
+                    i.setInventoryListId(item.getInventoryListId());
+                    i.setInventoryName(item.getInventoryName());
+                    i.setRequestedQty(item.getRequestedQty());
+                    i.setApprovedQty(item.getApprovedQty());
+                    return i;
+                })
+                .collect(Collectors.toList());
+        dto.setItems(items);
+        return dto;
     }
 
     @Override

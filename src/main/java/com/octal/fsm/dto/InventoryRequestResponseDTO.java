@@ -7,7 +7,7 @@ import java.util.List;
 @Data
 public class InventoryRequestResponseDTO {
 
-    private String requestId;
+    private String id;
     private String technicianId;
     private String taskId;
     private String status;
