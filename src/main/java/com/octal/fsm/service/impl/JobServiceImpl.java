@@ -243,7 +243,7 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail,Long tenantId) throws CodeException {
-        Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(jobId);
+        Boolean jobExist = jobRepository.existsByJobIdAndDeletedFalse(jobId);
         if (!jobExist)
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         GenericSpecificationsBuilder<JobInvoice> builder = new GenericSpecificationsBuilder<>();

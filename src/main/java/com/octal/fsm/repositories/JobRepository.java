@@ -27,6 +27,8 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
 
     Boolean existsByUuidAndDeletedFalse(String uuid);
 
+    Boolean existsByJobIdAndDeletedFalse(String uuid);
+
     Boolean existsByUuidAndTenantIdAndDeletedFalse(String uuid, Long tenantId);
 
 
