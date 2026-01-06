@@ -7,6 +7,7 @@ import com.octal.fsm.entities.InventoryRequest;
 import com.octal.fsm.entities.InventoryRequestItem;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
+import com.octal.fsm.helper.CodeGenerator;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.InventoryPartRepository;
 import com.octal.fsm.repositories.InventoryRequestRepository;
@@ -40,6 +41,8 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
     private InventoryPartRepository inventoryPartRepository;
     @Autowired
     private QuickBookClientService quickBookClientService;
+    @Autowired
+    private CodeGenerator codeGenerator;
 
     @Override
     public String createRequest(InventoryRequestDTO.Create requestDTO, Long tenantId, boolean isSuperAdmin) throws Exception {
@@ -47,6 +50,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
         request.setTechnicianId(requestDTO.getTechnicianId());
         request.setTaskId(requestDTO.getTaskId());
         request.setComment(requestDTO.getComment());
+        request.setRequestShowId(codeGenerator.generateRequestShowId());
         request.setStatus("PENDING");
         request.setRequestedAt(LocalDateTime.now());
 
@@ -195,6 +199,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
         dto.setTechnicianId(request.getTechnicianId());
         dto.setTaskId(request.getTaskId());
         dto.setComment(request.getComment());
+        dto.setRequestShowId(request.getRequestShowId());
         dto.setRequestedAt(request.getRequestedAt().toString());
         dto.setApprovedAt(request.getApprovedAt() != null ? request.getApprovedAt().toString() : null);
         dto.setApprovedBy(request.getApprovedBy());

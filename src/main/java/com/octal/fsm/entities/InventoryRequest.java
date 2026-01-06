@@ -19,6 +19,9 @@ public class InventoryRequest extends AbstractPersistable{
     @Column(name = "task_id", nullable = false)
     private String taskId;
 
+    @Column(name = "request_show_id", nullable = false)
+    private String requestShowId;
+
     @Column(name = "comment")
     private String comment;
 

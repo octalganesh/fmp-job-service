@@ -15,4 +15,8 @@ public interface InventoryRequestRepository extends JpaRepository<InventoryReque
     Optional<InventoryRequest> findByUuid(String uuid);
 
     List<InventoryRequest> findByTaskId(String taskId);
+
+    Boolean existsByRequestShowId(String requestShowId);
+
+
 }

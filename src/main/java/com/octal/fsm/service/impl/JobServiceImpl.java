@@ -1037,6 +1037,7 @@ public class JobServiceImpl implements JobService {
         dto.setTechnicianId(request.getTechnicianId());
         dto.setTaskId(request.getTaskId());
         dto.setComment(request.getComment());
+        dto.setRequestShowId(request.getRequestShowId());
         dto.setRequestedAt(request.getRequestedAt().toString());
         dto.setApprovedAt(request.getApprovedAt() != null ? request.getApprovedAt().toString() : null);
         dto.setApprovedBy(request.getApprovedBy());
