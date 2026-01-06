@@ -19,6 +19,9 @@ public class InventoryRequest extends AbstractPersistable{
     @Column(name = "task_id", nullable = false)
     private String taskId;
 
+    @Column(name = "comment")
+    private String comment;
+
     @Column(name = "status", nullable = false)
     private String status; // PENDING, APPROVED, REJECTED
 

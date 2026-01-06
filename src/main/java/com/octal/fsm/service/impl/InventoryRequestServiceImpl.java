@@ -46,6 +46,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
         InventoryRequest request = new InventoryRequest();
         request.setTechnicianId(requestDTO.getTechnicianId());
         request.setTaskId(requestDTO.getTaskId());
+        request.setComment(requestDTO.getComment());
         request.setStatus("PENDING");
         request.setRequestedAt(LocalDateTime.now());
 
@@ -193,6 +194,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
         dto.setId(request.getUuid());
         dto.setTechnicianId(request.getTechnicianId());
         dto.setTaskId(request.getTaskId());
+        dto.setComment(request.getComment());
         dto.setRequestedAt(request.getRequestedAt().toString());
         dto.setApprovedAt(request.getApprovedAt() != null ? request.getApprovedAt().toString() : null);
         dto.setApprovedBy(request.getApprovedBy());

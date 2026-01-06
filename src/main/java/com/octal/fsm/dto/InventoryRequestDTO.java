@@ -11,6 +11,7 @@ public class InventoryRequestDTO {
     public static class Create {
         private String technicianId;
         private String taskId;
+        private String comment;
         private List<Item> items;
     }
 

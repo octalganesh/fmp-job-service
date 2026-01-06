@@ -11,6 +11,7 @@ public class InventoryRequestResponseDTO {
     private String technicianId;
     private String taskId;
     private String status;
+    private String comment;
 
     private String requestedAt;
     private String approvedAt;
