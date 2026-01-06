@@ -45,7 +45,7 @@ public class JobCallHistoryServiceImpl implements JobCallHistoryService {
     public void saveJobCallHistory(JobCallDTO.Add addJobDTO) throws CodeException {
         if (TextUtils.isEmpty(addJobDTO.getJobId()))
             throw new CodeException("Job id is required to save job call history", ErrorCode.COMMON);
-        Boolean jobCheck = jobRepository.existsByUuidAndDeletedFalse(addJobDTO.getJobId());
+        Boolean jobCheck = jobRepository.existsByJobIdAndDeletedFalse(addJobDTO.getJobId());
         if (!jobCheck)
             throw new CodeException("Job not found", ErrorCode.COMMON);
         JobCallHistory jobCallHistory = new JobCallHistory();
