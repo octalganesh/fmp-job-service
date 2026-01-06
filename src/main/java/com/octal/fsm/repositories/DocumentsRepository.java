@@ -12,4 +12,7 @@ public interface DocumentsRepository extends JpaRepository<Documents, Long>, Jpa
     List<Documents> findByAttachTypeId(String uuid);
 
     List<Documents> findByAttachTypeIdOrderByCreatedAtDesc(String attachTypeId);
+
+    List<Documents> findByAttachTypeIdIn(List<String> attachTypeIds);
+
 }

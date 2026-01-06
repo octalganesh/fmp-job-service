@@ -11,6 +11,7 @@ import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.JobStatusMasterRepository;
 import com.octal.fsm.repositories.JobTypeRepository;
+import com.octal.fsm.service.GeneralSettingService;
 import com.octal.fsm.service.JobTypeService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
@@ -23,6 +24,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,6 +37,9 @@ public class JobTypeServiceImpl implements JobTypeService {
     private SpecificationFactory<JobType> jobTypeSpecificationFactory;
     @Autowired
     private JobStatusMasterRepository jobStatusMasterRepository;
+
+    @Autowired
+    private GeneralSettingService generalSettingService;
 
     @Value("${aws.base-url}")
     private String awsS3BaseUrl;
@@ -239,11 +244,12 @@ public class JobTypeServiceImpl implements JobTypeService {
             tenantId = 1L;
         Optional<JobType> jobTypeOptional = jobTypeRepository.findByUuidAndTenantId(id, tenantId);
         if (jobTypeOptional.isPresent()) {
+            DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
             JobTypeDTO.Detail jobType = new JobTypeDTO.Detail();
             jobType.setName(jobTypeOptional.get().getName());
             jobType.setId(jobTypeOptional.get().getUuid());
             jobType.setIsActive(jobTypeOptional.get().getActive());
-            jobType.setCreatedAt(jobTypeOptional.get().getCreatedAt().toString());
+            jobType.setCreatedAt(jobTypeOptional.get().getCreatedAt() != null ? jobTypeOptional.get().getCreatedAt().format(dateTimeFormatter) : null);
             if(jobTypeOptional.get().getJobTypeDocuments() != null){
                 jobType.setDocuments(jobTypeOptional.get().getJobTypeDocuments());
             }
@@ -278,6 +284,8 @@ public class JobTypeServiceImpl implements JobTypeService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobType> builder = new GenericSpecificationsBuilder<>();
+        int pageSize = generalSettingService.getPageSize(tenantId);
+        listRequest.setPageSize(pageSize);
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
@@ -290,13 +298,14 @@ public class JobTypeServiceImpl implements JobTypeService {
         prepareJobTypeSearchFilter(listRequest, builder);
         Page<JobType> pagedResult = jobTypeRepository.findAll(builder.build(), pageable);
         List<JobTypeDTO.Detail> responseList = new ArrayList<>();
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
         for (JobType jobType : pagedResult.getContent()) {
             JobTypeDTO.Detail dto = new JobTypeDTO.Detail();
             dto.setId(jobType.getUuid());
             dto.setName(jobType.getName());
             dto.setIsActive(jobType.getActive());
-            dto.setCreatedAt(String.valueOf(jobType.getCreatedAt()));
-            dto.setUpdatedAt(String.valueOf(jobType.getUpdatedAt()));
+            dto.setCreatedAt(jobType.getCreatedAt() != null ? jobType.getCreatedAt().format(dateTimeFormatter) : null);
+            dto.setUpdatedAt(jobType.getUpdatedAt() != null ? jobType.getUpdatedAt().format(dateTimeFormatter) : null);
             dto.setDescription(jobType.getDescription());
             if(jobType.getJobTypeDocuments() != null){
                 dto.setDocuments(jobType.getJobTypeDocuments());
@@ -311,8 +320,8 @@ public class JobTypeServiceImpl implements JobTypeService {
                         taskDto.setIsActive(entity.getActive());
                         taskDto.setStatusMasterId(entity.getJobStatusMaster().getUuid());
                         taskDto.setSequence(entity.getSequence());
-                        taskDto.setCreatedAt(entity.getCreatedAt().toString());
-                        taskDto.setUpdatedAt(entity.getUpdatedAt().toString());
+                        taskDto.setCreatedAt(entity.getCreatedAt() != null ? entity.getCreatedAt().format(dateTimeFormatter) : null);
+                        taskDto.setUpdatedAt(entity.getUpdatedAt() != null ? entity.getUpdatedAt().format(dateTimeFormatter) : null);
                         return taskDto;
                     })
                     .collect(java.util.stream.Collectors.toList()));
@@ -350,6 +359,8 @@ public class JobTypeServiceImpl implements JobTypeService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobType> builder = new GenericSpecificationsBuilder<>();
+        int pageSize = generalSettingService.getPageSize(tenantId);
+        listRequest.setPageSize(pageSize);
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
@@ -362,13 +373,14 @@ public class JobTypeServiceImpl implements JobTypeService {
         prepareJobTypeSearchFilter(listRequest, builder);
         Page<JobType> pagedResult = jobTypeRepository.findAll(builder.build(), pageable);
         List<JobTypeDTO.DetailWithoutJobTasks> responseList = new ArrayList<>();
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
         for (JobType jobType : pagedResult.getContent()) {
             JobTypeDTO.DetailWithoutJobTasks dto = new JobTypeDTO.DetailWithoutJobTasks();
             dto.setId(jobType.getUuid());
             dto.setName(jobType.getName());
             dto.setIsActive(jobType.getActive());
-            dto.setCreatedAt(String.valueOf(jobType.getCreatedAt()));
-            dto.setUpdatedAt(String.valueOf(jobType.getUpdatedAt()));
+            dto.setCreatedAt(jobType.getCreatedAt() != null ? jobType.getCreatedAt().format(dateTimeFormatter) : null);
+            dto.setUpdatedAt(jobType.getUpdatedAt() != null ? jobType.getUpdatedAt().format(dateTimeFormatter) : null);
             dto.setDescription(jobType.getDescription());
             responseList.add(dto);
         }

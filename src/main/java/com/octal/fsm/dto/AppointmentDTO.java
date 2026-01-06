@@ -42,10 +42,10 @@ public class AppointmentDTO {
         private String jobTaskId;
         private String technicianId;
         private String technicianName;
-        private LocalDateTime startDateTime;
-        private LocalDateTime endDateTime;
-        private LocalTime startTime;
-        private LocalTime endTime;
+        private String startDateTime;
+        private String endDateTime;
+        private String startTime;
+        private String endTime;
         private String additionalNotes;
         private Boolean isActive;
         private String status;
