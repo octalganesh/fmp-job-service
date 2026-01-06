@@ -1247,7 +1247,7 @@ public class JobServiceImpl implements JobService {
             GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
             builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("deleted", false));
             builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("technicianId", technicianId));
-            filterRequest.setPage(generalSettingService.getPageSize(tenantId));
+           // filterRequest.setPage(generalSettingService.getPageSize(tenantId));
             int page = filterRequest.getPage() != null ? filterRequest.getPage() : 0;
             int limit = filterRequest.getLimit() != null ? filterRequest.getLimit() : 10;
             Pageable pageable = PageRequest.of(page, limit, Sort.by("createdAt").descending());
