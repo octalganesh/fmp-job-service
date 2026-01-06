@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -279,7 +280,8 @@ public class JobController extends BaseController {
                                                       @RequestParam(defaultValue = "true") Boolean order, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice List Successfully.", jobService.getAllJobInvoices(page, size, sortBy, order, jobId, userName), "200", HttpStatus.OK), HttpStatus.OK);
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice List Successfully.", jobService.getAllJobInvoices(page, size, sortBy, order, jobId, userName,tenantId), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);
@@ -568,5 +570,4 @@ public class JobController extends BaseController {
             return handleException(e);
         }
     }
-
 }

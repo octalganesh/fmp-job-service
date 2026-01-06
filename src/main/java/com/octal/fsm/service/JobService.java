@@ -7,6 +7,7 @@ import com.octal.fsm.models.request.PageRequest;
 import org.springframework.http.ResponseEntity;
 
 import javax.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 
@@ -18,7 +19,7 @@ public interface JobService {
 
     void createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
-    PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException;
+    PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail,Long tenantId) throws CodeException;
 
     void updateJobTags(String jobId, JobDTO.UpdateJobTags updateJobTags, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
@@ -111,6 +112,4 @@ public interface JobService {
     ResponseEntity<com.octal.fsm.common.ApiResponse> getJobByCustomerId(PageRequest.List listRequest,Long tenantId, boolean isSuperAdmin) throws CodeException;
 
     ResponseEntity<com.octal.fsm.common.ApiResponse> getJobMappingTaskByTechnician(PageRequest.List listRequest,Long tenantId, boolean isSuperAdmin) throws CodeException;
-
-
 }

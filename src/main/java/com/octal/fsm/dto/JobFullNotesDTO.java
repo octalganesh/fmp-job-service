@@ -16,7 +16,7 @@ public class JobFullNotesDTO {
     public static class JobNotesDTO {
         private String id;
         private String note;
-        private LocalDateTime createdAt;
+        private String createdAt;
     }
 
     @Data
@@ -24,7 +24,7 @@ public class JobFullNotesDTO {
         private String taskId;
         private String taskName;
         private String taskNote;
-        private LocalDateTime createdAt;
+        private String createdAt;
         private TechnicianNotesDTO technicians; // single object, NOT list
     }
 
@@ -33,7 +33,7 @@ public class JobFullNotesDTO {
     public static class TechnicianNotesDTO {
         private String technicianId;
         private String taskNote;
-        private LocalDateTime createdAt;
+        private String createdAt;
     }
 
 }

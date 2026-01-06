@@ -7,6 +7,7 @@ import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.JobNotesRepository;
+import com.octal.fsm.service.GeneralSettingService;
 import com.octal.fsm.service.JobNotesService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +36,8 @@ public class JobNotesServiceImpl implements JobNotesService {
 
     @Autowired
     private EventPublisherService eventPublisherService;
+    @Autowired
+    private GeneralSettingService generalSettingService;
 
     @Override
     public String addNotes(JobNotesDTO.Add addNotes, boolean isSuperAdmin) throws CodeException {
@@ -107,10 +111,11 @@ public class JobNotesServiceImpl implements JobNotesService {
     }
 
     @Override
-    public PageItem<JobNotesDTO.Details> getAllJobNotes(PageRequest.List listRequest) {
+    public PageItem<JobNotesDTO.Details> getAllJobNotes(PageRequest.List listRequest,Long tenantId) {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobNotes> builder = new GenericSpecificationsBuilder<>();
+        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
@@ -124,14 +129,15 @@ public class JobNotesServiceImpl implements JobNotesService {
 
         Page<JobNotes> pagedResult =  jobNotesRepository.findAll(builder.build(), pageable);
         List<JobNotesDTO.Details> responseList = new ArrayList<>();
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
         for (JobNotes notes : pagedResult.getContent()) {
             JobNotesDTO.Details dto = new JobNotesDTO.Details();
             dto.setId(notes.getUuid());
             dto.setNotes(notes.getNotes());
             dto.setJobId(notes.getJobId());
             dto.setCreatedBy(notes.getCreatedBy());
-            dto.setCreatedAt(String.valueOf(notes.getCreatedAt()));
-            dto.setUpdatedAt(String.valueOf(notes.getUpdatedAt()));
+            dto.setCreatedAt(notes.getCreatedAt() != null ? notes.getCreatedAt().format(dateTimeFormatter) : null);
+            dto.setUpdatedAt(notes.getUpdatedAt() != null ? notes.getUpdatedAt().format(dateTimeFormatter) : null);
             dto.setActive(notes.getActive());
             responseList.add(dto);
         }
