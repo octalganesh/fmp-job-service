@@ -579,7 +579,7 @@ public class JobServiceImpl implements JobService {
             JobTaskMappingTechnician jobTaskMappingTechnician = new JobTaskMappingTechnician();
             Optional<JobTaskMappingTechnician> jobTaskMappingToTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(assignJobToTechnician.getJobTaskMappingId());
             if (jobTaskMappingToTechnician.isPresent()) {
-                boolean checkIfTaskAssignedToTechnician = checkIfTaskAssignedToTechnician(assignJobToTechnician);
+                boolean checkIfTaskAssignedToTechnician = checkIfTaskAssignedToTechnician(assignJobToTechnician,tenantId);
                 if (!checkIfTaskAssignedToTechnician && !jobTaskMappingToTechnician.get().getTaskStatus().equalsIgnoreCase("cancelled")) {
                     throw new CodeException("Technician is already assigned to another task during the selected time period.", ErrorCode.COMMON);
                 }
@@ -607,16 +607,16 @@ public class JobServiceImpl implements JobService {
 //                    Gson gson = new Gson();
 //                    jobTaskMappingToTechnician.get().setDocuments(gson.toJson(assignJobToTechnician.getDocuments()));
 //                }
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
 
                 if (assignJobToTechnician.getStartDateTime() != null) {
-                    LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), formatter);
+                    LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), dateTimeFormatter);
                     Time sqlTime = Time.valueOf(ldt.toLocalTime());
                     jobTaskMappingToTechnician.get().setStartTime(sqlTime);
                 }
 
                 if (assignJobToTechnician.getEndDateTime() != null) {
-                    LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), formatter);
+                    LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), dateTimeFormatter);
                     Time sqlTime = Time.valueOf(ldt.toLocalTime());
                     jobTaskMappingToTechnician.get().setEndTime(sqlTime);
                 }
@@ -640,7 +640,7 @@ public class JobServiceImpl implements JobService {
                 }
             } else {
 
-                boolean checkIfTaskAssignedToTechnician = checkIfTaskAssignedToTechnician(assignJobToTechnician);
+                boolean checkIfTaskAssignedToTechnician = checkIfTaskAssignedToTechnician(assignJobToTechnician,tenantId);
                 if (!checkIfTaskAssignedToTechnician) {
                     throw new CodeException("Technician is already assigned to another task during the selected time period.", ErrorCode.COMMON);
                 }
@@ -665,15 +665,15 @@ public class JobServiceImpl implements JobService {
                         e.printStackTrace();
                     }
                 }
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
                 try{
                     if (assignJobToTechnician.getStartDateTime() != null) {
-                        LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), formatter);
+                        LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), dateTimeFormatter);
                         Time sqlTime = Time.valueOf(ldt.toLocalTime());
                         jobTaskMappingTechnician.setStartTime(sqlTime);
                     }
                     if (assignJobToTechnician.getEndDateTime() != null) {
-                        LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), formatter);
+                        LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), dateTimeFormatter);
                         Time sqlTime = Time.valueOf(ldt.toLocalTime());
                         jobTaskMappingTechnician.setEndTime(sqlTime);
                     }
@@ -709,17 +709,16 @@ public class JobServiceImpl implements JobService {
         }
     }
 
-    public boolean checkIfTaskAssignedToTechnician(JobDTO.AssignJobToTechnician assignJobToTechnician) {
+    public boolean checkIfTaskAssignedToTechnician(JobDTO.AssignJobToTechnician assignJobToTechnician,Long tenantId) {
         List<JobTaskMappingTechnician> byTechnicianId =
                 jobTaskMappingTechnicianRepository.findByTechnicianId(assignJobToTechnician.getTechnicianId());
 
         LocalDate newStartDate = LocalDate.parse(assignJobToTechnician.getStartDate());
         LocalDate newEndDate = LocalDate.parse(assignJobToTechnician.getEndDate());
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-
-        LocalDateTime startDateTime = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), formatter);
-        LocalDateTime endDateTime = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), formatter);
+        LocalDateTime startDateTime = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), dateTimeFormatter);
+        LocalDateTime endDateTime = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), dateTimeFormatter);
 
         LocalTime newStartTime = startDateTime.toLocalTime();
         LocalTime newEndTime = endDateTime.toLocalTime();
