@@ -22,9 +22,7 @@ public interface AdminClient {
                                                                         @RequestHeader("superAdmin") boolean superAdmin);
 
     @GetMapping(value = "/customer-profile/job-details")
-    ResponseEntity<ApiResponse> getJobDetailsForCustomerInfo(@RequestParam("customerId") String customerId, @RequestParam("leadSourceId") String leadSourceId, @RequestParam("customerTypeId") String customerTypeId, @RequestHeader(USER_NAME) String userName, @RequestHeader("tenantId") Long tenantId,
-                                                             @RequestHeader("superAdmin") boolean superAdmin);
-
+    ResponseEntity<ApiResponse> getJobDetailsForCustomerInfo(@RequestParam("customerId") String customerId, @RequestParam("leadSourceId") String leadSourceId, @RequestParam("customerTypeId") String customerTypeId, @RequestHeader("tenantId") Long tenantId);
 
     @PostMapping("/email-template/get-template-content")
     ResponseEntity<ApiResponse> getTemplateContent(@RequestBody EmailTemplateDto.EmailTemplateRequest request, @RequestHeader(USER_NAME) String userName, @RequestHeader("tenantId") Long tenantId,
