@@ -2020,6 +2020,7 @@ public class JobServiceImpl implements JobService {
             final Map<String, JobTag> tagIdToNameMap = jobTags.stream()
                     .collect(Collectors.toMap(JobTag::getUuid, jt -> jt));
             DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
+            DateTimeFormatter timeFormatter = generalSettingService.buildTenantTimeFormatter(tenantId);
             List<DispatchBoardDataResponseDTO> collect = techMappings.stream()
                     .map(tech -> {
                         JobMappingTask task = taskMap.get(tech.getJobTaskMappingId());
@@ -2043,8 +2044,8 @@ public class JobServiceImpl implements JobService {
                         if(tech.getEndDate() != null){
                             dto.setEndDate(dateFormatter != null ? tech.getEndDate().format(dateFormatter) : tech.getEndDate().toString());
                         }
-                        dto.setStartTime(tech.getStartTime() != null ? tech.getStartTime().toString() : null);
-                        dto.setEndTime(tech.getEndTime() != null ? tech.getEndTime().toString() : null);
+                        dto.setStartTime(tech.getStartTime() != null ? tech.getStartTime().toLocalTime().format(timeFormatter) : null);
+                        dto.setEndTime(tech.getEndTime() != null ? tech.getEndTime().toLocalTime().format(timeFormatter) : null);
                         dto.setJobId(job.getJobId());
                         dto.setCustomerId(job.getCustomerId());
                         dto.setServiceLocation(job.getServiceLocation());
