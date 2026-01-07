@@ -58,8 +58,9 @@ public class InventoryRequestController extends BaseController{
         try {
             Long tenantId = getTenantId(request);
             boolean isSuperAdmin = isSuperAdmin(request);
+            String userName = request.getHeader(CommonConstants.USER_NAME);
             String msg = approvalDTO.getAction().equalsIgnoreCase("CANCEL") ? "Inventory request Cancelled Successfully." : "Inventory request Approved Successfully.";
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, msg, inventoryRequestService.approvalInventoryRequest(approvalDTO, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, msg, inventoryRequestService.approvalInventoryRequest(approvalDTO, tenantId, isSuperAdmin,userName), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error while approved inventory request data: {}", e.getMessage(), e);
             return handleException(e);

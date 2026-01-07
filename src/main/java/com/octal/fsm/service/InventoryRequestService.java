@@ -12,5 +12,5 @@ public interface InventoryRequestService {
 
     PageItem<InventoryRequestResponseDTO> getAllListRequest(PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws Exception;
 
-    InventoryRequestResponseDTO approvalInventoryRequest(InventoryApprovalDTO approvalDTO, Long tenantId, boolean isSuperAdmin) throws Exception;
+    InventoryRequestResponseDTO approvalInventoryRequest(InventoryApprovalDTO approvalDTO, Long tenantId, boolean isSuperAdmin,String userName) throws Exception;
 }

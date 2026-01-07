@@ -8,6 +8,8 @@ import com.octal.fsm.entities.InventoryRequestItem;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.helper.CodeGenerator;
+import com.octal.fsm.listener.events.InventoryRequestNotificationEvent;
+import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.InventoryPartRepository;
 import com.octal.fsm.repositories.InventoryRequestRepository;
@@ -16,6 +18,7 @@ import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
 import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -43,6 +46,8 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
     private QuickBookClientService quickBookClientService;
     @Autowired
     private CodeGenerator codeGenerator;
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     public String createRequest(InventoryRequestDTO.Create requestDTO, Long tenantId, boolean isSuperAdmin) throws Exception {
@@ -97,7 +102,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
 
     @Override
     @Transactional
-    public InventoryRequestResponseDTO approvalInventoryRequest(InventoryApprovalDTO approvalDTO, Long tenantId, boolean isSuperAdmin) throws Exception {
+    public InventoryRequestResponseDTO approvalInventoryRequest(InventoryApprovalDTO approvalDTO, Long tenantId, boolean isSuperAdmin,String userName) throws Exception {
         try {
             InventoryRequest request = inventoryRequestRepository
                     .findByUuid(approvalDTO.getId())
@@ -168,7 +173,8 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
             request.setApprovedBy(approvalDTO.getApprovedBy());
             request.setStatus("APPROVED");
             request.setApprovedAt(LocalDateTime.now());
-            inventoryRequestRepository.save(request);
+            InventoryRequest inventoryRequest = inventoryRequestRepository.save(request);
+            applicationEventPublisher.publishEvent(new InventoryRequestNotificationEvent(inventoryRequest, tenantId, userName));
             return toDto(request);
         } catch (Exception e) {
             throw new RuntimeException(e);
