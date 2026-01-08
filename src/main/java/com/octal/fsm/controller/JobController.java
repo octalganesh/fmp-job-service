@@ -570,4 +570,28 @@ public class JobController extends BaseController {
             return handleException(e);
         }
     }
+
+    @PostMapping("/add-task-from-job")
+    public ResponseEntity<ApiResponse> addTaskFromJob(@RequestBody JobTaskDTO.AddWithJobDetails withJobDetails, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.addTaskFromJob(withJobDetails, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error add task : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PutMapping("/remove-task/{taskId}")
+    public ResponseEntity<ApiResponse> removeTaskData(@PathVariable String taskId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.removeTask(taskId, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error add task : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
 }

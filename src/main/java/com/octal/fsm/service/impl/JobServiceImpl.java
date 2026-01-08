@@ -13,6 +13,7 @@ import com.octal.fsm.entities.*;
 import com.octal.fsm.entities.enums.TaskAssignedType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
+import com.octal.fsm.helper.CodeGenerator;
 import com.octal.fsm.listener.events.SendMailAndPushEvent;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.repositories.*;
@@ -129,6 +130,8 @@ public class JobServiceImpl implements JobService {
     private TechnicianClientService technicianClientService;
     @Autowired
     private AdminClientService adminClientService;
+    @Autowired
+    private CodeGenerator codeGenerator;
 
     @Autowired
     private JobService jobService;
@@ -556,6 +559,9 @@ public class JobServiceImpl implements JobService {
                 }
                 responseList.add(dto);
             }
+            responseList.sort(Comparator.comparing(
+                            (JobDTO.JobTaskListResponse jobDto) -> "COMPLETED".equalsIgnoreCase(jobDto.getTaskStatus()))
+                    .thenComparing(JobDTO.JobTaskListResponse::getSequenceNumber));
         }
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, page,
                 size);
@@ -2507,6 +2513,111 @@ public class JobServiceImpl implements JobService {
                 listRequest.getPageSize()
         );
         return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Data fetch successfully", jobMappingTaskTechnicianPageItem, "200", HttpStatus.OK), HttpStatus.OK);
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> addTaskFromJob(JobTaskDTO.AddWithJobDetails withJobDetails, Long tenantId, boolean isSuperAdmin) throws CodeException {
+        try {
+            if (withJobDetails == null) {
+                throw new CodeException("Request body cannot be null", ErrorCode.COMMON);
+            }
+            if (withJobDetails.getJobId() == null) {
+                throw new CodeException("Job Id is required", ErrorCode.COMMON);
+            }
+            if (withJobDetails.getJobTypeId() == null) {
+                throw new CodeException("JobTypeId is required", ErrorCode.COMMON);
+            }
+            if (withJobDetails.getName() == null || withJobDetails.getName().isBlank()) {
+                throw new CodeException("Task name is required", ErrorCode.COMMON);
+            }
+            Job job = jobRepository.findByUuidAndDeletedFalse(withJobDetails.getJobId()).
+                    orElseThrow(() -> new CodeException("Job not found", ErrorCode.COMMON));
+            JobType jobType = jobTypeRepository.findByUuid(withJobDetails.getJobTypeId()).
+                    orElseThrow(() -> new CodeException("Job type not found", ErrorCode.COMMON));
+            JobStatusMaster jobStatusMaster = jobStatusMasterRepository.findByUuid(withJobDetails.getStatusMasterId())
+                    .orElseThrow(() -> new CodeException("Job status not found", ErrorCode.COMMON));
+
+            //Create JobTask entity
+            JobTask jobTask = new JobTask();
+            jobTask.setName(withJobDetails.getName());
+            jobTask.setDescription(withJobDetails.getDescription());
+            jobTask.setAssignedType(withJobDetails.getAssignedType());
+            jobTask.setSequence(withJobDetails.getPreviousTaskSequence() == null ? 1 : withJobDetails.getPreviousTaskSequence() + 1);
+            jobTask.setJobType(jobType);
+            jobTask.setJobStatusMaster(jobStatusMaster);
+            //Save JobTask
+            JobTask savedTask = jobTaskRepository.save(jobTask);
+            //save job mapping task
+            if (savedTask.getSequence() == 1) {
+                job.setCurrentTaskId(savedTask.getUuid());
+                job.setJobStatusMaster(savedTask.getJobStatusMaster());
+                job.setJobStatus(savedTask.getName());
+            }
+            JobMappingTask task = new JobMappingTask();
+            task.setTaskId(savedTask.getUuid());
+            task.setTaskName(savedTask.getName());
+            task.setTaskShowId(codeGenerator.generateTaskId());
+            task.setTaskSequence(savedTask.getSequence());
+            task.setJobTaskStatus(savedTask.getJobStatusMaster().getName());
+            task.setAssignType(savedTask.getAssignedType());
+            task.setJob(job);
+            job.getJobMappingTasks().add(task);
+            Job save = jobRepository.save(job);
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task saved successfully", savedTask.getUuid(), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, e.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> removeTask(String taskId, Long tenantId, boolean isSuperAdmin) throws CodeException {
+        try {
+            if (taskId == null || taskId.isBlank()) {
+                throw new CodeException("TaskId is required", ErrorCode.COMMON);
+            }
+            JobMappingTask mappingTask = jobMappingTaskRepository.findByUuidWithJob(taskId)
+                                        .orElseThrow(() ->new CodeException("Task not found", ErrorCode.COMMON));
+
+            JobTask jobTask = jobTaskRepository.findByUuidAndDeletedFalse(mappingTask.getTaskId())
+                    .orElseThrow(() ->new CodeException("Task not found", ErrorCode.COMMON));
+
+            Job job = mappingTask.getJob();
+            Integer deletedSequence = mappingTask.getTaskSequence();
+
+            jobTask.setDeleted(true);
+            mappingTask.setDeleted(true);
+
+            job.getJobMappingTasks().stream()
+                    .filter(t -> !Boolean.TRUE.equals(t.isDeleted()))
+                    .filter(t -> t.getTaskSequence() > deletedSequence)
+                    .forEach(t -> t.setTaskSequence(t.getTaskSequence() - 1));
+
+            if (jobTask.getUuid().equals(job.getCurrentTaskId())) {
+                JobMappingTask nextTask = job.getJobMappingTasks().stream()
+                                .filter(t -> !Boolean.TRUE.equals(t.isDeleted()))
+                                .min(Comparator.comparing(JobMappingTask::getTaskSequence))
+                                .orElse(null);
+
+                if (nextTask != null) {
+                    JobTask nextJobTask = jobTaskRepository.findByUuidAndDeletedFalse(nextTask.getTaskId()).orElse(null);
+                    if(nextJobTask != null){
+                        job.setCurrentTaskId(nextJobTask.getUuid());
+                        job.setJobStatus(nextJobTask.getName());
+                        job.setJobStatusMaster(nextJobTask.getJobStatusMaster());
+                    }
+                } else {
+                    job.setCurrentTaskId(null);
+                }
+            }
+            jobRepository.save(job);
+            jobTaskRepository.save(jobTask);
+            jobMappingTaskRepository.save(mappingTask);
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task Removed successfully", "", "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, e.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
+        }
     }
 
     private DocumentDTO.Add convertDocumentToDto(Documents doc) {
