@@ -7,5 +7,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public interface JobInvoiceService {
-    PageItem<PaymentResponseDTO> getInvoiceDataofFrontOfficeUser(String userId, PaymentListRequestDTO paymentListRequestDTO);
+    PageItem<PaymentResponseDTO> getInvoiceDataofFrontOfficeUser(String userId, PaymentListRequestDTO paymentListRequestDTO,
+                                                                 String dateFormat);
 }
