@@ -2087,6 +2087,18 @@ public class JobServiceImpl implements JobService {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
 
+            // Preload job types once
+            Set<String> jobTypeIds = tasks.stream()
+                    .map(t -> t.getJob().getJobTypeId())
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+
+            Map<String, JobType> jobTypeMap =
+                    jobTypeRepository.findByUuidIn(jobTypeIds).stream()
+                            .collect(Collectors.toMap(JobType::getUuid, jt -> jt));
+
+
             final Map<String, CustomerDTO.GetDetails> customerToNameMap = new HashMap<>();
 
             List<CustomerDTO.GetDetails> customerDetails = adminClientService.getCustomerList(new ArrayList<>(allCustomerIds), tenantId, false);
@@ -2129,6 +2141,8 @@ public class JobServiceImpl implements JobService {
                         dto.setCustomerId(job.getCustomerId());
                         dto.setServiceLocation(job.getServiceLocation());
                         dto.setJobTypeId(job.getJobTypeId());
+                        JobType type = jobTypeMap.get(job.getJobTypeId());
+                        dto.setJobTypeName(type != null ? type.getName() : null);
                         dto.setJobStatus(job.getJobStatus());
 
                         List<JobTagDTO.Detail> tagDetails = job.getJobMappingTags().stream()
