@@ -8,18 +8,21 @@ import com.octal.fsm.dto.PaymentResponseDTO;
 import com.octal.fsm.dto.QuickBooksInvoiceResponse;
 import com.octal.fsm.entities.Job;
 import com.octal.fsm.entities.JobInvoice;
+import com.octal.fsm.entities.JobTaskMappingTechnician;
 import com.octal.fsm.entities.JobType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
+import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.JobInvoiceRepository;
 import com.octal.fsm.repositories.JobRepository;
 import com.octal.fsm.repositories.JobTypeRepository;
+import com.octal.fsm.service.GeneralSettingService;
 import com.octal.fsm.service.JobInvoiceService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
+import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -46,51 +49,57 @@ public class JobInvoiceServiceImpl implements JobInvoiceService {
 
     @Autowired
     private JobRepository jobRepository;
+    @Autowired
+    private GeneralSettingService generalSettingService;
 
-    public PageItem<PaymentResponseDTO> getInvoiceDataofFrontOfficeUser(String userId, PaymentListRequestDTO request, String dateFormat) {
-        Sort sort = "asc".equalsIgnoreCase(request.getSortOrder()) ? Sort.by(request.getSortField()).ascending() : Sort.by(request.getSortField()).descending();
-        Pageable pageable = PageRequest.of(request.getPageNumber(), request.getPageSize(), sort);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(StringUtils.hasText(dateFormat) ? dateFormat : "yyyy-MM-dd");
-        List<String> jobIds = jobRepository.findAllByFrontOfficeIdAndDeletedFalse(userId).stream().map(Job::getUuid).collect(Collectors.toList());
+
+    public PageItem<PaymentResponseDTO> getInvoiceDataOfFrontOfficeUser(PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin)throws CodeException {
+
+        if(listRequest.getFrontOfficeId() == null){
+            throw new CodeException("Frontoffice id required", ErrorCode.COMMON);
+        }
+        List<String> jobIds = jobRepository.findAllByFrontOfficeIdAndDeletedFalse(listRequest.getFrontOfficeId()).stream().map(Job::getUuid).collect(Collectors.toList());
         if (jobIds.isEmpty()) {
-            return new PageItem<>(0, 0, new ArrayList<>(), request.getPageNumber(), request.getPageSize());
+            return new PageItem<>(0, 0, new ArrayList<>(), listRequest.getPageNumber(), listRequest.getPageSize());
         }
-
+        String trimmedText = listRequest.getSearchText().trim();
+        listRequest.setSearchText(trimmedText);
+        Pageable pageable = null;
+        if (Boolean.TRUE.equals(listRequest.getAsc())) {
+            pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
+        } else {
+            pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
+        }
         GenericSpecificationsBuilder<JobInvoice> builder = new GenericSpecificationsBuilder<>();
+        prepareInvoiceListSearchFilter(listRequest,builder,jobIds,tenantId);
+        Page<JobInvoice> pagedResult = jobInvoiceRepository.findAll(builder.build(), pageable);
+        DateTimeFormatter timeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
+        List<PaymentResponseDTO> responseList = pagedResult.getContent().stream()
+                .map(invoice -> mapToPaymentResponseDTO(invoice, timeFormatter))
+                .collect(Collectors.toList());
+        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, listRequest.getPageNumber(), listRequest.getPageSize());
+    }
+
+    private void prepareInvoiceListSearchFilter(PageRequest.List listRequest, GenericSpecificationsBuilder<JobInvoice> builder,List<String> jobIds, Long tenantId) {
         builder.with(jobInvoiceSpecificationFactory.isEqual("deleted", false));
-        builder.with(jobInvoiceSpecificationFactory.in("jobId", jobIds));
-//        if (StringUtils.hasText(request.getSearchText())) {
-//            builder.with(jobInvoiceSpecificationFactory.like("invoiceId", request.getSearchText()));
-//        }
-        Map<String, Object> filters = request.getFilters();
-        if (filters != null) {
-            Map<String, String> dateRange = (Map<String, String>) filters.get("dateRange");
-            if (dateRange != null) {
-                String startDate = dateRange.get("startDate");
-                String endDateStr  = dateRange.get("endDate");
 
-                if (StringUtils.hasText(startDate)) {
-                    builder.with(jobInvoiceSpecificationFactory.isGreaterThanOrEquals("createdAt", LocalDate.parse(startDate).atStartOfDay()));
-                }
-                LocalDate endDate = null;
-                if (StringUtils.hasText(endDateStr)) {
-                    endDate = LocalDate.parse(endDateStr);
-                } else if (startDate != null) {
-                    endDate = LocalDate.now();
-                }
-
-                if (endDate != null) {
-                    builder.with(jobInvoiceSpecificationFactory.isLessThanOrEquals("createdAt", endDate.atTime(23, 59, 59)));
-                }
-            }
+        if (jobIds != null && !jobIds.isEmpty()) {
+            builder.with(jobInvoiceSpecificationFactory.in("jobId", jobIds));
         }
 
-        Page<JobInvoice> pagedResult = jobInvoiceRepository.findAll(builder.build(), pageable);
-        List<PaymentResponseDTO> responseList = pagedResult.getContent().stream()
-                .map(invoice -> mapToPaymentResponseDTO(invoice, formatter))
-                .collect(Collectors.toList());
-        return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, request.getPageNumber(), request.getPageSize());
+        if (listRequest.getIsActive() != null) {
+            builder.with(jobInvoiceSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
+        }
+
+        if (listRequest.getStartDate() != null) {
+            builder.with(jobInvoiceSpecificationFactory.isGreaterThanOrEquals("createdAt", listRequest.getStartDate().atStartOfDay()));
+        }
+
+        if (listRequest.getEndDate() != null) {
+            builder.with(jobInvoiceSpecificationFactory.isLessThanOrEquals("createdAt", listRequest.getEndDate().atTime(23, 59, 59)));
+        }
     }
+
 
     private PaymentResponseDTO mapToPaymentResponseDTO(JobInvoice invoice, DateTimeFormatter formatter) {
         if (invoice == null) return null;
