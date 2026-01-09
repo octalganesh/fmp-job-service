@@ -39,7 +39,7 @@ public class HTMLFormPageServiceImpl implements HTMLFormPageService {
     public PageItem<HTMLFormDTO.Details> getAllFormsPage(PageRequest.List listRequest, Long tenantId) {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
-        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+       // listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         GenericSpecificationsBuilder<HTMLFormPage> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {

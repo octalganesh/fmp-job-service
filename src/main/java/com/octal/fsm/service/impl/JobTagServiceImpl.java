@@ -139,7 +139,7 @@ public class JobTagServiceImpl implements JobTagService {
             tenantId = 1L;
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
-        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         GenericSpecificationsBuilder<JobTag> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {

@@ -126,7 +126,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<Appointment> builder = new GenericSpecificationsBuilder<>();
-        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         List<String> jobIds = new ArrayList<>();
         if (listRequest.getFrontOfficeId() != null) {
             jobIds = jobRepository.findByFrontOfficeIdAndDeletedFalse(listRequest.getFrontOfficeId())
@@ -227,7 +227,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<Appointment> builder = new GenericSpecificationsBuilder<>();
-        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
