@@ -8,6 +8,7 @@ import com.octal.fsm.dto.TechnicianDTO;
 import com.octal.fsm.dto.enums.PushNotificationType;
 import com.octal.fsm.entities.InventoryRequest;
 import com.octal.fsm.listener.events.InventoryRequestNotificationEvent;
+import com.octal.fsm.service.GeneralSettingService;
 import com.octal.fsm.service.NotificationClientService;
 import com.octal.fsm.service.TechnicianClientService;
 import com.octal.fsm.utils.TextUtils;
@@ -29,11 +30,16 @@ public class InventoryRequestNotificationEventListener implements ApplicationLis
 
     @Autowired
     private NotificationClient notificationClient;
+    @Autowired
+    private GeneralSettingService generalSettingService;
 
     @Override
     @Async("sendMailAndPushEventInventory")
     public void onApplicationEvent(InventoryRequestNotificationEvent inventoryRequestNotificationEvent) {
-        processData(inventoryRequestNotificationEvent.getInventoryRequest(), inventoryRequestNotificationEvent.getTenantId(), inventoryRequestNotificationEvent.getLoggedInuser());
+        boolean notificationEnabled = generalSettingService.isNotificationEnabled(inventoryRequestNotificationEvent.getTenantId());
+        if(notificationEnabled){
+            processData(inventoryRequestNotificationEvent.getInventoryRequest(), inventoryRequestNotificationEvent.getTenantId(), inventoryRequestNotificationEvent.getLoggedInuser());
+        }
     }
 
     private void processData(InventoryRequest inventoryRequest, Long tenantId, String userName) {
@@ -69,6 +75,7 @@ public class InventoryRequestNotificationEventListener implements ApplicationLis
                 device.setDeviceToken(technicianDetails.getMultiUserDeviceDetails().getDeviceToken());
                 device.setDeviceType(technicianDetails.getMultiUserDeviceDetails().getDeviceType());
                 device.setUserId(technicianDetails.getId());
+                device.setPushEnabled(technicianDetails.getMultiUserDeviceDetails().getPushEnabled() != null ? technicianDetails.getMultiUserDeviceDetails().getPushEnabled() : true);
                 Set<MultiUserDeviceDetailsDTO> techDevices = new HashSet<>();
                 techDevices.add(device);
 
