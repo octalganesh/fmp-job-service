@@ -1,6 +1,5 @@
 package com.octal.fsm.controller;
 
-import com.intuit.ipp.data.Payment;
 import com.octal.fsm.common.ApiResponse;
 import com.octal.fsm.dto.PaymentListRequestDTO;
 import com.octal.fsm.service.JobInvoiceService;
@@ -12,8 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-
-import static com.octal.fsm.common.CommonConstants.USER_NAME;
 
 @RestController
 @RequestMapping("/job/invoice")
@@ -28,10 +25,12 @@ public class JobInvoiceController extends BaseController {
     public ResponseEntity<ApiResponse> getPayments(@RequestParam("userId") String userId,
                                                    @RequestBody PaymentListRequestDTO paymentListRequestDTO,
                                                    @RequestHeader("tenantId") Long tenantId,
-                                                   @RequestHeader("superAdmin") boolean superAdmin, HttpServletRequest request) {
+                                                   @RequestHeader("superAdmin") boolean superAdmin,
+                                                   @RequestHeader("dateFormat") String dateFormat,
+                                                   HttpServletRequest request) {
         try {
             return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Payment list successfully",
-                    jobInvService.getInvoiceDataofFrontOfficeUser(userId, paymentListRequestDTO), "200", HttpStatus.OK), HttpStatus.OK);
+                    jobInvService.getInvoiceDataofFrontOfficeUser(userId, paymentListRequestDTO, dateFormat), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error retrieving payments: {}", e.getMessage(), e);
             return handleException(e);

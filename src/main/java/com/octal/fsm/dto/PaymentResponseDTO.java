@@ -12,9 +12,33 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PaymentResponseDTO {
+
+    // -------- Identity --------
+    private String id;                  // JobInvoice.id
     private String jobId;
+    private String taskId;
+
+    // -------- Job --------
     private String jobType;
-    private String paymentId;
+
+    // -------- Payment --------
+    private String paymentId;           // invoiceId
     private Double totalPaymentAmount;
-    private LocalDate paymentReceivedDate;
+    private Double totalPaymentReceived;
+    private Double totalPaymentPending;
+
+    private String paymentReceivedDate;
+    private String paymentStatus;        // PAID / PENDING
+    private String receivedPaymentMethod;
+
+    // -------- Customer --------
+    private String customerName;
+    private String customerType;
+
+    // -------- Audit --------
+    private String createdAt;
+    private String updatedAt;
+
+    // -------- Optional --------
+    private String notes;
 }
