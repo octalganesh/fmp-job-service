@@ -1820,7 +1820,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public PageItem<JobInvoiceListDTO> getJobCompletedInvoiceList(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
-            listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+            //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
             Page<Job> pagedResult = getJobMappingData(listRequest, tenantId, isSuperAdmin);
             List<Job> jobs = pagedResult.getContent();
 
@@ -1992,7 +1992,7 @@ public class JobServiceImpl implements JobService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
-        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
@@ -2008,7 +2008,7 @@ public class JobServiceImpl implements JobService {
         if (listRequest.getTechnicianId() == null)
             listRequest.setTechnicianId(new ArrayList<>());
         GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
-        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         prepareDispatchSearchFilter(listRequest, builder);
 
         List<JobTaskMappingTechnician> techMappings = jobTaskMappingTechnicianRepository.findAll(builder.build());
@@ -2087,6 +2087,18 @@ public class JobServiceImpl implements JobService {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
 
+            // Preload job types once
+            Set<String> jobTypeIds = tasks.stream()
+                    .map(t -> t.getJob().getJobTypeId())
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+
+            Map<String, JobType> jobTypeMap =
+                    jobTypeRepository.findByUuidIn(jobTypeIds).stream()
+                            .collect(Collectors.toMap(JobType::getUuid, jt -> jt));
+
+
             final Map<String, CustomerDTO.GetDetails> customerToNameMap = new HashMap<>();
 
             List<CustomerDTO.GetDetails> customerDetails = adminClientService.getCustomerList(new ArrayList<>(allCustomerIds), tenantId, false);
@@ -2099,6 +2111,7 @@ public class JobServiceImpl implements JobService {
             final Map<String, JobTag> tagIdToNameMap = jobTags.stream()
                     .collect(Collectors.toMap(JobTag::getUuid, jt -> jt));
             DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
+            DateTimeFormatter timeFormatter = generalSettingService.buildTenantTimeFormatter(tenantId);
             List<DispatchBoardDataResponseDTO> collect = techMappings.stream()
                     .map(tech -> {
                         JobMappingTask task = taskMap.get(tech.getJobTaskMappingId());
@@ -2122,12 +2135,14 @@ public class JobServiceImpl implements JobService {
                         if(tech.getEndDate() != null){
                             dto.setEndDate(dateFormatter != null ? tech.getEndDate().format(dateFormatter) : tech.getEndDate().toString());
                         }
-                        dto.setStartTime(tech.getStartTime() != null ? tech.getStartTime().toString() : null);
-                        dto.setEndTime(tech.getEndTime() != null ? tech.getEndTime().toString() : null);
+                        dto.setStartTime(tech.getStartTime() != null ? tech.getStartTime().toLocalTime().format(timeFormatter) : null);
+                        dto.setEndTime(tech.getEndTime() != null ? tech.getEndTime().toLocalTime().format(timeFormatter) : null);
                         dto.setJobId(job.getJobId());
                         dto.setCustomerId(job.getCustomerId());
                         dto.setServiceLocation(job.getServiceLocation());
                         dto.setJobTypeId(job.getJobTypeId());
+                        JobType type = jobTypeMap.get(job.getJobTypeId());
+                        dto.setJobTypeName(type != null ? type.getName() : null);
                         dto.setJobStatus(job.getJobStatus());
 
                         List<JobTagDTO.Detail> tagDetails = job.getJobMappingTags().stream()
@@ -2479,7 +2494,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public ResponseEntity<com.octal.fsm.common.ApiResponse> getJobByCustomerId(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
         if (listRequest.getCustomerId() != null) {
-            listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+            //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
             Page<Job> pagedResult = getJobMappingData(listRequest, tenantId, isSuperAdmin);
             List<Job> jobs = pagedResult.getContent();
 
@@ -2531,7 +2546,7 @@ public class JobServiceImpl implements JobService {
         if (listRequest.getTechnicianId() == null || listRequest.getTechnicianId().isEmpty()) {
             return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, "Technician Id is required", null, "500", HttpStatus.BAD_REQUEST), HttpStatus.OK);
         }
-        listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         Page<JobTaskMappingTechnician> pagedResult = getJobTaskMappingData(listRequest, tenantId, isSuperAdmin);
         List<JobTaskMappingTechnician> jobTaskMappingTechnicians = pagedResult.getContent();
         if (jobTaskMappingTechnicians.isEmpty()) {

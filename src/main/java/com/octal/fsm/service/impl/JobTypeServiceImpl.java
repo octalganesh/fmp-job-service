@@ -284,8 +284,8 @@ public class JobTypeServiceImpl implements JobTypeService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobType> builder = new GenericSpecificationsBuilder<>();
-        int pageSize = generalSettingService.getPageSize(tenantId);
-        listRequest.setPageSize(pageSize);
+        //int pageSize = generalSettingService.getPageSize(tenantId);
+        //listRequest.setPageSize(pageSize);
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());

@@ -27,6 +27,8 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
 
     Boolean existsByUuidAndDeletedFalse(String uuid);
 
+    Boolean existsByJobIdAndDeletedFalse(String uuid);
+
     Boolean existsByUuidAndTenantIdAndDeletedFalse(String uuid, Long tenantId);
 
 
@@ -53,4 +55,6 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
 
     @Query("SELECT MIN(j.createdAt) FROM Job j WHERE j.tenantId = :tenantId")
     LocalDateTime findEarliestJobCreatedAtByTenantId(@Param("tenantId") Long tenantId);
+
+    List<Job> findAllByFrontOfficeIdAndDeletedFalse(String frontOfficeId);
 }
