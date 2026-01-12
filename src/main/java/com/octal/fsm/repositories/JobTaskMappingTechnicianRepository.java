@@ -1,5 +1,7 @@
 package com.octal.fsm.repositories;
 
+import com.octal.fsm.dto.JobDTO;
+import com.octal.fsm.dto.JobDetailsForInventory;
 import com.octal.fsm.entities.JobInvoice;
 import com.octal.fsm.entities.JobTaskMappingTechnician;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -43,7 +45,11 @@ public interface JobTaskMappingTechnicianRepository extends JpaRepository<JobTas
     @Query("SELECT i FROM JobTaskMappingTechnician i WHERE i.deleted = false AND i.technicianId in :technicianId")
     List<JobTaskMappingTechnician> findByTechnicianIdIn(List<String> technicianId);
 
-
+    @Query("SELECT new com.octal.fsm.dto.JobDetailsForInventory(j.jobId, j.jobDescription, " +
+            "jt.name,jmt.taskShowId, jmt.uuid, jmt.taskName,jtmt.taskStatus ) FROM JobTaskMappingTechnician jtmt JOIN" +
+            " JobMappingTask jmt ON jmt.uuid = jtmt.jobTaskMappingId JOIN jmt.job j JOIN JobType jt ON jt.uuid = j.jobTypeId WHERE " +
+            "jtmt.technicianId = :technicianId AND jtmt.deleted = false")
+    List<JobDetailsForInventory> findTaskDetailsByTechnicianId(@Param("technicianId") String technicianId);
 
 
 }

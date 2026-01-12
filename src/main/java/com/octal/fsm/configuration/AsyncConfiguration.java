@@ -20,6 +20,10 @@ public class AsyncConfiguration {
     public Executor sendMailAndPushEvent() {
         return new ThreadPoolTaskExecutor();
     }
+    @Bean(name = "sendMailAndPushEventInventory")
+    public Executor sendMailAndPushEventInventory() {
+        return new ThreadPoolTaskExecutor();
+    }
 
 }
 
