@@ -1,6 +1,7 @@
 package com.octal.fsm.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.octal.fsm.clients.TechnicianClient;
@@ -58,7 +59,9 @@ public class TechnicianClientService {
                 return null;
             }
             Object data = technicianResponse.getData();
-            return GSON.fromJson(GSON.toJson(data), TechnicianDTO.GetDetails.class);
+            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
+            //return GSON.fromJson(GSON.toJson(data), TechnicianDTO.GetDetails.class);
+            return objectMapper.convertValue(data, TechnicianDTO.GetDetails.class);
         } catch (Exception ex) {
             ex.printStackTrace();
             return null;
