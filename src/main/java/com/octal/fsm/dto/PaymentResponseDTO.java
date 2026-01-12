@@ -19,7 +19,7 @@ public class PaymentResponseDTO {
     private String taskId;
 
     // -------- Job --------
-    private String jobType;
+    private String jobTypeId;
 
     // -------- Payment --------
     private String paymentId;           // invoiceId
@@ -33,7 +33,7 @@ public class PaymentResponseDTO {
 
     // -------- Customer --------
     private String customerName;
-    private String customerType;
+    private String customerTypeId;
 
     // -------- Audit --------
     private String createdAt;
