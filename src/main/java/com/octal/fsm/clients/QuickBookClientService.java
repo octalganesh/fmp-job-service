@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import java.util.List;
 
 
-@FeignClient(name = "quickbook-sync-service")
+@FeignClient(name = "quickbooks-sync-service")
 public interface QuickBookClientService {
 
     @PostMapping("/api/rest/customer/create")
