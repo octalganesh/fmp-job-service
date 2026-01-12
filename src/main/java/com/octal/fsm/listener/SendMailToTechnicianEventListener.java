@@ -79,6 +79,7 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
                             multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
                             multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
                             multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                            multiUserDeviceDetailsDTO.setPushEnabled(getDetails.getMultiUserDeviceDetails().getPushEnabled() != null ? getDetails.getMultiUserDeviceDetails().getPushEnabled() : true);
                             set.add(multiUserDeviceDetailsDTO);
                             sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
                             sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
