@@ -13,6 +13,7 @@ import com.octal.fsm.repositories.JobMappingTaskRepository;
 import com.octal.fsm.repositories.JobRepository;
 import com.octal.fsm.repositories.JobTaskMappingTechnicianRepository;
 import com.octal.fsm.service.DocumentService;
+import com.octal.fsm.service.GeneralSettingService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
 import com.octal.fsm.utils.TextUtils;
@@ -24,6 +25,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +49,8 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Autowired
     private JobTaskMappingTechnicianRepository jobTaskMappingTechnicianRepository;
+    @Autowired
+    private GeneralSettingService generalSettingService;
 
     @Autowired
     private SpecificationFactory<Documents> documentsSpecificationFactory;
@@ -85,7 +90,7 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
-    public PageItem<DocumentDTO.ListResponse> getListOfDocument(String type, String typeId, String uploadedByType, String uploadByTypeId, String fileType, int page, int size, String sortBy, Boolean order, String documentTypeId, String loggedInUserEmail) throws CodeException {
+    public PageItem<DocumentDTO.ListResponse> getListOfDocument(Long tenantId,String type, String typeId, String uploadedByType, String uploadByTypeId, String fileType, int page, int size, String sortBy, Boolean order, String documentTypeId, String loggedInUserEmail) throws CodeException {
         Job job = null;
         if (type.equalsIgnoreCase("JOB")) {
             Optional<Job> jobExits = jobRepository.findByUuidAndDeletedFalse(typeId);
@@ -100,6 +105,7 @@ public class DocumentServiceImpl implements DocumentService {
             throw new CodeException("Invalid attach type. Allowed values are JOB or JOB_TASK", ErrorCode.COMMON);
         }
         GenericSpecificationsBuilder<Documents> builder = new GenericSpecificationsBuilder<>();
+        size = generalSettingService.getPageSize(tenantId);
         Pageable pageable = null;
         if (Boolean.TRUE.equals(order)) {
             pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).ascending());
@@ -124,6 +130,7 @@ public class DocumentServiceImpl implements DocumentService {
         }
         Page<Documents> pagedResult = documentsRepository.findAll(builder.build(), pageable);
         List<DocumentDTO.ListResponse> responseList = new ArrayList<>();
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
         for (Documents doc : pagedResult.getContent()) {
             DocumentDTO.ListResponse response = new DocumentDTO.ListResponse();
             response.setId(doc.getUuid());
@@ -132,7 +139,7 @@ public class DocumentServiceImpl implements DocumentService {
             response.setFileType(doc.getFileType());
             response.setUploadedByType(doc.getUploadedByType());
             response.setUploadedByTypeId(doc.getUploadedByTypeId());
-            response.setCreatedAt(doc.getCreatedAt() != null ? doc.getCreatedAt().toString() : null);
+            response.setCreatedAt(doc.getCreatedAt() != null ? doc.getCreatedAt().format(dateTimeFormatter) : null);
             response.setDocumentTypeId(doc.getDocumentTypeId() != null ? doc.getDocumentTypeId() : null);
             responseList.add(response);
         }
@@ -237,9 +244,10 @@ public class DocumentServiceImpl implements DocumentService {
     public List<DocumentDTO.ListResponse> getJobDocuments(String jobId, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
             List<Documents> documents =  documentsRepository.findByAttachTypeIdOrderByCreatedAtDesc(jobId);//here get all documents by job id
+            DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
             List<DocumentDTO.ListResponse> documentDTO = documents
                     .stream()
-                    .map(this::convertDocumentToDto)
+                    .map(doc -> convertDocumentToDto(doc, dateTimeFormatter))
                     .collect(Collectors.toList());
             return documentDTO;
         } catch (Exception exception) {
@@ -247,7 +255,7 @@ public class DocumentServiceImpl implements DocumentService {
         }
     }
 
-    private DocumentDTO.ListResponse convertDocumentToDto(Documents doc) {
+    private DocumentDTO.ListResponse convertDocumentToDto(Documents doc, DateTimeFormatter dateTimeFormatter) {
         DocumentDTO.ListResponse dto = new DocumentDTO.ListResponse();
         dto.setId(doc.getUuid());
         dto.setFileName(doc.getFileName());
@@ -255,9 +263,10 @@ public class DocumentServiceImpl implements DocumentService {
         dto.setDocumentTypeId(doc.getDocumentTypeId());
         dto.setUploadedByType(doc.getUploadedByType());
         dto.setFileType(doc.getFileType());
-        dto.setCreatedAt(doc.getCreatedAt().toString());
+        dto.setCreatedAt(doc.getCreatedAt() != null ? doc.getCreatedAt().format(dateTimeFormatter) : null);
         dto.setUploadedByTypeId(doc.getUploadedByTypeId());
         dto.setCreatedAtInDate(doc.getCreatedAt());
+        dto.setAttachTypeId(doc.getAttachTypeId());
         return dto;
     }
 
