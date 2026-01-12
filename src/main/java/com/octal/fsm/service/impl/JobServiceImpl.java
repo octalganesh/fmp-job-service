@@ -2580,13 +2580,9 @@ public class JobServiceImpl implements JobService {
             JobMappingTask mappingTask = jobMappingTaskRepository.findByUuidWithJob(taskId)
                                         .orElseThrow(() ->new CodeException("Task not found", ErrorCode.COMMON));
 
-            JobTask jobTask = jobTaskRepository.findByUuidAndDeletedFalse(mappingTask.getTaskId())
-                    .orElseThrow(() ->new CodeException("Task not found", ErrorCode.COMMON));
-
             Job job = mappingTask.getJob();
             Integer deletedSequence = mappingTask.getTaskSequence();
 
-            jobTask.setDeleted(true);
             mappingTask.setDeleted(true);
 
             job.getJobMappingTasks().stream()
@@ -2594,7 +2590,7 @@ public class JobServiceImpl implements JobService {
                     .filter(t -> t.getTaskSequence() > deletedSequence)
                     .forEach(t -> t.setTaskSequence(t.getTaskSequence() - 1));
 
-            if (jobTask.getUuid().equals(job.getCurrentTaskId())) {
+            if (mappingTask.getTaskId().equals(job.getCurrentTaskId())) {
                 JobMappingTask nextTask = job.getJobMappingTasks().stream()
                                 .filter(t -> !Boolean.TRUE.equals(t.isDeleted()))
                                 .min(Comparator.comparing(JobMappingTask::getTaskSequence))
@@ -2612,7 +2608,6 @@ public class JobServiceImpl implements JobService {
                 }
             }
             jobRepository.save(job);
-            jobTaskRepository.save(jobTask);
             jobMappingTaskRepository.save(mappingTask);
             return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task Removed successfully", "", "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
