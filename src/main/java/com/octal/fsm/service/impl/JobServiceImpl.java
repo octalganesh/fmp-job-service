@@ -555,7 +555,11 @@ public class JobServiceImpl implements JobService {
                         dto.setTechnicianId(technicianDetails.getId());
                     }
                 } else {
-                    dto.setTaskStatus("NOT ASSIGNED");
+                    if(jobMappingTask.getJobTaskStatus().equalsIgnoreCase("COMPLETED")){
+                        dto.setTaskStatus(jobMappingTask.getJobTaskStatus());
+                    }else{
+                        dto.setTaskStatus("NOT ASSIGNED");
+                    }
                 }
                 responseList.add(dto);
             }
@@ -1467,6 +1471,11 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Assigned Type update is not allowed", ErrorCode.BAD_REQUEST);
         if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.SYSTEM)) {
             // todo need to perform related task automatically for example BOM generation and quickbooks related stuff.
+            Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
+            if (jobMappingTask.isEmpty())
+                throw new CodeException("Job Task mapping not found", ErrorCode.BAD_REQUEST);
+            jobMappingTask.get().setJobTaskStatus("COMPLETED");
+            jobMappingTaskRepository.save(jobMappingTask.get());
         } else if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.CSR)) {
             if (TextUtils.isEmpty(updateJobTaskDetails.getTaskId()))
                 throw new CodeException("Task Id is required to update the task details", ErrorCode.BAD_REQUEST);
@@ -1485,6 +1494,7 @@ public class JobServiceImpl implements JobService {
             if (!TextUtils.isEmpty(updateJobTaskDetails.getNote())){
                 jobMappingTask.get().setNote(updateJobTaskDetails.getNote());
             }
+            jobMappingTask.get().setJobTaskStatus("COMPLETED");
             jobMappingTaskRepository.save(jobMappingTask.get());
         }
         if (updateJobTaskDetails.getIsDone()) {
