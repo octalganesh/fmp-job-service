@@ -93,7 +93,9 @@ public class SendMailAndPushEventListener implements ApplicationListener<SendMai
                     jobDetails.setServiceLocationLat(job.getServiceLocationLat());
                     jobDetails.setServiceLocationLng(job.getServiceLocationLng());
                     jobDetails.setJobStartDate(job.getJobStartDate().toString());
-                    jobDetails.setJobEndDate(job.getJobEndDate().toString());
+                    if(job.getJobEndDate() != null){
+                        jobDetails.setJobEndDate(job.getJobEndDate().toString());
+                    }
                     CustomerDTO.GetDetails customerById = adminClientService.getCustomerById(customerId);
                     if(customerById != null){
                         customerDetails = customerById;
