@@ -249,10 +249,12 @@ public class JobTransformer {
                     LocalDate jobStartDate = LocalDate.parse(addJobDTO.getJobStartDate());
                     job.setJobStartDate(jobStartDate);
                 }
+                LocalDate jobEndDate=null;
                 if (!TextUtils.isEmpty(addJobDTO.getJobEndDate())) {
-                    LocalDate jobEndDate = LocalDate.parse(addJobDTO.getJobEndDate());
-                    job.setJobEndDate(jobEndDate);
+                    jobEndDate = LocalDate.parse(addJobDTO.getJobEndDate());
                 }
+                    job.setJobEndDate(jobEndDate);
+                //}
             } catch (Exception e) {
                 e.printStackTrace();
             }
