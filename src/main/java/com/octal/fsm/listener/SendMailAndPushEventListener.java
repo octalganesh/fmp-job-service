@@ -93,11 +93,14 @@ public class SendMailAndPushEventListener implements ApplicationListener<SendMai
                     jobDetails.setServiceLocationLat(job.getServiceLocationLat());
                     jobDetails.setServiceLocationLng(job.getServiceLocationLng());
                     jobDetails.setJobStartDate(job.getJobStartDate().toString());
-                    jobDetails.setJobEndDate(job.getJobEndDate().toString());
+                    if(job.getJobEndDate() != null){
+                        jobDetails.setJobEndDate(job.getJobEndDate().toString());
+                    }
                     CustomerDTO.GetDetails customerById = adminClientService.getCustomerById(customerId);
                     if(customerById != null){
                         customerDetails = customerById;
                     }
+                    notificationContent.setMessage(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#taskId", jobMappingTask.get().getTaskShowId()));
                     notificationContent.setMessage(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#status", jobMappingTask.get().getJobTaskStatus()));
                     notificationContent.setMessage(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#jobId", job.getJobId()));
                     sendBulkNotificationToFront.setTitle(TextUtils.replacePlaceholderInMessage(notificationContent.getTitle(), "#jobID", job.getJobId()));

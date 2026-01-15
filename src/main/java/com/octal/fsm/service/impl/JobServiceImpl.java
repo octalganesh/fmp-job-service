@@ -180,8 +180,8 @@ public class JobServiceImpl implements JobService {
                 throw new CodeException("Job Description is required", ErrorCode.COMMON);
             if (TextUtils.isEmpty(addJobDTO.getJobStartDate()))
                 throw new CodeException("Job Start Date is required", ErrorCode.COMMON);
-            if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
-                throw new CodeException("Job End Date is required", ErrorCode.COMMON);
+//            if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
+//                throw new CodeException("Job End Date is required", ErrorCode.COMMON);
             if (addJobDTO.getJobTags() == null || addJobDTO.getJobTags().isEmpty())
                 throw new CodeException("At least one Job Tag is required", ErrorCode.COMMON);
             return jobTransformer.updateJob(addJobDTO, tenantId, isSuperAdmin);
@@ -1001,8 +1001,8 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Lead Received Date is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getJobStartDate()))
             throw new CodeException("Job Start Date is required", ErrorCode.COMMON);
-        if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
-            throw new CodeException("Job End Date is required", ErrorCode.COMMON);
+//        if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
+//            throw new CodeException("Job End Date is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getLeadSourceId()))
             throw new CodeException("Lead Source is required", ErrorCode.COMMON);
 //        if (TextUtils.isEmpty(addJobDTO.getBudget()))
