@@ -100,6 +100,7 @@ public class SendMailAndPushEventListener implements ApplicationListener<SendMai
                     if(customerById != null){
                         customerDetails = customerById;
                     }
+                    notificationContent.setMessage(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#taskId", jobMappingTask.get().getTaskShowId()));
                     notificationContent.setMessage(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#status", jobMappingTask.get().getJobTaskStatus()));
                     notificationContent.setMessage(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#jobId", job.getJobId()));
                     sendBulkNotificationToFront.setTitle(TextUtils.replacePlaceholderInMessage(notificationContent.getTitle(), "#jobID", job.getJobId()));
