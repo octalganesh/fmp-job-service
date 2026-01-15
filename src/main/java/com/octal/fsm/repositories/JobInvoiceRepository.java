@@ -18,4 +18,6 @@ public interface JobInvoiceRepository extends JpaRepository<JobInvoice, Long>, J
     List<JobInvoice> findByJobIdAndDeletedFalse(@Param("jobIds") List<String> jobIds);
 
     Optional<JobInvoice> getByUuid(String uuid);
+
+    List<JobInvoice> findByInvoiceIdIn(List<String> invoiceIds);
 }

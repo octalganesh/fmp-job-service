@@ -2609,9 +2609,45 @@ public class JobServiceImpl implements JobService {
             if(byUuid.isPresent() && add.getRefId() != null){
                 JobInvoice jobInvoice = byUuid.get();
                 jobInvoice.setInvoiceId(add.getRefId());
+                jobInvoice.setIsPaid(add.getIsPaid());
                 jobInvoice.setUpdatedAt(LocalDateTime.now());
                 jobInvoiceRepository.save(jobInvoice);
             }
+        }
+    }
+
+    @Override
+    public void updateInvoiceDetailsList(List<InvoiceRestDTO.Add> addList) throws CodeException {
+        try{
+            List<String> refIds = addList.stream()
+                    .map(i -> i.getRefId() != null ? i.getRefId() : null)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            Map<String, JobInvoice> queueMap =
+                    jobInvoiceRepository.findByInvoiceIdIn(refIds)
+                            .stream()
+                            .collect(Collectors.toMap(JobInvoice::getInvoiceId, q -> q));
+
+            List<JobInvoice> toSave = new ArrayList<>();
+            for (InvoiceRestDTO.Add add : addList) {
+                String refId = add.getRefId();
+                if (refId == null) continue;
+
+                JobInvoice queue = queueMap.get(refId);
+                if (queue == null) continue;
+
+                queue.setIsPaid(add.getIsPaid());
+                queue.setBalanceDue(add.getBalanceDue());
+                queue.setTotalAmountWithTax(add.getTotalAmountWithTax());
+                queue.setUpdatedAt(LocalDateTime.now());
+                toSave.add(queue);
+            }
+            if (!toSave.isEmpty()) {
+                jobInvoiceRepository.saveAll(toSave);
+            }
+        } catch (Exception e) {
+           e.printStackTrace();
         }
     }
 

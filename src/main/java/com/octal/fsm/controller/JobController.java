@@ -595,4 +595,15 @@ public class JobController extends BaseController {
         }
     }
 
+    @PostMapping("/invoice/update-details-list")
+    public ResponseEntity<ApiResponse> updateInvoiceDetailsList(@RequestBody List<InvoiceRestDTO.Add> addList, HttpServletRequest request) {
+        try {
+            jobService.updateInvoiceDetailsList(addList);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice Update successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving invoice Details : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 }

@@ -118,4 +118,6 @@ public interface JobService {
 
     List<JobDetailsForInventory> getAllJobByTechnicianId(String technicianId, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
+    void updateInvoiceDetailsList(List<InvoiceRestDTO.Add> add) throws CodeException;
+
 }
