@@ -2609,7 +2609,7 @@ public class JobServiceImpl implements JobService {
             if(byUuid.isPresent() && add.getRefId() != null){
                 JobInvoice jobInvoice = byUuid.get();
                 jobInvoice.setInvoiceId(add.getRefId());
-                jobInvoice.setIsPaid(add.getIsPaid());
+                jobInvoice.setPaid(add.getIsPaid());
                 jobInvoice.setUpdatedAt(LocalDateTime.now());
                 jobInvoiceRepository.save(jobInvoice);
             }
@@ -2637,7 +2637,7 @@ public class JobServiceImpl implements JobService {
                 JobInvoice queue = queueMap.get(refId);
                 if (queue == null) continue;
 
-                queue.setIsPaid(add.getIsPaid());
+                queue.setPaid(add.getIsPaid());
                 queue.setBalanceDue(add.getBalanceDue());
                 queue.setTotalAmountWithTax(add.getTotalAmountWithTax());
                 queue.setUpdatedAt(LocalDateTime.now());
