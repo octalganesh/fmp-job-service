@@ -42,7 +42,7 @@ public interface JobReportNativeRepository extends JpaRepository<Job, Long> {
 
     @Query(value =
             "SELECT " +
-                    " (SELECT COUNT(*) FROM jobs j WHERE j.tenant_id = :tenantId AND j.job_status = 'ACTIVE' AND j.created_at BETWEEN :startDate AND :endDate) AS active_jobs, " +
+                    " (SELECT COUNT(*) FROM jobs j WHERE j.tenant_id = :tenantId AND j.is_active = true AND j.created_at BETWEEN :startDate AND :endDate) AS active_jobs, " +
                     " (SELECT COUNT(*) FROM jobs j WHERE j.tenant_id = :tenantId AND j.created_at BETWEEN :startDate AND :endDate) AS total_jobs, " +
 
                     // Total Revenue Generated (Paid Invoices)
