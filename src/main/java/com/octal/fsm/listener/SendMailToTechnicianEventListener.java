@@ -6,11 +6,14 @@ import com.octal.fsm.clients.NotificationClient;
 import com.octal.fsm.clients.TechnicianClient;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.dto.enums.PushNotificationType;
+import com.octal.fsm.entities.JobMappingTask;
 import com.octal.fsm.entities.JobTaskMappingTechnician;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
+import com.octal.fsm.repositories.JobMappingTaskRepository;
 import com.octal.fsm.service.EmailService;
 import com.octal.fsm.service.JobService;
 import com.octal.fsm.service.NotificationClientService;
+import com.octal.fsm.service.TechnicianClientService;
 import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
@@ -18,10 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 
 @Component
@@ -39,7 +39,7 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
     @Autowired
     private ObjectMapper objectMapper;
     @Autowired
-    private TechnicianClient technicianClient;
+    private TechnicianClientService technicianClientService;
 
     @Autowired
     private NotificationClientService notificationClientService;
@@ -52,53 +52,50 @@ public class SendMailToTechnicianEventListener implements ApplicationListener<Se
         processSendMailToTechnicianEvent(assignJobToTechnician,jobTaskMappingTech,event.getLoggedInuser(), event.getTenantId(), event.isSuperAdmin(), assignJobToTechnician.getTaskShowId());
     }
 
-    public void processSendMailToTechnicianEvent( JobDTO.AssignJobToTechnician assignJobToTechnician,JobTaskMappingTechnician jobTaskMappingTech, String loggedInUserEmail, Long tenantId, boolean isSuperAdmin,String taskShowId) {
-        try{
-            ApiResponse technicianResponse = technicianClient.getTechnicianById(assignJobToTechnician.getTechnicianId(), loggedInUserEmail).getBody();
-            if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200")) {
+    public void processSendMailToTechnicianEvent(JobDTO.AssignJobToTechnician assignJobToTechnician, JobTaskMappingTechnician jobTaskMappingTech, String loggedInUserEmail, Long tenantId, boolean isSuperAdmin, String taskShowId) {
+        try {
+            TechnicianDTO.GetDetails getDetails = technicianClientService.getTechnicianById(assignJobToTechnician.getTechnicianId(), loggedInUserEmail);
+            if (getDetails != null) {
                 JobDTO.Detail jobDetails = jobService.getJobById(assignJobToTechnician.getJobId(), loggedInUserEmail, tenantId, isSuperAdmin);
-                Gson gson = new Gson();
-                // Convert response data to TechnicianDTO.GetDetails
                 if (jobDetails != null) {
-                    String jsonResponse = gson.toJson(technicianResponse.getData());
-                    TechnicianDTO.TechnicianData getDetails = gson.fromJson(jsonResponse, TechnicianDTO.TechnicianData.class);
-                    if (getDetails != null && getDetails.getEmail() != null) {
+                    NotificationContentDTO.Request notificationContent = notificationClientService.getNotificationContent(PushNotificationType.NEW_TASK_ASSIGNED.toString());
+                    if (notificationContent != null) {
                         PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers = new PushNotificationRequest.SendBulkNotificationToUsers();
-                        NotificationContentDTO.Request notificationContent = notificationClientService.getNotificationContent(PushNotificationType.TASK_STATUS_CHANGE.toString());
-                        if (notificationContent != null) {
-                            notificationContent.setMessage(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#technicianName", getDetails.getName()));
-                            sendBulkNotificationToUsers.setTitle(notificationContent.getTitle());
-                            sendBulkNotificationToUsers.setBody(notificationContent.getMessage());
-                            sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
-                            sendBulkNotificationToUsers.setTypeId(jobTaskMappingTech.getUuid());
-                            sendBulkNotificationToUsers.setTaskId(jobTaskMappingTech.getUuid());
-                            sendBulkNotificationToUsers.setTaskShowId(assignJobToTechnician.getTaskShowId());
-                            sendBulkNotificationToUsers.setTaskName(assignJobToTechnician.getTaskName());
-                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
+                        sendBulkNotificationToUsers.setTitle(notificationContent.getTitle());
+                        sendBulkNotificationToUsers.setBody(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#technicianName", getDetails.getName()));
+                        sendBulkNotificationToUsers.setType(PushNotificationType.NEW_TASK_ASSIGNED);
+                        sendBulkNotificationToUsers.setTypeId(jobTaskMappingTech.getUuid());
+                        sendBulkNotificationToUsers.setTaskId(jobTaskMappingTech.getUuid());
+                        sendBulkNotificationToUsers.setTaskShowId(assignJobToTechnician.getTaskShowId());
+                        sendBulkNotificationToUsers.setTaskName(assignJobToTechnician.getTaskName());
+                        if(getDetails.getMultiUserDeviceDetails() != null){
                             MultiUserDeviceDetailsDTO multiUserDeviceDetailsDTO = new MultiUserDeviceDetailsDTO();
                             multiUserDeviceDetailsDTO.setDeviceToken(getDetails.getMultiUserDeviceDetails().getDeviceToken());
                             multiUserDeviceDetailsDTO.setDeviceType(getDetails.getMultiUserDeviceDetails().getDeviceType());
                             multiUserDeviceDetailsDTO.setUserId(getDetails.getId());
+                            multiUserDeviceDetailsDTO.setPushEnabled(getDetails.getMultiUserDeviceDetails().getPushEnabled() != null ? getDetails.getMultiUserDeviceDetails().getPushEnabled() : true);
+                            Set<MultiUserDeviceDetailsDTO> set = new HashSet<>();
                             set.add(multiUserDeviceDetailsDTO);
                             sendBulkNotificationToUsers.setTechnicianFcmTokenList(set);
-                            sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
                         }
+                        sendBulkNotificationToUsers.setFrontOfficeFcmTokenList(new HashSet<>());
                         sendNotificationToUser(sendBulkNotificationToUsers);
                     }
-                    sendJobEmailToTechnician(getDetails, jobDetails, loggedInUserEmail,tenantId, isSuperAdmin);
+                    if (getDetails.getEmail() != null) {
+                        sendJobEmailToTechnician(getDetails, jobDetails, loggedInUserEmail, tenantId, isSuperAdmin);
+                    }
                 }
             }
-        }  catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
     private void sendNotificationToUser(PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToUsers) {
         notificationClient.sendBulkPushNotification(sendBulkNotificationToUsers);
     }
 
-    private void sendJobEmailToTechnician(TechnicianDTO.TechnicianData technician, JobDTO.Detail jobDetails, String loggedInuser, Long tenantId, boolean isSuperAdmin) {
+    private void sendJobEmailToTechnician(TechnicianDTO.GetDetails technician, JobDTO.Detail jobDetails, String loggedInuser, Long tenantId, boolean isSuperAdmin) {
         try {
             // ✅ Prepare dynamic placeholders
             Map<String, Object> placeholders = new HashMap<>();

@@ -8,8 +8,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface JobTypeRepository extends JpaRepository<JobType, Long>, JpaSpecificationExecutor<JobType> {
@@ -20,4 +22,6 @@ public interface JobTypeRepository extends JpaRepository<JobType, Long>, JpaSpec
 
     @Query("SELECT j FROM JobType j WHERE j.deleted = false AND j.uuid IN :uuids")
     List<JobType> findByUuidAndDeletedFalse(@Param("uuids") List<String> uuids);
+
+    List<JobType> findByUuidIn(Set<String> jobTypeIds);
 }
