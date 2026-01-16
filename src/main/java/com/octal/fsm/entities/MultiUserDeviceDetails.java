@@ -21,4 +21,5 @@ public class MultiUserDeviceDetails extends AbstractPersistable {
     private String appVersion;
     private String deviceToken;
     private String deviceId;
+    private Boolean pushEnabled;
 }

@@ -316,6 +316,7 @@ public class JobDTO {
         private List<HTMLFormDTO.Details> formList;
         private String frontOfficeName;
         private String frontOfficeId;
+        private List<InventoryRequestResponseDTO> inventoryList;
     }
 
     @Data

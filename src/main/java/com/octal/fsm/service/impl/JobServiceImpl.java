@@ -6,6 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.octal.fsm.clients.*;
+import com.octal.fsm.clients.AdminClient;
+import com.octal.fsm.clients.NotificationClient;
+import com.octal.fsm.clients.QuickBookClientService;
+import com.octal.fsm.clients.TechnicianClient;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.dto.JobDTO.JobStatusDetail;
 import com.octal.fsm.dto.enums.JobUpdateType;
@@ -43,6 +47,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.validation.Valid;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -134,6 +140,11 @@ public class JobServiceImpl implements JobService {
     private CodeGenerator codeGenerator;
 
     @Autowired
+    private QuickBookClientService quickBookClientService;
+    @Autowired
+    private InventoryRequestRepository inventoryRequestRepository;
+
+    @Autowired
     private JobService jobService;
     @Autowired
     private DocumentsRepository documentsRepository;
@@ -172,8 +183,8 @@ public class JobServiceImpl implements JobService {
                 throw new CodeException("Job Description is required", ErrorCode.COMMON);
             if (TextUtils.isEmpty(addJobDTO.getJobStartDate()))
                 throw new CodeException("Job Start Date is required", ErrorCode.COMMON);
-            if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
-                throw new CodeException("Job End Date is required", ErrorCode.COMMON);
+//            if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
+//                throw new CodeException("Job End Date is required", ErrorCode.COMMON);
             if (addJobDTO.getJobTags() == null || addJobDTO.getJobTags().isEmpty())
                 throw new CodeException("At least one Job Tag is required", ErrorCode.COMMON);
             return jobTransformer.updateJob(addJobDTO, tenantId, isSuperAdmin);
@@ -208,7 +219,7 @@ public class JobServiceImpl implements JobService {
         lineItem.setSalesItemLineDetail(salesItemLineDetail);
         lineItems.add(lineItem);
         invoiceRequest.setLine(lineItems);
-        CreateInvoiceDTO invoiceResponse = null;
+//        CreateInvoiceDTO invoiceResponse = null;
         if (!TextUtils.isEmpty(createUpFrontInvoice.getDueDate())) {
             invoiceRequest.setDueDate(createUpFrontInvoice.getDueDate());
         }
@@ -216,12 +227,47 @@ public class JobServiceImpl implements JobService {
             invoiceRequest.setPrivateNote(createUpFrontInvoice.getNote());
         }
         try {
-            invoiceResponse = quickBooksCustomerService.createInvoice(invoiceRequest);
-            //Send Mail
-            JsonNode sendMailResponse = quickBooksCustomerService.sendInvoice(invoiceResponse.getInvoice().getId(), createUpFrontInvoice.getEmail());
+            // Queue Invoice Creation
+            InvoiceRestDTO.Add invoiceDto = new InvoiceRestDTO.Add();
+            invoiceDto.setCustomerFullName("Unknown");
+            try {
+                ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId()).getBody();
+                if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
+                    Gson gson = new Gson();
+                    CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
+                    invoiceDto.setCustomerFullName(customerDetails.getName());
+                    if(customerDetails.getQuickBookUserId() != null){
+                        invoiceDto.setCustomerListId(customerDetails.getQuickBookUserId());
+                    }else{
+                        invoiceDto.setCustomerListId(customerDetails.getId());
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error fetching customer details: {}", e.getMessage());
+            }
+            invoiceDto.setSyncStatus("QUEUE");
+            invoiceDto.setAmount(BigDecimal.valueOf(createUpFrontInvoice.getAmount()).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString());
             JobInvoice jobInvoice = new JobInvoice();
+            Gson gson = new Gson();
             jobInvoice.setJobId(createUpFrontInvoice.getJobId());
-            jobInvoice.setInvoiceId(invoiceResponse.getInvoice().getId());
+            invoiceDto.setInvoiceId(jobInvoice.getUuid());
+            try{
+                ApiResponse invoiceQueue = quickBookClientService.createInvoiceQueue(invoiceDto, 1L).getBody();
+                if (invoiceQueue == null) {
+                    throw new CodeException("Quick Book service returned empty response", ErrorCode.COMMON);
+                }
+                if ("200".equalsIgnoreCase(invoiceQueue.getStatus()) && invoiceQueue.getData() != null) {
+                    String invoiceQueueId = (String) invoiceQueue.getData();
+                    jobInvoice.setInvoiceId(invoiceQueueId);
+                    jobInvoice.setResponseDTO(gson.toJson(invoiceQueue));
+                }
+            }
+            catch (Exception e) {
+                throw new CodeException("Invoice creation failed: " +e.getMessage(), ErrorCode.COMMON);
+            }
+//            invoiceResponse = quickBooksCustomerService.createInvoice(invoiceRequest);
+            //Send Mail
+//            JsonNode sendMailResponse = quickBooksCustomerService.sendInvoice(invoiceResponse.getInvoice().getId(), createUpFrontInvoice.getEmail());
             jobInvoice.setAmount(createUpFrontInvoice.getAmount());
             jobInvoice.setSendOnEmail(createUpFrontInvoice.getEmail());
             if (!TextUtils.isEmpty(createUpFrontInvoice.getDueDate())) {
@@ -232,10 +278,8 @@ public class JobServiceImpl implements JobService {
                     e.printStackTrace();
                 }
             }
-            Gson gson = new Gson();
             jobInvoice.setNote(createUpFrontInvoice.getNote());
             jobInvoice.setRequestDTO(gson.toJson(invoiceRequest));
-            jobInvoice.setResponseDTO(gson.toJson(invoiceResponse));
             jobInvoice.setPaid(false);
             jobInvoice.setInvoiceType(createUpFrontInvoice.getInvoiceType());
             jobInvoiceRepository.save(jobInvoice);
@@ -243,6 +287,8 @@ public class JobServiceImpl implements JobService {
             e.printStackTrace();
         }
     }
+
+
 
     @Override
     public PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail,Long tenantId) throws CodeException {
@@ -965,8 +1011,8 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Lead Received Date is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getJobStartDate()))
             throw new CodeException("Job Start Date is required", ErrorCode.COMMON);
-        if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
-            throw new CodeException("Job End Date is required", ErrorCode.COMMON);
+//        if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
+//            throw new CodeException("Job End Date is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getLeadSourceId()))
             throw new CodeException("Lead Source is required", ErrorCode.COMMON);
 //        if (TextUtils.isEmpty(addJobDTO.getBudget()))
@@ -985,8 +1031,41 @@ public class JobServiceImpl implements JobService {
 //            return new PageItem<>()
 //        }
         JobTaskMappingTechnician taskMapping = taskMappingOpt.get();
+        List<InventoryRequest> inventoryRequests = inventoryRequestRepository.findByTaskId(taskId);
+        List<InventoryRequestResponseDTO> dtoList = inventoryRequests.stream().map(this::toDto).collect(Collectors.toList());
+
         List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping), "", userName, tenantId);
+        if (!detailsList.isEmpty()) {
+            detailsList.get(0).setInventoryList(dtoList);
+        }
         return detailsList.isEmpty() ? null : detailsList.get(0);
+    }
+
+    private InventoryRequestResponseDTO toDto(InventoryRequest request) {
+        InventoryRequestResponseDTO dto = new InventoryRequestResponseDTO();
+        dto.setId(request.getUuid());
+        dto.setTechnicianId(request.getTechnicianId());
+        dto.setTaskId(request.getTaskId());
+        dto.setComment(request.getComment());
+        dto.setRequestShowId(request.getRequestShowId());
+        dto.setRequestedAt(request.getRequestedAt().toString());
+        dto.setApprovedAt(request.getApprovedAt() != null ? request.getApprovedAt().toString() : null);
+        dto.setApprovedBy(request.getApprovedBy());
+        dto.setStatus(request.getStatus());
+        dto.setRejectionReason(request.getRejectionReason());
+        List<InventoryRequestResponseDTO.Item> items = request.getItems().stream()
+                .map(item -> {
+                    InventoryRequestResponseDTO.Item i =
+                            new InventoryRequestResponseDTO.Item();
+                    i.setInventoryListId(item.getInventoryListId());
+                    i.setInventoryName(item.getInventoryName());
+                    i.setRequestedQty(item.getRequestedQty());
+                    i.setApprovedQty(item.getApprovedQty());
+                    return i;
+                })
+                .collect(Collectors.toList());
+        dto.setItems(items);
+        return dto;
     }
 
     @Override
@@ -2024,6 +2103,18 @@ public class JobServiceImpl implements JobService {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
 
+            // Preload job types once
+            Set<String> jobTypeIds = tasks.stream()
+                    .map(t -> t.getJob().getJobTypeId())
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+
+            Map<String, JobType> jobTypeMap =
+                    jobTypeRepository.findByUuidIn(jobTypeIds).stream()
+                            .collect(Collectors.toMap(JobType::getUuid, jt -> jt));
+
+
             final Map<String, CustomerDTO.GetDetails> customerToNameMap = new HashMap<>();
 
             List<CustomerDTO.GetDetails> customerDetails = adminClientService.getCustomerList(new ArrayList<>(allCustomerIds), tenantId, false);
@@ -2066,6 +2157,8 @@ public class JobServiceImpl implements JobService {
                         dto.setCustomerId(job.getCustomerId());
                         dto.setServiceLocation(job.getServiceLocation());
                         dto.setJobTypeId(job.getJobTypeId());
+                        JobType type = jobTypeMap.get(job.getJobTypeId());
+                        dto.setJobTypeName(type != null ? type.getName() : null);
                         dto.setJobStatus(job.getJobStatus());
 
                         List<JobTagDTO.Detail> tagDetails = job.getJobMappingTags().stream()
@@ -2526,6 +2619,19 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    public void updateInvoiceDetails(InvoiceRestDTO.Add add) throws CodeException {
+        if(add.getInvoiceId() != null){
+            Optional<JobInvoice> byUuid = jobInvoiceRepository.getByUuid(add.getInvoiceId());
+            if(byUuid.isPresent() && add.getRefId() != null){
+                JobInvoice jobInvoice = byUuid.get();
+                jobInvoice.setInvoiceId(add.getRefId());
+                jobInvoice.setUpdatedAt(LocalDateTime.now());
+                jobInvoiceRepository.save(jobInvoice);
+            }
+        }
+    }
+
+    @Override
     @Transactional
     public ResponseEntity<com.octal.fsm.common.ApiResponse> addTaskFromJob(JobTaskDTO.AddWithJobDetails withJobDetails, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
@@ -2638,6 +2744,16 @@ public class JobServiceImpl implements JobService {
         dto.setUploadedBType(doc.getUploadedByType());
         dto.setUploadedBTypeId(doc.getUploadedByTypeId());
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<JobDetailsForInventory> getAllJobByTechnicianId(String technicianId, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+
+        if (technicianId == null || technicianId.isBlank()) {
+            return Collections.emptyList();
+        }
+        return jobTaskMappingTechnicianRepository.findTaskDetailsByTechnicianId(technicianId);
     }
 
 

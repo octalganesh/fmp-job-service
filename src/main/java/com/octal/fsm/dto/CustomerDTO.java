@@ -45,5 +45,6 @@ public class CustomerDTO {
         private String leadSourceId;
         private boolean isActive;
         private String joinedDate;
+        private String quickBookUserId;
     }
 }
