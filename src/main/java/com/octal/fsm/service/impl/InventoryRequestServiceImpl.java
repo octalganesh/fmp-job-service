@@ -2,10 +2,7 @@ package com.octal.fsm.service.impl;
 
 import com.octal.fsm.clients.QuickBookClientService;
 import com.octal.fsm.dto.*;
-import com.octal.fsm.entities.InventoryPart;
-import com.octal.fsm.entities.InventoryRequest;
-import com.octal.fsm.entities.InventoryRequestItem;
-import com.octal.fsm.entities.JobMappingTask;
+import com.octal.fsm.entities.*;
 import com.octal.fsm.entities.enums.TaskAssignedType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
@@ -13,10 +10,7 @@ import com.octal.fsm.helper.CodeGenerator;
 import com.octal.fsm.listener.events.InventoryRequestNotificationEvent;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.models.request.PageRequest;
-import com.octal.fsm.repositories.InventoryPartRepository;
-import com.octal.fsm.repositories.InventoryRequestRepository;
-import com.octal.fsm.repositories.JobMappingTaskRepository;
-import com.octal.fsm.repositories.JobRepository;
+import com.octal.fsm.repositories.*;
 import com.octal.fsm.service.InventoryRequestService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
@@ -54,15 +48,14 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
     @Autowired
     private JobMappingTaskRepository jobMappingTaskRepository;
     @Autowired
+    private JobTaskMappingTechnicianRepository jobTaskMappingTechnicianRepository;
+    @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     public String createRequest(InventoryRequestDTO.Create requestDTO, Long tenantId, boolean isSuperAdmin) throws Exception {
-        JobMappingTask jobMappingTask = jobMappingTaskRepository.findByUuid(requestDTO.getTaskId())
-                                        .orElseThrow(() -> new Exception("JobMappingTask not found"));
-        if (!jobMappingTask.getAssignType().toString().equalsIgnoreCase("TECHNICIAN")) {
-            throw new Exception("Only Technician tasks can create inventory requests");
-        }
+        JobTaskMappingTechnician jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByUuidAndDeletedFalse(requestDTO.getTaskId())
+                                        .orElseThrow(() -> new Exception("JobTaskMappingTechnician not found"));
 
         InventoryRequest request = new InventoryRequest();
         request.setTechnicianId(requestDTO.getTechnicianId());
