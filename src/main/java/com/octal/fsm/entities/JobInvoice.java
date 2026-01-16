@@ -26,7 +26,7 @@
         @Column(name = "amount", nullable = false)
         private Double amount;
 
-        @Column(name = "send_on_email", nullable = false)
+        @Column(name = "send_on_email")
         private String sendOnEmail;
 
         @Column(name = "due_date")
