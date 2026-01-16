@@ -981,9 +981,9 @@ public class JobServiceImpl implements JobService {
             if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getCustomerName())) {
                 throw new CodeException("Customer Name is required", ErrorCode.COMMON);
             }
-            if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getEmail())) {
-                throw new CodeException("Customer Email is required", ErrorCode.COMMON);
-            }
+//            if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getEmail())) {
+//                throw new CodeException("Customer Email is required", ErrorCode.COMMON);
+//            }
             if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getMobileNumber())) {
                 throw new CodeException("Customer Mobile Number is required", ErrorCode.COMMON);
             }
