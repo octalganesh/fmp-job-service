@@ -118,4 +118,11 @@ public interface JobService {
 
     List<JobDetailsForInventory> getAllJobByTechnicianId(String technicianId, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException;
 
+
+    ResponseEntity<com.octal.fsm.common.ApiResponse> addTaskFromJob(JobTaskDTO.AddWithJobDetails withJobDetails,Long tenantId, boolean isSuperAdmin)throws CodeException;
+
+    ResponseEntity<com.octal.fsm.common.ApiResponse> removeTask(String jobId,Long tenantId, boolean isSuperAdmin)throws CodeException;
+
+    void updateInvoiceDetailsList(List<InvoiceRestDTO.Add> add) throws CodeException;
+
 }

@@ -595,4 +595,39 @@ public class JobController extends BaseController {
         }
     }
 
+
+    @PostMapping("/add-task-from-job")
+    public ResponseEntity<ApiResponse> addTaskFromJob(@RequestBody JobTaskDTO.AddWithJobDetails withJobDetails, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.addTaskFromJob(withJobDetails, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error add task : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PutMapping("/remove-task/{taskId}")
+    public ResponseEntity<ApiResponse> removeTaskData(@PathVariable String taskId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.removeTask(taskId, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error add task : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+    @PostMapping("/invoice/update-details-list")
+    public ResponseEntity<ApiResponse> updateInvoiceDetailsList(@RequestBody List<InvoiceRestDTO.Add> addList, HttpServletRequest request) {
+        try {
+            jobService.updateInvoiceDetailsList(addList);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice Update successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving invoice Details : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 }

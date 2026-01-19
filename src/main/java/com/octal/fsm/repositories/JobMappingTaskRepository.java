@@ -25,7 +25,7 @@ public interface JobMappingTaskRepository extends JpaRepository<JobMappingTask, 
 
     @Query("SELECT jmt FROM JobMappingTask jmt " +
             "JOIN FETCH jmt.job " +
-            "WHERE jmt.uuid = :uuid")
+            "WHERE jmt.uuid = :uuid AND jmt.deleted = false ")
     Optional<JobMappingTask> findByUuidWithJob(@Param("uuid") String uuid);
 
     List<JobMappingTask> findByJob(Job job);
@@ -35,5 +35,7 @@ public interface JobMappingTaskRepository extends JpaRepository<JobMappingTask, 
     List<JobMappingTask> findByJob_Uuid(String jobUuid);
 
     List<JobMappingTask> findByTaskShowIdIn(List<String> taskShowId);
+
+    Optional<JobMappingTask> findByUuidAndDeletedFalse(String uuid);
 
 }

@@ -17,4 +17,7 @@ public interface JobTaskRepository extends JpaRepository<JobTask, Long>, JpaSpec
     Optional<JobTask> findByUuid(String id);
 
     List<JobTask> findByUuidIn(List<String> uuids);
+
+    Optional<JobTask> findByUuidAndDeletedFalse(String uuid);
+
 }

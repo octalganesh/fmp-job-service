@@ -26,7 +26,7 @@
         @Column(name = "amount", nullable = false)
         private Double amount;
 
-        @Column(name = "send_on_email", nullable = false)
+        @Column(name = "send_on_email")
         private String sendOnEmail;
 
         @Column(name = "due_date")
@@ -48,4 +48,13 @@
 
         @Column(name = "paid", nullable = false)
         private Boolean paid = false;
+
+        @Column(name = "balance_due")
+        private String balanceDue;
+
+        @Column(name = "total_amount_with_tax")
+        private String totalAmountWithTax;
+
+        @Column(name = "is_paid")
+        private Boolean isPaid;
     }
