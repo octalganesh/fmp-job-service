@@ -3053,8 +3053,8 @@ public class JobServiceImpl implements JobService {
         if (!TextUtils.isEmpty(listReq.getJobTypeId())) {
             builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "jobTypeId", listReq.getJobTypeId()));
         }
-        if (!TextUtils.isEmpty(listReq.getCustomerId())) {
-            builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "customerId", listReq.getCustomerId()));
+        if (listReq.getCustomerIds() != null && !listReq.getCustomerIds().isEmpty()) {
+            builder.with(jobMappingTaskSpecificationFactory.joinIn("job", "customerId", listReq.getCustomerIds()));
         }
 
         builder.with(
@@ -3163,8 +3163,8 @@ public class JobServiceImpl implements JobService {
         if (!TextUtils.isEmpty(listReq.getJobTypeId())) {
             builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "jobTypeId", listReq.getJobTypeId()));
         }
-        if (!TextUtils.isEmpty(listReq.getCustomerId())) {
-            builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "customerId", listReq.getCustomerId()));
+        if (listReq.getCustomerIds() != null && !listReq.getCustomerIds().isEmpty()) {
+            builder.with(jobMappingTaskSpecificationFactory.joinIn("job", "customerId", listReq.getCustomerIds()));
         }
 
         builder.with(jobMappingTaskSpecificationFactory.isEqual("assignType", TaskAssignedType.CSR));//for CSR
