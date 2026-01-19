@@ -72,5 +72,17 @@ public class AppointmentController extends BaseController {
         }
     }
 
+    @GetMapping("/get-by-id/{id}")
+    public ResponseEntity<ApiResponse> getAppointmentById(@PathVariable("id") String id, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Data fetch successfully", appointmentService.getAppointmentById(id,tenantId,userName), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
 
 }
