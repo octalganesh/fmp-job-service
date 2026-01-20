@@ -2648,7 +2648,7 @@ public class JobServiceImpl implements JobService {
             if (withJobDetails.getName() == null || withJobDetails.getName().isBlank()) {
                 throw new CodeException("Task name is required", ErrorCode.COMMON);
             }
-            Job job = jobRepository.findByUuidAndDeletedFalse(withJobDetails.getJobId()).
+            Job job = jobRepository.findByIdWithTasks(withJobDetails.getJobId()).
                     orElseThrow(() -> new CodeException("Job not found", ErrorCode.COMMON));
             JobType jobType = jobTypeRepository.findByUuid(withJobDetails.getJobTypeId()).
                     orElseThrow(() -> new CodeException("Job type not found", ErrorCode.COMMON));
@@ -2660,7 +2660,9 @@ public class JobServiceImpl implements JobService {
             jobTask.setName(withJobDetails.getName());
             jobTask.setDescription(withJobDetails.getDescription());
             jobTask.setAssignedType(withJobDetails.getAssignedType());
-            jobTask.setSequence(withJobDetails.getPreviousTaskSequence() == null ? 1 : withJobDetails.getPreviousTaskSequence() + 1);
+            int nextSequence = jobType.getJobTasks().stream().map(JobTask::getSequence).filter(Objects::nonNull)
+                    .max(Integer::compareTo).orElse(0) + 1;
+            jobTask.setSequence(nextSequence);
             jobTask.setJobType(jobType);
             jobTask.setJobStatusMaster(jobStatusMaster);
             //Save JobTask
@@ -2671,11 +2673,23 @@ public class JobServiceImpl implements JobService {
                 job.setJobStatusMaster(savedTask.getJobStatusMaster());
                 job.setJobStatus(savedTask.getName());
             }
+
+            int insertAt = withJobDetails.getPreviousTaskSequence() == null
+                    ? 1
+                    : withJobDetails.getPreviousTaskSequence() + 1;
+
+            // shift tasks below insertion point
+            job.getJobMappingTasks()
+                    .stream()
+                    .filter(t -> t.getTaskSequence() != null)
+                    .filter(t -> t.getTaskSequence() >= insertAt)
+                    .forEach(t -> t.setTaskSequence(t.getTaskSequence() + 1));
+
             JobMappingTask task = new JobMappingTask();
             task.setTaskId(savedTask.getUuid());
             task.setTaskName(savedTask.getName());
             task.setTaskShowId(codeGenerator.generateTaskId());
-            task.setTaskSequence(savedTask.getSequence());
+            task.setTaskSequence(insertAt);
             task.setJobTaskStatus(savedTask.getJobStatusMaster().getName());
             task.setAssignType(savedTask.getAssignedType());
             task.setJob(job);

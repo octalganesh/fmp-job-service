@@ -57,4 +57,8 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
     LocalDateTime findEarliestJobCreatedAtByTenantId(@Param("tenantId") Long tenantId);
 
     List<Job> findAllByFrontOfficeIdAndDeletedFalse(String frontOfficeId);
+
+    @Query("select j from Job j left join fetch j.jobMappingTasks where j.uuid = :uuid")
+    Optional<Job> findByIdWithTasks(@Param("uuid") String uuid);
+
 }
