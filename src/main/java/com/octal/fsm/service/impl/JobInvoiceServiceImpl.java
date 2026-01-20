@@ -171,37 +171,56 @@ public class JobInvoiceServiceImpl implements JobInvoiceService {
         }
 
         // -------- Parse QuickBooks responseDTO --------
-        if(invoice.getResponseDTO()!=null) {
-            try {
-                ObjectMapper mapper = new ObjectMapper();
-                QuickBooksInvoiceResponse qb = mapper.readValue(invoice.getResponseDTO(), QuickBooksInvoiceResponse.class);
+        if (invoice.getBalanceDue() != null && invoice.getTotalAmountWithTax() != null) {
+            Double totalAmount = Double.parseDouble(invoice.getTotalAmountWithTax());
+            Double balanceDue  = Double.parseDouble(invoice.getBalanceDue());
 
-                if (qb == null || qb.getInvoice() == null) {
-                    return dto;
-                }
-
-                QuickBooksInvoiceResponse.Invoice qbInvoice = qb.getInvoice();
-                if (qbInvoice.getCustomerRef() != null) {
-                    dto.setCustomerName(qbInvoice.getCustomerRef().getName());
-                }
-
-                Double total = qbInvoice.getTotalAmt();
-                Double balance = qbInvoice.getBalance();
-
-                if (total != null && balance != null) {
-                    dto.setTotalPaymentPending(balance);
-                    dto.setTotalPaymentReceived(total - balance);
-                    dto.setPaymentStatus(balance > 0 ? "PENDING" : "PAID");
-                }
-
-                if (qbInvoice.getMetaData() != null) {
-                    dto.setUpdatedAt(qbInvoice.getMetaData().getLastUpdatedTime());
-                }
-            } catch (Exception e) {
-                throw new RuntimeException("Error while parsing the Quick Book Invoice Response:- " + e.getMessage());
-            }
+            dto.setTotalPaymentAmount(totalAmount);
+            dto.setTotalPaymentPending(balanceDue);
+            dto.setTotalPaymentReceived(totalAmount - balanceDue);
         }
+
+
+//        if(invoice.getResponseDTO()!=null) {
+//            try {
+//                ObjectMapper mapper = new ObjectMapper();
+//                QuickBooksInvoiceResponse qb = mapper.readValue(invoice.getResponseDTO(), QuickBooksInvoiceResponse.class);
+//
+//                if (qb == null || qb.getInvoice() == null) {
+//                    return dto;
+//                }
+//
+//                QuickBooksInvoiceResponse.Invoice qbInvoice = qb.getInvoice();
+//                if (qbInvoice.getCustomerRef() != null) {
+//                    dto.setCustomerName(qbInvoice.getCustomerRef().getName());
+//                }
+//
+//                Double total = qbInvoice.getTotalAmt();
+//                Double balance = qbInvoice.getBalance();
+//
+//                if (total != null && balance != null) {
+//                    dto.setTotalPaymentPending(balance);
+//                    dto.setTotalPaymentReceived(total - balance);
+//                    dto.setPaymentStatus(balance > 0 ? "PENDING" : "PAID");
+//                }
+//
+//                if (qbInvoice.getMetaData() != null) {
+//                    dto.setUpdatedAt(qbInvoice.getMetaData().getLastUpdatedTime());
+//                }
+//            } catch (Exception e) {
+//                throw new RuntimeException("Error while parsing the Quick Book Invoice Response:- " + e.getMessage());
+//            }
+//        }
 
         return dto;
     }
+
+    private Double parseDoubleSafe(String value) {
+        try {
+            return value == null || value.isBlank() ? 0.0 : Double.parseDouble(value);
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
 }

@@ -20,6 +20,9 @@ public class InvoiceRestDTO {
         private String statusMessage;
         private String activeToken;
         private String invoiceId;
+        private String balanceDue;
+        private String totalAmountWithTax;
+        private Boolean isPaid;
     }
 
     @Data

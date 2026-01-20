@@ -311,6 +311,7 @@ public class JobTypeServiceImpl implements JobTypeService {
                 dto.setDocuments(jobType.getJobTypeDocuments());
             }
             dto.setJobTasks(jobType.getJobTasks().stream()
+                    .filter(entity -> !entity.isDeleted())
                     .map(entity -> {
                         JobTaskDTO.Detail taskDto = new JobTaskDTO.Detail();
                         taskDto.setId(entity.getUuid());
