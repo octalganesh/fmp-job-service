@@ -53,5 +53,6 @@ public class AppointmentDTO {
         private String customerName;
         private String taskName;
         private String appointmentTypeId;
+        private String appointmentTypeName;
     }
 }

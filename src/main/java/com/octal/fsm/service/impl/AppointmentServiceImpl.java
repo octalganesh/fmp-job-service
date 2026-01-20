@@ -224,6 +224,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 dto.setTaskName(jobMappingTask.getTaskName());
             }
             dto.setAppointmentTypeId(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getUuid() : null);
+            dto.setAppointmentTypeName(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getName() : null);
             responseList.add(dto);
         }
 
@@ -310,6 +311,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 dto.setTaskName(jobMappingTask.getTaskName());
             }
             dto.setAppointmentTypeId(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getUuid() : null);
+            dto.setAppointmentTypeName(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getName() : null);
             responseList.add(dto);
         }
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, listRequest.getPageNumber(),
