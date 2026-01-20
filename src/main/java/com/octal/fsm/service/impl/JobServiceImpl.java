@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.octal.fsm.clients.*;
 import com.octal.fsm.clients.AdminClient;
 import com.octal.fsm.clients.NotificationClient;
+import com.octal.fsm.clients.QuickBookClientService;
 import com.octal.fsm.clients.TechnicianClient;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.dto.JobDTO.JobStatusDetail;
@@ -15,11 +17,15 @@ import com.octal.fsm.entities.*;
 import com.octal.fsm.entities.enums.TaskAssignedType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
+import com.octal.fsm.helper.CodeGenerator;
 import com.octal.fsm.listener.events.SendMailAndPushEvent;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.repositories.*;
+import com.octal.fsm.service.AdminClientService;
 import com.octal.fsm.service.DocumentService;
+import com.octal.fsm.service.GeneralSettingService;
 import com.octal.fsm.service.JobService;
+import com.octal.fsm.service.TechnicianClientService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
 import com.octal.fsm.transformer.JobTransformer;
@@ -41,6 +47,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.validation.Valid;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -121,6 +129,20 @@ public class JobServiceImpl implements JobService {
 
     @Autowired
     private JobNotesRepository jobNotesRepository;
+    @Autowired
+    private GeneralSettingService generalSettingService;
+
+    @Autowired
+    private TechnicianClientService technicianClientService;
+    @Autowired
+    private AdminClientService adminClientService;
+    @Autowired
+    private CodeGenerator codeGenerator;
+
+    @Autowired
+    private QuickBookClientService quickBookClientService;
+    @Autowired
+    private InventoryRequestRepository inventoryRequestRepository;
 
     @Autowired
     private JobService jobService;
@@ -161,8 +183,8 @@ public class JobServiceImpl implements JobService {
                 throw new CodeException("Job Description is required", ErrorCode.COMMON);
             if (TextUtils.isEmpty(addJobDTO.getJobStartDate()))
                 throw new CodeException("Job Start Date is required", ErrorCode.COMMON);
-            if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
-                throw new CodeException("Job End Date is required", ErrorCode.COMMON);
+//            if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
+//                throw new CodeException("Job End Date is required", ErrorCode.COMMON);
             if (addJobDTO.getJobTags() == null || addJobDTO.getJobTags().isEmpty())
                 throw new CodeException("At least one Job Tag is required", ErrorCode.COMMON);
             return jobTransformer.updateJob(addJobDTO, tenantId, isSuperAdmin);
@@ -197,7 +219,7 @@ public class JobServiceImpl implements JobService {
         lineItem.setSalesItemLineDetail(salesItemLineDetail);
         lineItems.add(lineItem);
         invoiceRequest.setLine(lineItems);
-        CreateInvoiceDTO invoiceResponse = null;
+//        CreateInvoiceDTO invoiceResponse = null;
         if (!TextUtils.isEmpty(createUpFrontInvoice.getDueDate())) {
             invoiceRequest.setDueDate(createUpFrontInvoice.getDueDate());
         }
@@ -205,12 +227,47 @@ public class JobServiceImpl implements JobService {
             invoiceRequest.setPrivateNote(createUpFrontInvoice.getNote());
         }
         try {
-            invoiceResponse = quickBooksCustomerService.createInvoice(invoiceRequest);
-            //Send Mail
-            JsonNode sendMailResponse = quickBooksCustomerService.sendInvoice(invoiceResponse.getInvoice().getId(), createUpFrontInvoice.getEmail());
+            // Queue Invoice Creation
+            InvoiceRestDTO.Add invoiceDto = new InvoiceRestDTO.Add();
+            invoiceDto.setCustomerFullName("Unknown");
+            try {
+                ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId()).getBody();
+                if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
+                    Gson gson = new Gson();
+                    CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
+                    invoiceDto.setCustomerFullName(customerDetails.getName());
+                    if(customerDetails.getQuickBookUserId() != null){
+                        invoiceDto.setCustomerListId(customerDetails.getQuickBookUserId());
+                    }else{
+                        invoiceDto.setCustomerListId(customerDetails.getId());
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error fetching customer details: {}", e.getMessage());
+            }
+            invoiceDto.setSyncStatus("QUEUE");
+            invoiceDto.setAmount(BigDecimal.valueOf(createUpFrontInvoice.getAmount()).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString());
             JobInvoice jobInvoice = new JobInvoice();
+            Gson gson = new Gson();
             jobInvoice.setJobId(createUpFrontInvoice.getJobId());
-            jobInvoice.setInvoiceId(invoiceResponse.getInvoice().getId());
+            invoiceDto.setInvoiceId(jobInvoice.getUuid());
+            try{
+                ApiResponse invoiceQueue = quickBookClientService.createInvoiceQueue(invoiceDto, 1L).getBody();
+                if (invoiceQueue == null) {
+                    throw new CodeException("Quick Book service returned empty response", ErrorCode.COMMON);
+                }
+                if ("200".equalsIgnoreCase(invoiceQueue.getStatus()) && invoiceQueue.getData() != null) {
+                    String invoiceQueueId = (String) invoiceQueue.getData();
+                    jobInvoice.setInvoiceId(invoiceQueueId);
+                    jobInvoice.setResponseDTO(gson.toJson(invoiceQueue));
+                }
+            }
+            catch (Exception e) {
+                throw new CodeException("Invoice creation failed: " +e.getMessage(), ErrorCode.COMMON);
+            }
+//            invoiceResponse = quickBooksCustomerService.createInvoice(invoiceRequest);
+            //Send Mail
+//            JsonNode sendMailResponse = quickBooksCustomerService.sendInvoice(invoiceResponse.getInvoice().getId(), createUpFrontInvoice.getEmail());
             jobInvoice.setAmount(createUpFrontInvoice.getAmount());
             jobInvoice.setSendOnEmail(createUpFrontInvoice.getEmail());
             if (!TextUtils.isEmpty(createUpFrontInvoice.getDueDate())) {
@@ -221,10 +278,8 @@ public class JobServiceImpl implements JobService {
                     e.printStackTrace();
                 }
             }
-            Gson gson = new Gson();
             jobInvoice.setNote(createUpFrontInvoice.getNote());
             jobInvoice.setRequestDTO(gson.toJson(invoiceRequest));
-            jobInvoice.setResponseDTO(gson.toJson(invoiceResponse));
             jobInvoice.setPaid(false);
             jobInvoice.setInvoiceType(createUpFrontInvoice.getInvoiceType());
             jobInvoiceRepository.save(jobInvoice);
@@ -233,12 +288,15 @@ public class JobServiceImpl implements JobService {
         }
     }
 
+
+
     @Override
-    public PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException {
+    public PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail,Long tenantId) throws CodeException {
         Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(jobId);
         if (!jobExist)
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         GenericSpecificationsBuilder<JobInvoice> builder = new GenericSpecificationsBuilder<>();
+        size = generalSettingService.getPageSize(tenantId);
         Pageable pageable = null;
         if (Boolean.TRUE.equals(order)) {
             pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).ascending());
@@ -249,6 +307,7 @@ public class JobServiceImpl implements JobService {
         builder.with(jobInvoiceSpecificationFactory.isEqual("jobId", jobId));
         Page<JobInvoice> pagedResult = jobInvoiceRepository.findAll(builder.build(), pageable);
         List<JobDTO.InvoiceListResponse> responseList = new ArrayList<>();
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
         for (JobInvoice jobInvoice : pagedResult.getContent()) {
             JobDTO.InvoiceListResponse dto = new JobDTO.InvoiceListResponse();
             dto.setId(jobInvoice.getUuid());
@@ -256,9 +315,13 @@ public class JobServiceImpl implements JobService {
             dto.setInvoiceType(jobInvoice.getInvoiceType());
             dto.setAmount(jobInvoice.getAmount());
             dto.setSendOnEmail(jobInvoice.getSendOnEmail());
-            dto.setDueDate(jobInvoice.getDueDate() != null ? jobInvoice.getDueDate().toString() : null);
+            if(jobInvoice.getDueDate() != null){
+                dto.setDueDate(dateTimeFormatter != null ? jobInvoice.getDueDate().format(dateTimeFormatter) : jobInvoice.getDueDate().toString());
+            }
             dto.setNote(jobInvoice.getNote());
-            dto.setCreatedAt(jobInvoice.getCreatedAt() != null ? jobInvoice.getCreatedAt().toString() : null);
+            if(jobInvoice.getCreatedAt() != null){
+                dto.setCreatedAt(dateTimeFormatter != null ? jobInvoice.getCreatedAt().format(dateTimeFormatter) : jobInvoice.getCreatedAt().toString());
+            }
             dto.setPaid(jobInvoice.getPaid());
             dto.setJobId(jobId);
             responseList.add(dto);
@@ -369,6 +432,7 @@ public class JobServiceImpl implements JobService {
         }
         Page<Job> pagedResult = jobRepository.findAll(builder.build(), pageable);
         List<JobDTO.JobListResponse> responseList = new ArrayList<>();
+        DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
         for (Job job : pagedResult.getContent()) {
             JobDTO.JobListResponse dto = new JobDTO.JobListResponse();
             dto.setId(job.getUuid());
@@ -376,8 +440,12 @@ public class JobServiceImpl implements JobService {
             dto.setServiceLocation(job.getServiceLocation());
             Optional<JobType> jobTypeOpt = jobTypeRepository.findByUuid(job.getJobTypeId());
             jobTypeOpt.ifPresent(type -> dto.setJobType(type.getName()));
-            dto.setJobStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
-            dto.setJobEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
+            if(job.getJobStartDate() != null){
+                dto.setJobStartDate(dateFormatter != null ? job.getJobStartDate().format(dateFormatter) : job.getJobStartDate().toString());
+            }
+            if(job.getJobEndDate() != null){
+                dto.setJobEndDate(dateFormatter != null ? job.getJobEndDate().format(dateFormatter) : job.getJobEndDate().toString());
+            }
             try {
                 ApiResponse apiResponse = adminClient.getJobDetailsWithLeadAndCustomerDetails(job.getCustomerId(), job.getLeadSourceId(), loggedInUserEmail, tenantId, isSuperAdmin).getBody();
                 if (apiResponse != null && apiResponse.getData() != null) {
@@ -455,9 +523,11 @@ public class JobServiceImpl implements JobService {
                 e.printStackTrace();
             }
         }
-        response.setLeadReceivedDate(job.getLeadReceivedDate() != null ? job.getLeadReceivedDate().toString() : null);
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
+        response.setLeadReceivedDate(job.getLeadReceivedDate() != null ? job.getLeadReceivedDate().format(dateTimeFormatter) : null);
         List<JobMappingTags> jobTags = job.getJobMappingTags();
         List<JobTagDTO.Detail> jobTagList = new ArrayList<>();
+
         for (JobMappingTags tag : jobTags) {
             Optional<JobTag> jobTagOptional = jobTagRepository.findByUuid(tag.getTagId());
             if (jobTagOptional.isPresent()) {
@@ -471,8 +541,12 @@ public class JobServiceImpl implements JobService {
         response.setJobTags(jobTagList);
         response.setJobDescription(job.getJobDescription());
         response.setAdditionalNotes(job.getAdditionalNotes());
-        response.setJobStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
-        response.setJobEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
+        if(job.getJobStartDate() != null){
+            response.setJobStartDate(dateTimeFormatter != null ? job.getJobStartDate().format(dateTimeFormatter) : job.getJobStartDate().toString());
+        }
+        if(job.getJobEndDate() != null){
+            response.setJobEndDate(dateTimeFormatter != null ? job.getJobEndDate().format(dateTimeFormatter) : job.getJobEndDate().toString());
+        }
         response.setServiceLocation(job.getServiceLocation());
         response.setServiceLocationLat(job.getServiceLocationLat());
         response.setServiceLocationLng(job.getServiceLocationLng());
@@ -481,7 +555,9 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public PageItem<JobDTO.JobTaskListResponse> getJobTask(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail) throws CodeException {
+    public PageItem<JobDTO.JobTaskListResponse> getJobTask(int page, int size, String sortBy, Boolean order, String jobId,Long tenantId,Boolean isSuperAdmin, String loggedInUserEmail) throws CodeException {
+        if (isSuperAdmin)
+            tenantId = 1L;
         Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(jobId);
         if (!jobExist)
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
@@ -509,26 +585,33 @@ public class JobServiceImpl implements JobService {
                 dto.setTaskDescription(jobTask.get().getDescription());
                 dto.setAssignedType(jobMappingTask.getAssignType());
                 dto.setSequenceNumber(jobTask.get().getSequence());
+                dto.setNote(jobMappingTask.getNote());
+                dto.setDocuments(documentService.getJobDocuments(jobMappingTask.getUuid(),tenantId,false));
                 Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.getUuid());
                 if (jobTaskMappingTechnician.isPresent()) {
                     dto.setCreatedAt(jobTaskMappingTechnician.get().getCreatedAt() != null ? jobTaskMappingTechnician.get().getCreatedAt().toString() : null);
                     dto.setTaskStatus(jobTaskMappingTechnician.get().getTaskStatus());
-                    ApiResponse technicianResponse = technicianClient.getTechnicianById(jobTaskMappingTechnician.get().getTechnicianId(), loggedInUserEmail).getBody();
-                    if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
-                        try {
-                            Gson gson = new Gson();
-                            TechnicianDTO.GetDetails technicianDetails = gson.fromJson(gson.toJson(technicianResponse.getData()), TechnicianDTO.GetDetails.class);
-                            dto.setTechnicianName(technicianDetails.getName());
-                            dto.setTechnicianId(technicianDetails.getId());
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                    dto.setStartDate(jobTaskMappingTechnician.get().getStartDate() != null ? jobTaskMappingTechnician.get().getStartDate().toString() : null);
+                    dto.setEndDate(jobTaskMappingTechnician.get().getEndDate() != null ? jobTaskMappingTechnician.get().getEndDate().toString() : null);
+                    dto.setStartTime(jobTaskMappingTechnician.get().getStartTime() != null ? jobTaskMappingTechnician.get().getStartTime().toString() : null);
+                    dto.setEndTime(jobTaskMappingTechnician.get().getEndTime() != null ? jobTaskMappingTechnician.get().getEndTime().toString() : null);
+                    TechnicianDTO.GetDetails technicianDetails = technicianClientService.getTechnicianById(jobTaskMappingTechnician.get().getTechnicianId(), loggedInUserEmail);
+                    if(technicianDetails != null){
+                        dto.setTechnicianName(technicianDetails.getName());
+                        dto.setTechnicianId(technicianDetails.getId());
                     }
                 } else {
-                    dto.setTaskStatus("NOT ASSIGNED");
+                    if(jobMappingTask.getJobTaskStatus().equalsIgnoreCase("COMPLETED")){
+                        dto.setTaskStatus(jobMappingTask.getJobTaskStatus());
+                    }else{
+                        dto.setTaskStatus("NOT ASSIGNED");
+                    }
                 }
                 responseList.add(dto);
             }
+            responseList.sort(Comparator.comparing(
+                            (JobDTO.JobTaskListResponse jobDto) -> "COMPLETED".equalsIgnoreCase(jobDto.getTaskStatus()))
+                    .thenComparing(JobDTO.JobTaskListResponse::getSequenceNumber));
         }
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, page,
                 size);
@@ -547,8 +630,8 @@ public class JobServiceImpl implements JobService {
         Boolean taskExist = jobTaskRepository.existsByUuid(jobMappingTask.get().getTaskId());
         if (!taskExist)
             throw new CodeException("Job Task Not Found", ErrorCode.COMMON);
-        ApiResponse technicianResponse = technicianClient.getTechnicianById(assignJobToTechnician.getTechnicianId(), loggedInUserEmail).getBody();
-        if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200")) {
+        TechnicianDTO.GetDetails technicianDetails = technicianClientService.getTechnicianById(assignJobToTechnician.getTechnicianId(), loggedInUserEmail);
+        if (technicianDetails != null) {
             JobTaskMappingTechnician jobTaskMappingTechnician = new JobTaskMappingTechnician();
             Optional<JobTaskMappingTechnician> jobTaskMappingToTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(assignJobToTechnician.getJobTaskMappingId());
             if (jobTaskMappingToTechnician.isPresent()) {
@@ -604,7 +687,10 @@ public class JobServiceImpl implements JobService {
                 try {
                     assignJobToTechnician.setTaskName(jobMappingTask.get().getTaskName());
                     assignJobToTechnician.setTaskShowId(jobMappingTask.get().getTaskShowId());
-                    applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician, save, loggedInUserEmail, tenantId, isSuperAdmin));
+                    boolean notificationEnabled = generalSettingService.isNotificationEnabled(tenantId);
+                    if(notificationEnabled){
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician, save, loggedInUserEmail, tenantId, isSuperAdmin));
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -635,6 +721,21 @@ public class JobServiceImpl implements JobService {
                         e.printStackTrace();
                     }
                 }
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                try{
+                    if (assignJobToTechnician.getStartDateTime() != null) {
+                        LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getStartDateTime(), formatter);
+                        Time sqlTime = Time.valueOf(ldt.toLocalTime());
+                        jobTaskMappingTechnician.setStartTime(sqlTime);
+                    }
+                    if (assignJobToTechnician.getEndDateTime() != null) {
+                        LocalDateTime ldt = LocalDateTime.parse(assignJobToTechnician.getEndDateTime(), formatter);
+                        Time sqlTime = Time.valueOf(ldt.toLocalTime());
+                        jobTaskMappingTechnician.setEndTime(sqlTime);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 Gson gson = new Gson();
                 if (assignJobToTechnician.getDocuments() != null && !assignJobToTechnician.getDocuments().isEmpty()) {
                     List<String> documentsWithUrl = assignJobToTechnician.getDocuments().stream()
@@ -650,7 +751,10 @@ public class JobServiceImpl implements JobService {
                 try {
                     assignJobToTechnician.setTaskName(jobMappingTask.get().getTaskName());
                     assignJobToTechnician.setTaskShowId(jobMappingTask.get().getTaskShowId());
-                    applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician, JobTaskMappingTechnician, loggedInUserEmail, tenantId, isSuperAdmin));
+                    boolean notificationEnabled = generalSettingService.isNotificationEnabled(tenantId);
+                    if(notificationEnabled){
+                        applicationEventPublisher.publishEvent(new SendMailToTechnicianEvent(assignJobToTechnician, JobTaskMappingTechnician, loggedInUserEmail, tenantId, isSuperAdmin));
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -679,6 +783,10 @@ public class JobServiceImpl implements JobService {
 
         if (byTechnicianId != null && !byTechnicianId.isEmpty()) {
             for (JobTaskMappingTechnician existing : byTechnicianId) {
+
+                if ("Completed".equalsIgnoreCase(existing.getTaskStatus())) {
+                    continue;
+                }
 
                 LocalDate exStartDate = existing.getStartDate();
                 LocalDate exEndDate = existing.getEndDate();
@@ -825,6 +933,7 @@ public class JobServiceImpl implements JobService {
     public PageItem<JobDTO.JobHistoryDTO> jobLeaveReassignHistory(int page, int size, String sortBy, Boolean order, String fromStartDate, String toStartDate, String jobId, String userName, Long tenantId, boolean isSuperAdmin) {
 
         GenericSpecificationsBuilder<JobHistory> builder = new GenericSpecificationsBuilder<>();
+        size = generalSettingService.getPageSize(tenantId);
         Pageable pageable = null;
         if (Boolean.TRUE.equals(order)) {
             pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(sortBy).ascending());
@@ -872,9 +981,9 @@ public class JobServiceImpl implements JobService {
             if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getCustomerName())) {
                 throw new CodeException("Customer Name is required", ErrorCode.COMMON);
             }
-            if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getEmail())) {
-                throw new CodeException("Customer Email is required", ErrorCode.COMMON);
-            }
+//            if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getEmail())) {
+//                throw new CodeException("Customer Email is required", ErrorCode.COMMON);
+//            }
             if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getMobileNumber())) {
                 throw new CodeException("Customer Mobile Number is required", ErrorCode.COMMON);
             }
@@ -902,8 +1011,8 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Lead Received Date is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getJobStartDate()))
             throw new CodeException("Job Start Date is required", ErrorCode.COMMON);
-        if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
-            throw new CodeException("Job End Date is required", ErrorCode.COMMON);
+//        if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
+//            throw new CodeException("Job End Date is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getLeadSourceId()))
             throw new CodeException("Lead Source is required", ErrorCode.COMMON);
 //        if (TextUtils.isEmpty(addJobDTO.getBudget()))
@@ -922,8 +1031,41 @@ public class JobServiceImpl implements JobService {
 //            return new PageItem<>()
 //        }
         JobTaskMappingTechnician taskMapping = taskMappingOpt.get();
+        List<InventoryRequest> inventoryRequests = inventoryRequestRepository.findByTaskId(taskId);
+        List<InventoryRequestResponseDTO> dtoList = inventoryRequests.stream().map(this::toDto).collect(Collectors.toList());
+
         List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping), "", userName, tenantId);
+        if (!detailsList.isEmpty()) {
+            detailsList.get(0).setInventoryList(dtoList);
+        }
         return detailsList.isEmpty() ? null : detailsList.get(0);
+    }
+
+    private InventoryRequestResponseDTO toDto(InventoryRequest request) {
+        InventoryRequestResponseDTO dto = new InventoryRequestResponseDTO();
+        dto.setId(request.getUuid());
+        dto.setTechnicianId(request.getTechnicianId());
+        dto.setTaskId(request.getTaskId());
+        dto.setComment(request.getComment());
+        dto.setRequestShowId(request.getRequestShowId());
+        dto.setRequestedAt(request.getRequestedAt().toString());
+        dto.setApprovedAt(request.getApprovedAt() != null ? request.getApprovedAt().toString() : null);
+        dto.setApprovedBy(request.getApprovedBy());
+        dto.setStatus(request.getStatus());
+        dto.setRejectionReason(request.getRejectionReason());
+        List<InventoryRequestResponseDTO.Item> items = request.getItems().stream()
+                .map(item -> {
+                    InventoryRequestResponseDTO.Item i =
+                            new InventoryRequestResponseDTO.Item();
+                    i.setInventoryListId(item.getInventoryListId());
+                    i.setInventoryName(item.getInventoryName());
+                    i.setRequestedQty(item.getRequestedQty());
+                    i.setApprovedQty(item.getApprovedQty());
+                    return i;
+                })
+                .collect(Collectors.toList());
+        dto.setItems(items);
+        return dto;
     }
 
     @Override
@@ -986,7 +1128,10 @@ public class JobServiceImpl implements JobService {
             }
             jobTaskMappingTechnicianRepository.save(taskMappingTechnician);
             try {
-                applicationEventPublisher.publishEvent(new SendMailAndPushEvent(taskMappingTechnician, tenantId, userName));
+                boolean notificationEnabled = generalSettingService.isNotificationEnabled(tenantId);
+                if(notificationEnabled){
+                    applicationEventPublisher.publishEvent(new SendMailAndPushEvent(taskMappingTechnician, tenantId, userName));
+                }
             } catch (Exception exception) {
                 throw new CodeException("Error while sending mail and notification", ErrorCode.COMMON);
             }
@@ -998,7 +1143,8 @@ public class JobServiceImpl implements JobService {
     private List<JobDTO.DetailsForTechnician> buildTechnicianJobTaskDetails
             (List<JobTaskMappingTechnician> taskMappings, String txt, String loggedInUserEmail, Long tenantId) {
         List<JobDTO.DetailsForTechnician> responseList = new ArrayList<>();
-
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
+        DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
         for (JobTaskMappingTechnician taskMapping : taskMappings) {
             Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(taskMapping.getJobTaskMappingId());
             if (jobMappingTask.isPresent()) {
@@ -1008,15 +1154,10 @@ public class JobServiceImpl implements JobService {
 
                 if (job.isPresent() && jobTask.isPresent()) {
                     if (!TextUtils.isEmpty(job.get().getFrontOfficeId())) {
-                        ResponseEntity<ApiResponse> frontOfficeResponse = adminClient.getFrontOfficeById(job.get().getFrontOfficeId(), tenantId);
-                        if (frontOfficeResponse != null && frontOfficeResponse.getBody() != null && frontOfficeResponse.getBody().getData() != null) {
-                            Gson gson = new Gson();
-                            String stringResponse = gson.toJson(frontOfficeResponse.getBody().getData());
-                            FrontOfficeStaffDTO.list frontOfficeResponseData = gson.fromJson(stringResponse, FrontOfficeStaffDTO.list.class);
-                            if (frontOfficeResponseData != null) {
-                                details.setFrontOfficeName(frontOfficeResponseData.getName());
-                                details.setFrontOfficeId(frontOfficeResponseData.getId());
-                            }
+                        FrontOfficeStaffDTO.list frontOfficeResponseData = adminClientService.getFrontOfficeById(job.get().getFrontOfficeId(), tenantId);
+                        if (frontOfficeResponseData != null) {
+                            details.setFrontOfficeName(frontOfficeResponseData.getName());
+                            details.setFrontOfficeId(frontOfficeResponseData.getId());
                         }
                     }
 //                    // ✅ Apply search filter on jobId
@@ -1069,13 +1210,21 @@ public class JobServiceImpl implements JobService {
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setJobId(job.get().getJobId());
                     details.setJobNote(job.get().getAdditionalNotes());
-                    details.setJobStartDate(job.get().getJobStartDate().toString());
-                    details.setJobEndDate(job.get().getJobEndDate().toString());
+                    if(job.get().getJobStartDate() != null){
+                        details.setJobStartDate(dateFormatter != null ? job.get().getJobStartDate().format(dateFormatter) : job.get().getJobStartDate().toString());
+                    }
+                    if(job.get().getJobEndDate() != null){
+                        details.setJobEndDate(dateFormatter != null ? job.get().getJobEndDate().format(dateFormatter) : job.get().getJobEndDate().toString());
+                    }
                     details.setTaskDescription(jobTask.get().getDescription());
                     details.setJobTitle(jobTask.get().getName());
                     details.setJobDescription(job.get().getJobDescription());
-                    details.setStartDate(taskMapping.getStartDate() != null ? taskMapping.getStartDate().toString() : null);
-                    details.setEndDate(taskMapping.getEndDate() != null ? taskMapping.getEndDate().toString() : null);
+                    if(taskMapping.getStartDate() != null){
+                        details.setStartDate(dateFormatter != null ? taskMapping.getStartDate().format(dateFormatter) : taskMapping.getStartDate().toString());
+                    }
+                    if(taskMapping.getEndDate() != null){
+                        details.setEndDate(dateFormatter != null ? taskMapping.getEndDate().format(dateFormatter) : taskMapping.getEndDate().toString());
+                    }
                     details.setServiceLocationLat(job.get().getServiceLocationLat());
                     details.setServiceLocationLng(job.get().getServiceLocationLng());
                     if (taskMapping.getTaskStatus().equalsIgnoreCase("ASSIGNED")) {
@@ -1090,15 +1239,13 @@ public class JobServiceImpl implements JobService {
 
                     // Get customer details
                     try {
-                        ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId()).getBody();
-                        if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
-                            Gson gson = new Gson();
-                            CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
-                            details.setCustomerId(customerDetails.getId());
-                            details.setCustomerName(customerDetails.getName());
-                            details.setEmail(customerDetails.getEmail());
-                            details.setMobileNumber(customerDetails.getMobileNumber());
-                            details.setLocation(customerDetails.getAddress());
+                        CustomerDTO.GetDetails customerById = adminClientService.getCustomerById(job.get().getCustomerId());
+                        if (customerById != null ){
+                            details.setCustomerId(customerById.getId());
+                            details.setCustomerName(customerById.getName());
+                            details.setEmail(customerById.getEmail());
+                            details.setMobileNumber(customerById.getMobileNumber());
+                            details.setLocation(customerById.getAddress());
                         }
                     } catch (Exception e) {
                         logger.error("Error fetching customer details: {}", e.getMessage());
@@ -1164,7 +1311,9 @@ public class JobServiceImpl implements JobService {
                             htmlFormDTO.setId(htmlFormPage.getUuid());
                             htmlFormDTO.setContent(htmlFormPage.getContent());
                             htmlFormDTO.setActive(htmlFormPage.getActive());
-                            htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt().toString());
+                            if(htmlFormPage.getCreatedAt() != null){
+                                htmlFormDTO.setCreatedAt(dateTimeFormatter != null ? htmlFormPage.getCreatedAt().format(dateTimeFormatter) : htmlFormPage.getCreatedAt().toString());
+                            }
                             htmlFormDTO.setFormId(htmlFormPage.getFormId() != null ? htmlFormPage.getFormId() : "");
                             list.add(htmlFormDTO);
                         }
@@ -1187,7 +1336,7 @@ public class JobServiceImpl implements JobService {
             GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
             builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("deleted", false));
             builder.with(jobTaskMappingTechnicianSpecificationFactory.isEqual("technicianId", technicianId));
-
+           // filterRequest.setPage(generalSettingService.getPageSize(tenantId));
             int page = filterRequest.getPage() != null ? filterRequest.getPage() : 0;
             int limit = filterRequest.getLimit() != null ? filterRequest.getLimit() : 10;
             Pageable pageable = PageRequest.of(page, limit, Sort.by("createdAt").descending());
@@ -1266,7 +1415,7 @@ public class JobServiceImpl implements JobService {
 
         List<JobStatusMaster> statusMasters;
         //Long tenantIdToUse = isSuperAdmin ? 1L : tenantId;
-        statusMasters = jobStatusMasterRepository.findAllByDeletedFalse();
+        statusMasters = jobStatusMasterRepository.findDistinctNamesByDeletedFalse();
 
         List<JobStatusDetail> statusDetails = statusMasters.stream()
                 .map(statusMaster -> new JobStatusDetail(statusMaster.getUuid(), statusMaster.getName(), statusMaster.getColorCode()))
@@ -1401,6 +1550,11 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Assigned Type update is not allowed", ErrorCode.BAD_REQUEST);
         if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.SYSTEM)) {
             // todo need to perform related task automatically for example BOM generation and quickbooks related stuff.
+            Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
+            if (jobMappingTask.isEmpty())
+                throw new CodeException("Job Task mapping not found", ErrorCode.BAD_REQUEST);
+            jobMappingTask.get().setJobTaskStatus("COMPLETED");
+            jobMappingTaskRepository.save(jobMappingTask.get());
         } else if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.CSR)) {
             if (TextUtils.isEmpty(updateJobTaskDetails.getTaskId()))
                 throw new CodeException("Task Id is required to update the task details", ErrorCode.BAD_REQUEST);
@@ -1419,6 +1573,7 @@ public class JobServiceImpl implements JobService {
             if (!TextUtils.isEmpty(updateJobTaskDetails.getNote())){
                 jobMappingTask.get().setNote(updateJobTaskDetails.getNote());
             }
+            jobMappingTask.get().setJobTaskStatus("COMPLETED");
             jobMappingTaskRepository.save(jobMappingTask.get());
         }
         if (updateJobTaskDetails.getIsDone()) {
@@ -1510,13 +1665,9 @@ public class JobServiceImpl implements JobService {
             if (availableIds.isEmpty()) {
                 return Collections.emptyList();
             }
-            ApiResponse technicianResponse = technicianClient.getTechByIds(availableIds, tenantId).getBody();
-            if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
-                List<TechnicianDTO.GetDetails> techDetails = objectMapper.convertValue(
-                        technicianResponse.getData(),
-                        new TypeReference<List<TechnicianDTO.GetDetails>>() {
-                        }
-                );
+
+            List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(availableIds,tenantId);
+            if(techDetails != null){
                 return techDetails.stream()
                         .map(t -> new TechnicianJobSummaryDTO(
                                 t.getId(),
@@ -1558,17 +1709,11 @@ public class JobServiceImpl implements JobService {
             Map<String, Job> jobMap = byUuidIn.stream()
                     .collect(Collectors.toMap(Job::getUuid, j -> j));
 
-            ApiResponse technicianResponse = technicianClient.getTechByIds(new ArrayList<>(technicianIds), tenantId).getBody();
             List<TodayScheduleDTO> results = new ArrayList<>();
-            if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
-                List<TechnicianDTO.GetDetails> techDetails = objectMapper.convertValue(
-                        technicianResponse.getData(),
-                        new TypeReference<List<TechnicianDTO.GetDetails>>() {
-                        }
-                );
+            List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(technicianIds),tenantId);
+            if(techDetails != null){
                 Map<String, TechnicianDTO.GetDetails> techMap = techDetails.stream()
                         .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
-
                 for (JobTaskMappingTechnician task : activeTasksForToday) {
                     TechnicianDTO.GetDetails tech = techMap.get(task.getTechnicianId());
                     Job job = jobMap.get(task.getJobTaskMappingId());
@@ -1614,18 +1759,13 @@ public class JobServiceImpl implements JobService {
 
             Map<String, JobType> jobTypeMap = byUuidAndDeletedFalse.stream()
                     .collect(Collectors.toMap(JobType::getUuid, j -> j));
-
-            ApiResponse technicianResponse = technicianClient.getTechByIds(new ArrayList<>(technicianIds), tenantId).getBody();
             List<JobTaskListDTO> results = new ArrayList<>();
-            if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
-                List<TechnicianDTO.GetDetails> techDetails = objectMapper.convertValue(
-                        technicianResponse.getData(),
-                        new TypeReference<List<TechnicianDTO.GetDetails>>() {
-                        }
-                );
+
+            List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(technicianIds),tenantId);
+            if(techDetails != null){
                 Map<String, TechnicianDTO.GetDetails> techMap = techDetails.stream()
                         .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
-
+                DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
                 for (JobTaskMappingTechnician record : pagedResult.getContent()) {
 
                     TechnicianDTO.GetDetails tech = techMap.get(record.getTechnicianId());
@@ -1643,8 +1783,8 @@ public class JobServiceImpl implements JobService {
                     JobTaskListDTO dto = new JobTaskListDTO();
                     dto.setTechnicianId(record.getTechnicianId());
                     dto.setTechnicianName(tech.getName());
-                    dto.setStartDate(record.getStartDate().toString());
-                    dto.setEndDate(record.getEndDate().toString());
+                    dto.setStartDate(dateFormatter != null ? record.getStartDate().format(dateFormatter) : record.getStartDate().toString());
+                    dto.setEndDate(dateFormatter != null ? record.getEndDate().format(dateFormatter) : record.getEndDate().toString());
                     dto.setTaskStatus(record.getTaskStatus());
                     dto.setTaskName(jobType.getName());
                     dto.setJobId(record.getJobTaskMappingId());
@@ -1696,6 +1836,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public PageItem<JobInvoiceListDTO> getJobCompletedInvoiceList(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
         try {
+            //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
             Page<Job> pagedResult = getJobMappingData(listRequest, tenantId, isSuperAdmin);
             List<Job> jobs = pagedResult.getContent();
 
@@ -1705,18 +1846,7 @@ public class JobServiceImpl implements JobService {
                     .collect(Collectors.toSet());
 
             List<CustomerDTO.GetDetails> customerDetails = new ArrayList<>();
-            ApiResponse customerResponse = adminClient.getCustomerByIds(
-                    new ArrayList<>(customerIds), tenantId, isSuperAdmin).getBody();
-
-            if (customerResponse != null &&
-                    "200".equalsIgnoreCase(customerResponse.getStatus()) &&
-                    customerResponse.getData() != null) {
-                customerDetails = objectMapper.convertValue(
-                        customerResponse.getData(),
-                        new TypeReference<List<CustomerDTO.GetDetails>>() {
-                        }
-                );
-            }
+            customerDetails = adminClientService.getCustomerList(new ArrayList<>(customerIds), tenantId, isSuperAdmin);
 
             Map<String, CustomerDTO.GetDetails> customerMap = customerDetails.stream()
                     .collect(Collectors.toMap(CustomerDTO.GetDetails::getId, c -> c));
@@ -1739,18 +1869,8 @@ public class JobServiceImpl implements JobService {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
 
-            List<TechnicianDTO.GetDetails> techDetails = new ArrayList<>();
-            ApiResponse techResponse = technicianClient.getTechByIds(new ArrayList<>(technicianIds), tenantId).getBody();
-            if (techResponse != null &&
-                    "200".equalsIgnoreCase(techResponse.getStatus()) &&
-                    techResponse.getData() != null) {
+            List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(technicianIds),tenantId);
 
-                techDetails = objectMapper.convertValue(
-                        techResponse.getData(),
-                        new TypeReference<List<TechnicianDTO.GetDetails>>() {
-                        }
-                );
-            }
             Map<String, TechnicianDTO.GetDetails> techMap = techDetails.stream()
                     .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
 
@@ -1764,7 +1884,7 @@ public class JobServiceImpl implements JobService {
                     .collect(Collectors.toMap(JobType::getUuid, jt -> jt));
 
             List<JobInvoiceListDTO> results = new ArrayList<>();
-
+            DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
             for (Job job : jobs) {
                 CustomerDTO.GetDetails customer = customerMap.get(job.getCustomerId());
                 JobType jobType = jobTypeMap.get(job.getJobTypeId());
@@ -1788,9 +1908,12 @@ public class JobServiceImpl implements JobService {
                 } else {
                     dto.setPaymentStatus("Pending");
                 }
-                dto.setStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
-                dto.setEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
-
+                if(job.getJobStartDate() != null){
+                    dto.setStartDate(dateFormatter != null ? job.getJobStartDate().format(dateFormatter) : job.getJobStartDate().toString());
+                }
+                if(job.getJobEndDate() != null){
+                    dto.setEndDate(dateFormatter != null ? job.getJobEndDate().format(dateFormatter) : job.getJobEndDate().toString());
+                }
                 results.add(dto);
             }
 
@@ -1847,16 +1970,18 @@ public class JobServiceImpl implements JobService {
         try {
             Optional<JobMappingTask> byUuid = jobMappingTaskRepository.findByUuid(taskId);
             if (byUuid.isPresent()) {
+                DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
                 JobMappingTask entity = byUuid.get();
                 TaskManagerDTO dto = new TaskManagerDTO();
                 dto.setTaskStatus(entity.getJobTaskStatus());
                 dto.setTaskName(entity.getTaskName());
                 dto.setTaskId(entity.getTaskId());
                 dto.setTaskShowId(entity.getTaskShowId());
-                dto.setDate(entity.getCreatedAt().toLocalDate().toString());
+                dto.setDate(dateTimeFormatter != null ? entity.getCreatedAt().format(dateTimeFormatter) : entity.getCreatedAt().toString());
                 //dto.setTime(null);
                 dto.setDescription("Description");
                 dto.setJobId(entity.getJob().getJobId());
+                dto.setJobUuid(entity.getJob().getUuid());
                 return dto;
             }
             return null;
@@ -1883,6 +2008,7 @@ public class JobServiceImpl implements JobService {
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
         GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending());
@@ -1898,6 +2024,7 @@ public class JobServiceImpl implements JobService {
         if (listRequest.getTechnicianId() == null)
             listRequest.setTechnicianId(new ArrayList<>());
         GenericSpecificationsBuilder<JobTaskMappingTechnician> builder = new GenericSpecificationsBuilder<>();
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         prepareDispatchSearchFilter(listRequest, builder);
 
         List<JobTaskMappingTechnician> techMappings = jobTaskMappingTechnicianRepository.findAll(builder.build());
@@ -1925,12 +2052,9 @@ public class JobServiceImpl implements JobService {
                 technicanPageItem = pageItem;
             }
         } else {
-            ApiResponse technicianResponse = technicianClient.getTechByIds(listRequest.getTechnicianId(), tenantId).getBody();
-            if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
-                Gson gson = new Gson();
-                List<TechnicianDTO.GetDetails> technicianDetails = gson.fromJson(gson.toJson(technicianResponse.getData()), new TypeToken<List<TechnicianDTO.GetDetails>>() {
-                }.getType());
-                techDetailsList.addAll(technicianDetails);
+            List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(listRequest.getTechnicianId()),tenantId);
+            if(techDetails != null) {
+                techDetailsList.addAll(techDetails);
             }
         }
         List<DispatchBoardTechnicianWrapper> dispatchBoardTechnicianWrappers = buildDispatchBoardData(all, techMappings, techDetailsList, tenantId);
@@ -1979,16 +2103,22 @@ public class JobServiceImpl implements JobService {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
 
+            // Preload job types once
+            Set<String> jobTypeIds = tasks.stream()
+                    .map(t -> t.getJob().getJobTypeId())
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+
+            Map<String, JobType> jobTypeMap =
+                    jobTypeRepository.findByUuidIn(jobTypeIds).stream()
+                            .collect(Collectors.toMap(JobType::getUuid, jt -> jt));
+
+
             final Map<String, CustomerDTO.GetDetails> customerToNameMap = new HashMap<>();
 
-            ApiResponse customerResponse = adminClient.getCustomerByIds(new ArrayList<>(allCustomerIds), tenantId, false).getBody();
-
-            if (customerResponse != null && "200".equalsIgnoreCase(customerResponse.getStatus()) && customerResponse.getData() != null) {
-                List<CustomerDTO.GetDetails> customerDetails = objectMapper.convertValue(
-                        customerResponse.getData(),
-                        new TypeReference<List<CustomerDTO.GetDetails>>() {
-                        }
-                );
+            List<CustomerDTO.GetDetails> customerDetails = adminClientService.getCustomerList(new ArrayList<>(allCustomerIds), tenantId, false);
+            if(!customerDetails.isEmpty()){
                 customerDetails.forEach(t -> customerToNameMap.put(t.getId(), t));
             }
             // 3. Fetch Tag Master Data
@@ -1996,7 +2126,8 @@ public class JobServiceImpl implements JobService {
 
             final Map<String, JobTag> tagIdToNameMap = jobTags.stream()
                     .collect(Collectors.toMap(JobTag::getUuid, jt -> jt));
-
+            DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
+            DateTimeFormatter timeFormatter = generalSettingService.buildTenantTimeFormatter(tenantId);
             List<DispatchBoardDataResponseDTO> collect = techMappings.stream()
                     .map(tech -> {
                         JobMappingTask task = taskMap.get(tech.getJobTaskMappingId());
@@ -2014,15 +2145,20 @@ public class JobServiceImpl implements JobService {
 
                         CustomerDTO.GetDetails customer = customerToNameMap.get(job.getCustomerId());
                         dto.setCustomerName(customer != null ? customer.getName() : "Unknown");
-
-                        dto.setStartDate(tech.getStartDate() != null ? tech.getStartDate().toString() : null);
-                        dto.setEndDate(tech.getEndDate() != null ? tech.getEndDate().toString() : null);
-                        dto.setStartTime(tech.getStartTime() != null ? tech.getStartTime().toString() : null);
-                        dto.setEndTime(tech.getEndTime() != null ? tech.getEndTime().toString() : null);
+                        if(tech.getStartDate() != null){
+                            dto.setStartDate(dateFormatter != null ? tech.getStartDate().format(dateFormatter) : tech.getStartDate().toString());
+                        }
+                        if(tech.getEndDate() != null){
+                            dto.setEndDate(dateFormatter != null ? tech.getEndDate().format(dateFormatter) : tech.getEndDate().toString());
+                        }
+                        dto.setStartTime(tech.getStartTime() != null ? tech.getStartTime().toLocalTime().format(timeFormatter) : null);
+                        dto.setEndTime(tech.getEndTime() != null ? tech.getEndTime().toLocalTime().format(timeFormatter) : null);
                         dto.setJobId(job.getJobId());
                         dto.setCustomerId(job.getCustomerId());
                         dto.setServiceLocation(job.getServiceLocation());
                         dto.setJobTypeId(job.getJobTypeId());
+                        JobType type = jobTypeMap.get(job.getJobTypeId());
+                        dto.setJobTypeName(type != null ? type.getName() : null);
                         dto.setJobStatus(job.getJobStatus());
 
                         List<JobTagDTO.Detail> tagDetails = job.getJobMappingTags().stream()
@@ -2127,13 +2263,14 @@ public class JobServiceImpl implements JobService {
             List<JobNotes> jobNotes = jobNotesRepository.findByJobId(jobId);
             JobFullNotesDTO response = new JobFullNotesDTO();
             response.setJobId(jobId);
+            DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
             response.setJobNotes(
                     jobNotes.stream()
                             .map(n -> {
                                 JobFullNotesDTO.JobNotesDTO dto = new JobFullNotesDTO.JobNotesDTO();
                                 dto.setId(n.getUuid());
                                 dto.setNote(n.getNotes());
-                                dto.setCreatedAt(n.getCreatedAt());
+                                dto.setCreatedAt(n.getCreatedAt() != null ? n.getCreatedAt().format(dateTimeFormatter) : null);
                                 return dto;
                             }).collect(Collectors.toList())
             );
@@ -2150,7 +2287,7 @@ public class JobServiceImpl implements JobService {
                 taskDto.setTaskId(task.getUuid());
                 taskDto.setTaskName(task.getTaskName());
                 taskDto.setTaskNote(task.getNote());
-                taskDto.setCreatedAt(task.getCreatedAt());
+                taskDto.setCreatedAt(task.getCreatedAt() != null ? task.getCreatedAt().format(dateTimeFormatter) : null);
                 JobTaskMappingTechnician tech =
                         technicians.stream()
                                 .filter(x -> x.getJobTaskMappingId().equals(task.getUuid()))
@@ -2162,7 +2299,7 @@ public class JobServiceImpl implements JobService {
                     JobFullNotesDTO.TechnicianNotesDTO techDto = new JobFullNotesDTO.TechnicianNotesDTO();
                     techDto.setTechnicianId(tech.getTechnicianId());
                     techDto.setTaskNote(tech.getNote());
-                    techDto.setCreatedAt(tech.getCreatedAt());
+                    techDto.setCreatedAt(tech.getCreatedAt() != null ? tech.getCreatedAt().format(dateTimeFormatter) : null);
                     taskDto.setTechnicians(techDto);
                 }
                 taskNotesList.add(taskDto);
@@ -2211,22 +2348,18 @@ public class JobServiceImpl implements JobService {
                 JobDTO.TechnicianForFrontOffice details = new JobDTO.TechnicianForFrontOffice();
                 if (job.isPresent() && jobTask.isPresent() && taskMapping.isPresent()) {
                     if (TextUtils.isEmpty(job.get().getFrontOfficeId())) {
-                        ResponseEntity<ApiResponse> frontOfficeResponse = adminClient.getFrontOfficeById(job.get().getFrontOfficeId(), tenantId);
-                        if (frontOfficeResponse != null && frontOfficeResponse.getBody() != null && frontOfficeResponse.getBody().getData() != null) {
-                            Gson gson = new Gson();
-                            String stringResponse = gson.toJson(frontOfficeResponse.getBody().getData());
-                            FrontOfficeStaffDTO.list frontOfficeResponseData = gson.fromJson(stringResponse, FrontOfficeStaffDTO.list.class);
-                            if (frontOfficeResponseData != null) {
-                                details.setFrontOfficeName(frontOfficeResponseData.getName());
-                                details.setFrontOfficeId(frontOfficeResponseData.getId());
-                            }
+                        FrontOfficeStaffDTO.list frontOfficeResponseData = adminClientService.getFrontOfficeById(job.get().getFrontOfficeId(), tenantId);
+                        if (frontOfficeResponseData != null) {
+                            details.setFrontOfficeName(frontOfficeResponseData.getName());
+                            details.setFrontOfficeId(frontOfficeResponseData.getId());
                         }
                     }
 //
                     String jobId = job.get().getJobId() != null ? job.get().getJobId().toLowerCase() : "";
                     String taskShowId = jobMappingTask.get().getTaskShowId() != null ? jobMappingTask.get().getTaskShowId().toLowerCase() : "";
-
-//
+                    DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
+                    DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
+                    DateTimeFormatter timeFormatter = generalSettingService.buildTenantTimeFormatter(tenantId);
                     details.setId(taskMapping.get().getUuid());
                     details.setTaskName(jobTask.get().getName());
                     details.setNote(taskMapping.get().getTechnicianNote());
@@ -2249,10 +2382,18 @@ public class JobServiceImpl implements JobService {
                     details.setAssignType(jobMappingTask.get().getAssignType().toString());
                     details.setTaskDescription(jobTask.get().getDescription());
                     details.setJobDescription(job.get().getJobDescription());
-                    details.setStartDate(taskMapping.get().getStartDate() != null ? taskMapping.get().getStartDate().toString() : null);
-                    details.setEndDate(taskMapping.get().getEndDate() != null ? taskMapping.get().getEndDate().toString() : null);
-                    details.setStartTime(taskMapping.get().getStartTime() != null ? taskMapping.get().getStartTime().toString() : null);
-                    details.setEndTime(taskMapping.get().getEndTime() != null ? taskMapping.get().getEndTime().toString() : null);
+                    if(taskMapping.get().getStartDate() != null){
+                        details.setStartDate(dateFormatter != null ? taskMapping.get().getStartDate().format(dateFormatter) : taskMapping.get().getStartDate().toString());
+                    }
+                    if(taskMapping.get().getEndDate() != null){
+                        details.setEndDate(dateFormatter != null ? taskMapping.get().getEndDate().format(dateFormatter) : taskMapping.get().getEndDate().toString());
+                    }
+                    if(taskMapping.get().getStartTime() != null){
+                        details.setStartTime(timeFormatter != null  ? taskMapping.get().getStartTime().toLocalTime().format(timeFormatter) : taskMapping.get().getStartTime().toString());
+                    }
+                    if(taskMapping.get().getEndTime() != null){
+                        details.setEndTime(timeFormatter != null  ? taskMapping.get().getEndTime().toLocalTime().format(timeFormatter) : taskMapping.get().getEndTime().toString());
+                    }
                     details.setServiceLocationLat(job.get().getServiceLocationLat());
                     details.setServiceLocationLng(job.get().getServiceLocationLng());
                     if (taskMapping.get().getTaskStatus().equalsIgnoreCase("ASSIGNED")) {
@@ -2324,7 +2465,7 @@ public class JobServiceImpl implements JobService {
                             htmlFormDTO.setId(htmlFormPage.getUuid());
                             htmlFormDTO.setContent(htmlFormPage.getContent());
                             htmlFormDTO.setActive(htmlFormPage.getActive());
-                            htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt().toString());
+                            htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt() != null ? htmlFormPage.getCreatedAt().format(dateTimeFormatter) : null);
                             list.add(htmlFormDTO);
                         }
                         details.setFormList(list);
@@ -2369,6 +2510,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public ResponseEntity<com.octal.fsm.common.ApiResponse> getJobByCustomerId(com.octal.fsm.models.request.PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
         if (listRequest.getCustomerId() != null) {
+            //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
             Page<Job> pagedResult = getJobMappingData(listRequest, tenantId, isSuperAdmin);
             List<Job> jobs = pagedResult.getContent();
 
@@ -2379,7 +2521,8 @@ public class JobServiceImpl implements JobService {
             List<JobType> byUuidAndDeletedFalse = jobTypeRepository.findByUuidAndDeletedFalse(jobTypeIds);
             Map<String, JobType> jobTypeMap = byUuidAndDeletedFalse.stream()
                     .collect(Collectors.toMap(JobType::getUuid, jt -> jt));
-
+            DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
+            DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
             List<JobDTO.JobCustomerDTO> jobCustomerDTOList = jobs.stream()
                     .map(job -> {
                         JobDTO.JobCustomerDTO dto = new JobDTO.JobCustomerDTO();
@@ -2390,9 +2533,13 @@ public class JobServiceImpl implements JobService {
                         dto.setJobId(job.getJobId());
                         dto.setId(job.getUuid());
                         dto.setStatus(job.getJobStatus());
-                        dto.setCreatedAt(job.getCreatedAt().toString());
-                        dto.setStartDate(job.getJobStartDate() != null ? job.getJobStartDate().toString() : null);
-                        dto.setEndDate(job.getJobEndDate() != null ? job.getJobEndDate().toString() : null);
+                        dto.setCreatedAt(job.getCreatedAt() != null ? job.getCreatedAt().format(dateTimeFormatter) : null);
+                        if(job.getJobStartDate() != null){
+                            dto.setStartDate(dateFormatter != null ? job.getJobStartDate().format(dateFormatter) : job.getJobStartDate().toString());
+                        }
+                        if(job.getJobEndDate() != null){
+                            dto.setEndDate(dateFormatter != null ? job.getJobEndDate().format(dateFormatter) : job.getJobEndDate().toString());
+                        }
                         return dto;
                     })
                     .collect(Collectors.toList());
@@ -2415,7 +2562,7 @@ public class JobServiceImpl implements JobService {
         if (listRequest.getTechnicianId() == null || listRequest.getTechnicianId().isEmpty()) {
             return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, "Technician Id is required", null, "500", HttpStatus.BAD_REQUEST), HttpStatus.OK);
         }
-
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         Page<JobTaskMappingTechnician> pagedResult = getJobTaskMappingData(listRequest, tenantId, isSuperAdmin);
         List<JobTaskMappingTechnician> jobTaskMappingTechnicians = pagedResult.getContent();
         if (jobTaskMappingTechnicians.isEmpty()) {
@@ -2438,7 +2585,7 @@ public class JobServiceImpl implements JobService {
 
         Map<String, JobMappingTask> technicianTaskMap = jobMappingTasks.stream()
                 .collect(Collectors.toMap(JobMappingTask::getUuid, jt -> jt, (existing, replacement) -> existing));
-
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
         List<JobDTO.JobMappingTaskTechnician> responseList = jobTaskMappingTechnicians.stream()
                 .map(task -> {
                     JobMappingTask jobMappingTask = technicianTaskMap.get(task.getJobTaskMappingId());
@@ -2455,8 +2602,9 @@ public class JobServiceImpl implements JobService {
                     dto.setTaskName(jobMappingTask.getTaskName());
 
                     dto.setTaskStatus(task.getTaskStatus());
-                    dto.setCreatedAt(job.getCreatedAt() != null ? job.getCreatedAt().toString() : null);
-
+                    if(job.getCreatedAt() != null){
+                        dto.setCreatedAt(job.getCreatedAt().format(dateTimeFormatter));
+                    }
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -2468,6 +2616,155 @@ public class JobServiceImpl implements JobService {
                 listRequest.getPageSize()
         );
         return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Data fetch successfully", jobMappingTaskTechnicianPageItem, "200", HttpStatus.OK), HttpStatus.OK);
+    }
+
+    @Override
+    public void updateInvoiceDetails(InvoiceRestDTO.Add add) throws CodeException {
+        if(add.getInvoiceId() != null){
+            Optional<JobInvoice> byUuid = jobInvoiceRepository.getByUuid(add.getInvoiceId());
+            if(byUuid.isPresent() && add.getRefId() != null){
+                JobInvoice jobInvoice = byUuid.get();
+                jobInvoice.setInvoiceId(add.getRefId());
+                jobInvoice.setPaid(add.getIsPaid());
+                jobInvoice.setUpdatedAt(LocalDateTime.now());
+                jobInvoiceRepository.save(jobInvoice);
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> addTaskFromJob(JobTaskDTO.AddWithJobDetails withJobDetails, Long tenantId, boolean isSuperAdmin) throws CodeException {
+        try {
+            if (withJobDetails == null) {
+                throw new CodeException("Request body cannot be null", ErrorCode.COMMON);
+            }
+            if (withJobDetails.getJobId() == null) {
+                throw new CodeException("Job Id is required", ErrorCode.COMMON);
+            }
+            if (withJobDetails.getJobTypeId() == null) {
+                throw new CodeException("JobTypeId is required", ErrorCode.COMMON);
+            }
+            if (withJobDetails.getName() == null || withJobDetails.getName().isBlank()) {
+                throw new CodeException("Task name is required", ErrorCode.COMMON);
+            }
+            Job job = jobRepository.findByUuidAndDeletedFalse(withJobDetails.getJobId()).
+                    orElseThrow(() -> new CodeException("Job not found", ErrorCode.COMMON));
+            JobType jobType = jobTypeRepository.findByUuid(withJobDetails.getJobTypeId()).
+                    orElseThrow(() -> new CodeException("Job type not found", ErrorCode.COMMON));
+            JobStatusMaster jobStatusMaster = jobStatusMasterRepository.findByUuid(withJobDetails.getStatusMasterId())
+                    .orElseThrow(() -> new CodeException("Job status not found", ErrorCode.COMMON));
+
+            //Create JobTask entity
+            JobTask jobTask = new JobTask();
+            jobTask.setName(withJobDetails.getName());
+            jobTask.setDescription(withJobDetails.getDescription());
+            jobTask.setAssignedType(withJobDetails.getAssignedType());
+            jobTask.setSequence(withJobDetails.getPreviousTaskSequence() == null ? 1 : withJobDetails.getPreviousTaskSequence() + 1);
+            jobTask.setJobType(jobType);
+            jobTask.setJobStatusMaster(jobStatusMaster);
+            //Save JobTask
+            JobTask savedTask = jobTaskRepository.save(jobTask);
+            //save job mapping task
+            if (savedTask.getSequence() == 1) {
+                job.setCurrentTaskId(savedTask.getUuid());
+                job.setJobStatusMaster(savedTask.getJobStatusMaster());
+                job.setJobStatus(savedTask.getName());
+            }
+            JobMappingTask task = new JobMappingTask();
+            task.setTaskId(savedTask.getUuid());
+            task.setTaskName(savedTask.getName());
+            task.setTaskShowId(codeGenerator.generateTaskId());
+            task.setTaskSequence(savedTask.getSequence());
+            task.setJobTaskStatus(savedTask.getJobStatusMaster().getName());
+            task.setAssignType(savedTask.getAssignedType());
+            task.setJob(job);
+            job.getJobMappingTasks().add(task);
+            Job save = jobRepository.save(job);
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task saved successfully", savedTask.getUuid(), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, e.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> removeTask(String taskId, Long tenantId, boolean isSuperAdmin) throws CodeException {
+        try {
+            if (taskId == null || taskId.isBlank()) {
+                throw new CodeException("TaskId is required", ErrorCode.COMMON);
+            }
+            JobMappingTask mappingTask = jobMappingTaskRepository.findByUuidWithJob(taskId)
+                                        .orElseThrow(() ->new CodeException("Task not found", ErrorCode.COMMON));
+
+            Job job = mappingTask.getJob();
+            Integer deletedSequence = mappingTask.getTaskSequence();
+
+            mappingTask.setDeleted(true);
+
+            job.getJobMappingTasks().stream()
+                    .filter(t -> !Boolean.TRUE.equals(t.isDeleted()))
+                    .filter(t -> t.getTaskSequence() > deletedSequence)
+                    .forEach(t -> t.setTaskSequence(t.getTaskSequence() - 1));
+
+            if (mappingTask.getTaskId().equals(job.getCurrentTaskId())) {
+                JobMappingTask nextTask = job.getJobMappingTasks().stream()
+                                .filter(t -> !Boolean.TRUE.equals(t.isDeleted()))
+                                .min(Comparator.comparing(JobMappingTask::getTaskSequence))
+                                .orElse(null);
+
+                if (nextTask != null) {
+                    JobTask nextJobTask = jobTaskRepository.findByUuidAndDeletedFalse(nextTask.getTaskId()).orElse(null);
+                    if(nextJobTask != null){
+                        job.setCurrentTaskId(nextJobTask.getUuid());
+                        job.setJobStatus(nextJobTask.getName());
+                        job.setJobStatusMaster(nextJobTask.getJobStatusMaster());
+                    }
+                } else {
+                    job.setCurrentTaskId(null);
+                }
+            }
+            jobRepository.save(job);
+            jobMappingTaskRepository.save(mappingTask);
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task Removed successfully", "", "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, e.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
+        }
+    }
+
+    @Override
+    public void updateInvoiceDetailsList(List<InvoiceRestDTO.Add> addList) throws CodeException {
+        try{
+            List<String> refIds = addList.stream()
+                    .map(i -> i.getRefId() != null ? i.getRefId() : null)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            Map<String, JobInvoice> queueMap =
+                    jobInvoiceRepository.findByInvoiceIdIn(refIds)
+                            .stream()
+                            .collect(Collectors.toMap(JobInvoice::getInvoiceId, q -> q));
+
+            List<JobInvoice> toSave = new ArrayList<>();
+            for (InvoiceRestDTO.Add add : addList) {
+                String refId = add.getRefId();
+                if (refId == null) continue;
+
+                JobInvoice queue = queueMap.get(refId);
+                if (queue == null) continue;
+
+                queue.setPaid(add.getIsPaid());
+                queue.setBalanceDue(add.getBalanceDue());
+                queue.setTotalAmountWithTax(add.getTotalAmountWithTax());
+                queue.setUpdatedAt(LocalDateTime.now());
+                toSave.add(queue);
+            }
+            if (!toSave.isEmpty()) {
+                jobInvoiceRepository.saveAll(toSave);
+            }
+        } catch (Exception e) {
+           e.printStackTrace();
+        }
     }
 
     private DocumentDTO.Add convertDocumentToDto(Documents doc) {
@@ -2483,6 +2780,16 @@ public class JobServiceImpl implements JobService {
         dto.setUploadedBType(doc.getUploadedByType());
         dto.setUploadedBTypeId(doc.getUploadedByTypeId());
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<JobDetailsForInventory> getAllJobByTechnicianId(String technicianId, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+
+        if (technicianId == null || technicianId.isBlank()) {
+            return Collections.emptyList();
+        }
+        return jobTaskMappingTechnicianRepository.findTaskDetailsByTechnicianId(technicianId);
     }
 
 
@@ -2638,12 +2945,9 @@ public class JobServiceImpl implements JobService {
 //        }
 //
 //    }
-    public PageItem<TaskManagerDTO> generateDataUsingSpecification(
-            List<String> technicianIds,
-            com.octal.fsm.models.request.PageRequest.List listReq,
-            Long tenantId) {
-
+    public PageItem<TaskManagerDTO> generateDataUsingSpecification(List<String> technicianIds, com.octal.fsm.models.request.PageRequest.List listReq, Long tenantId) {
         try {
+            listReq.setPageSize(generalSettingService.getPageSize(tenantId));
             if (technicianIds == null) {
                 technicianIds = new ArrayList<>();
             }
@@ -2654,24 +2958,12 @@ public class JobServiceImpl implements JobService {
             if (!technicianIds.isEmpty()) {
                 techMappings = jobTaskMappingTechnicianRepository.findByTechnicianIdIn(technicianIds);
                 if (techMappings == null || techMappings.isEmpty()) {
-                    return new PageItem<>(
-                            0,
-                            0,
-                            new ArrayList<TaskManagerDTO>(),
-                            listReq.getPageNumber(),
-                            listReq.getPageSize()
-                    );
+                    return new PageItem<>(0, 0, new ArrayList<TaskManagerDTO>(), listReq.getPageNumber(), listReq.getPageSize());
                 }
-                mappingIds = techMappings.stream()
-                        .map(JobTaskMappingTechnician::getJobTaskMappingId)
-                        .collect(Collectors.toSet());
+                mappingIds = techMappings.stream().map(JobTaskMappingTechnician::getJobTaskMappingId).collect(Collectors.toSet());
             }
-
-
             // 2. Prepare Pageable
-            Sort sort = Boolean.TRUE.equals(listReq.getAsc())
-                    ? Sort.by(listReq.getShortingField()).ascending()
-                    : Sort.by(listReq.getShortingField()).descending();
+            Sort sort = Boolean.TRUE.equals(listReq.getAsc()) ? Sort.by(listReq.getShortingField()).ascending() : Sort.by(listReq.getShortingField()).descending();
 
             Pageable pageable = PageRequest.of(listReq.getPageNumber(), listReq.getPageSize(), sort);
 
@@ -2689,50 +2981,30 @@ public class JobServiceImpl implements JobService {
             }
             // 4. Build technician details lookup map
             Map<String, TechnicianDTO.GetDetails> technicianMap;
-
             if (!techMappings.isEmpty()) {
-                ApiResponse techResp = technicianClient.getTechByIds(
-                        techMappings.stream()
-                                .map(JobTaskMappingTechnician::getTechnicianId)
-                                .collect(Collectors.toList()),
-                        tenantId
-                ).getBody();
-
-                if (techResp != null && "200".equalsIgnoreCase(techResp.getStatus()) && techResp.getData() != null) {
-                    List<TechnicianDTO.GetDetails> techDetails =
-                            objectMapper.convertValue(techResp.getData(), new TypeReference<List<TechnicianDTO.GetDetails>>() {
-                            });
-
-                    technicianMap = techDetails.stream()
-                            .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
+                List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(technicianIds), tenantId);
+                if (techDetails != null) {
+                    technicianMap = techDetails.stream().collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
                 } else {
                     technicianMap = Collections.emptyMap();
                 }
             } else {
                 technicianMap = Collections.emptyMap();
             }
-
             // Build mapping -> technicianTime lookup to avoid repeated stream operations later
-            Map<String, JobTaskMappingTechnician> mappingTechMap = techMappings.stream()
-                    .collect(Collectors.toMap(JobTaskMappingTechnician::getJobTaskMappingId, m -> m));
+            Map<String, JobTaskMappingTechnician> mappingTechMap = techMappings.stream().collect(Collectors.toMap(JobTaskMappingTechnician::getJobTaskMappingId, m -> m));
             final Map<String, CustomerDTO.GetDetails> customerToNameMap = new HashMap<>();
 
-            ApiResponse customerResponse = adminClient.getCustomerByIds(new ArrayList<>(pageData.getContent().stream().map(task -> task.getJob().getCustomerId()).collect(Collectors.toList())), tenantId, false).getBody();
-
-            if (customerResponse != null && "200".equalsIgnoreCase(customerResponse.getStatus()) && customerResponse.getData() != null) {
-                List<CustomerDTO.GetDetails> customerDetails = objectMapper.convertValue(
-                        customerResponse.getData(),
-                        new TypeReference<List<CustomerDTO.GetDetails>>() {
-                        }
-                );
-                customerDetails.forEach(t -> customerToNameMap.put(t.getId(), t));
-                // List<JobType>jobTypeList=jobTypeRepository.findByUuidAndDeletedFalse()
+            List<CustomerDTO.GetDetails> customerList = adminClientService.getCustomerList(new ArrayList<>(pageData.getContent().stream().map(task -> task.getJob().getCustomerId()).collect(Collectors.toList())), tenantId, false);
+            if(customerList != null){
+                customerList.forEach(t -> customerToNameMap.put(t.getId(), t));
             }
             List<JobType> jobTypeList = jobTypeRepository.findByUuidAndDeletedFalse(pageData.getContent().stream().map(task -> task.getJob().getJobTypeId()).collect(Collectors.toList()));
-            Map<String, String> jobTypeMap = jobTypeList.stream()
-                    .collect(Collectors.toMap(JobType::getUuid, JobType::getName));
+            Map<String, String> jobTypeMap = jobTypeList.stream().collect(Collectors.toMap(JobType::getUuid, JobType::getName));
 
             // 5. Prepare DTO response
+            DateTimeFormatter timeFormatter = generalSettingService.buildTenantTimeFormatter(tenantId);
+            DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
             List<TaskManagerDTO> responseList = pageData.getContent().stream()
                     .map(task -> {
                         JobTaskMappingTechnician tech = mappingTechMap.get(task.getUuid());
@@ -2746,7 +3018,7 @@ public class JobServiceImpl implements JobService {
                         dto.setTaskShowId(task.getTaskShowId());
                         dto.setTaskName(task.getTaskName());
                         dto.setTaskStatus(task.getJobTaskStatus());
-                        dto.setDate(String.valueOf(task.getCreatedAt()));
+                        dto.setDate(task.getCreatedAt() != null ? task.getCreatedAt().format(dateTimeFormatter) : null);
                         dto.setCustomerName(
                                 customerToNameMap.containsKey(task.getJob().getCustomerId())
                                         ? customerToNameMap.get(task.getJob().getCustomerId()).getName()
@@ -2757,8 +3029,8 @@ public class JobServiceImpl implements JobService {
                         dto.setDescription("Description");
 
                         if (tech != null) {
-                            dto.setStartTime(String.valueOf(tech.getStartTime()));
-                            dto.setEndTime(String.valueOf(tech.getEndTime()));
+                            dto.setStartTime(tech.getStartTime() != null ? tech.getStartTime().toLocalTime().format(timeFormatter) : null);
+                            dto.setEndTime(tech.getEndTime() != null ? tech.getEndTime().toLocalTime().format(timeFormatter) : null);
                         }
 
                         dto.setTechnicianName(details != null ? details.getName() : "Assigned to CSR");
@@ -2766,13 +3038,7 @@ public class JobServiceImpl implements JobService {
                         return dto;
                     }).collect(Collectors.toList());
 
-            return new PageItem<>(
-                    pageData.getTotalPages(),
-                    pageData.getTotalElements(),
-                    responseList,
-                    listReq.getPageNumber(),
-                    listReq.getPageSize()
-            );
+            return new PageItem<>(pageData.getTotalPages(), pageData.getTotalElements(), responseList, listReq.getPageNumber(), listReq.getPageSize());
 
         } catch (Exception ex) {
             throw new RuntimeException(ex);
@@ -2787,8 +3053,8 @@ public class JobServiceImpl implements JobService {
         if (!TextUtils.isEmpty(listReq.getJobTypeId())) {
             builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "jobTypeId", listReq.getJobTypeId()));
         }
-        if (!TextUtils.isEmpty(listReq.getCustomerId())) {
-            builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "customerId", listReq.getCustomerId()));
+        if (listReq.getCustomerIds() != null && !listReq.getCustomerIds().isEmpty()) {
+            builder.with(jobMappingTaskSpecificationFactory.joinIn("job", "customerId", listReq.getCustomerIds()));
         }
 
         builder.with(
@@ -2833,6 +3099,7 @@ public class JobServiceImpl implements JobService {
         try {
             String trimmedText = listReq.getSearchText().trim();
             listReq.setSearchText(trimmedText);
+            listReq.setPageSize(generalSettingService.getPageSize(tenantId));
             GenericSpecificationsBuilder<JobMappingTask> builder = new GenericSpecificationsBuilder<>();
             Pageable pageable1 = null;
             if (Boolean.TRUE.equals(listReq.getAsc())) {
@@ -2858,6 +3125,7 @@ public class JobServiceImpl implements JobService {
                 customerDetails.forEach(t -> customerToNameMap.put(t.getId(), t));
                 // List<JobType>jobTypeList=jobTypeRepository.findByUuidAndDeletedFalse()
             }
+            DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
             List<JobType> jobTypeList = jobTypeRepository.findByUuidAndDeletedFalse(page.getContent().stream().map(task -> task.getJob().getJobTypeId()).collect(Collectors.toList()));
             Map<String, String> jobTypeMap = jobTypeList.stream()
                     .collect(Collectors.toMap(JobType::getUuid, JobType::getName));
@@ -2868,7 +3136,7 @@ public class JobServiceImpl implements JobService {
                 dto.setTaskId(department.getUuid());
                 dto.setTaskName(department.getTaskName());
                 dto.setTaskStatus(department.getJobTaskStatus());
-                dto.setDate(String.valueOf(department.getCreatedAt()));
+                dto.setDate(department.getCreatedAt() != null ? department.getCreatedAt().format(dateTimeFormatter) : null);
                 dto.setDescription("Description");
                 dto.setCustomerName(
                         customerToNameMap.containsKey(department.getJob().getCustomerId())
@@ -2895,8 +3163,8 @@ public class JobServiceImpl implements JobService {
         if (!TextUtils.isEmpty(listReq.getJobTypeId())) {
             builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "jobTypeId", listReq.getJobTypeId()));
         }
-        if (!TextUtils.isEmpty(listReq.getCustomerId())) {
-            builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "customerId", listReq.getCustomerId()));
+        if (listReq.getCustomerIds() != null && !listReq.getCustomerIds().isEmpty()) {
+            builder.with(jobMappingTaskSpecificationFactory.joinIn("job", "customerId", listReq.getCustomerIds()));
         }
 
         builder.with(jobMappingTaskSpecificationFactory.isEqual("assignType", TaskAssignedType.CSR));//for CSR
@@ -2945,6 +3213,4 @@ public class JobServiceImpl implements JobService {
         }
 
     }
-
-
 }

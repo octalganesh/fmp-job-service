@@ -8,6 +8,7 @@ import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.JobTagRepository;
+import com.octal.fsm.service.GeneralSettingService;
 import com.octal.fsm.service.JobTagService;
 import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +32,8 @@ public class JobTagServiceImpl implements JobTagService {
     private JobTagRepository jobTagRepository;
     @Autowired
     private SpecificationFactory<JobTag> jobTagSpecificationFactory;
+    @Autowired
+    private GeneralSettingService generalSettingService;
 
 
     @Override
@@ -94,12 +98,13 @@ public class JobTagServiceImpl implements JobTagService {
             tenantId = 1L;
         Optional<JobTag> jobTagOptional = jobTagRepository.findByUuidAndTenantId(id, tenantId);
         if (jobTagOptional.isPresent()) {
+            DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
             JobTagDTO.Detail jobType = new JobTagDTO.Detail();
             jobType.setName(jobTagOptional.get().getName());
             jobType.setTagColor(jobTagOptional.get().getTagColor());
             jobType.setId(jobTagOptional.get().getUuid());
             jobType.setIsActive(jobTagOptional.get().getActive());
-            jobType.setCreatedAt(jobTagOptional.get().getCreatedAt().toString());
+            jobType.setCreatedAt(jobTagOptional.get().getCreatedAt() != null ? jobTagOptional.get().getCreatedAt().format(dateTimeFormatter) : null);
             return jobType;
         } else {
             throw new CodeException(CommonConstants.JOB_TAG_NOT_FOUND + id, ErrorCode.COMMON);
@@ -134,6 +139,7 @@ public class JobTagServiceImpl implements JobTagService {
             tenantId = 1L;
         String trimmedText = listRequest.getSearchText().trim();
         listRequest.setSearchText(trimmedText);
+        //listRequest.setPageSize(generalSettingService.getPageSize(tenantId));
         GenericSpecificationsBuilder<JobTag> builder = new GenericSpecificationsBuilder<>();
         Pageable pageable = null;
         if (Boolean.TRUE.equals(listRequest.getAsc())) {
@@ -155,14 +161,15 @@ public class JobTagServiceImpl implements JobTagService {
         prepareJobTagSearchFilter(listRequest, builder);
         Page<JobTag> pagedResult = jobTagRepository.findAll(builder.build(), pageable);
         List<JobTagDTO.Detail> responseList = new ArrayList<>();
+        DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
         for (JobTag jobTag : pagedResult.getContent()) {
             JobTagDTO.Detail dto = new JobTagDTO.Detail();
             dto.setId(jobTag.getUuid());
             dto.setName(jobTag.getName());
             dto.setTagColor(jobTag.getTagColor());
             dto.setIsActive(jobTag.getActive());
-            dto.setCreatedAt(String.valueOf(jobTag.getCreatedAt()));
-            dto.setUpdatedAt(String.valueOf(jobTag.getUpdatedAt()));
+            dto.setCreatedAt(jobTag.getCreatedAt() != null ? jobTag.getCreatedAt().format(dateTimeFormatter) : null);
+            dto.setUpdatedAt(jobTag.getUpdatedAt() != null ? jobTag.getUpdatedAt().format(dateTimeFormatter) : null);
             responseList.add(dto);
         }
 

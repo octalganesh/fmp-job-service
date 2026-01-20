@@ -1,5 +1,6 @@
 package com.octal.fsm.helper;
 
+import com.octal.fsm.repositories.InventoryRequestRepository;
 import com.octal.fsm.repositories.JobMappingTaskRepository;
 import com.octal.fsm.repositories.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,8 @@ public class CodeGenerator {
 
     @Autowired
     private JobRepository jobRepository;
+    @Autowired
+    private InventoryRequestRepository inventoryRequestRepository;
 
 
     public String getJobId() {
@@ -44,6 +47,18 @@ public class CodeGenerator {
         return code;
     }
 
+    public String generateRequestShowId() {
+        String code = "";
+        Boolean task;
+        do {
+            String newCode = getCode("REQ");
+            task = inventoryRequestRepository.existsByRequestShowId(newCode);
+            if (!task) {
+                code = newCode;
+            }
+        } while (task);
+        return code;
+    }
 
     private String getCode(String prefix) {
         Random r = new Random(System.currentTimeMillis());

@@ -126,7 +126,7 @@ public class JobTransformer {
                     document.setFileType(TextUtils.getFileTypeFromFileUrl(documentUrl));
                     document.setDocumentUrl(documentUrl);
                     document.setAttachType("JOB");
-                    document.setAttachTypeId(job.getJobId());
+                    document.setAttachTypeId(job.getUuid());
                     document.setUploadedByType(addJobDTO.getUploadedByType());
                     document.setUploadedByTypeId(addJobDTO.getUploadedByTypeId());
                     document.setUploadedByUserName(addJobDTO.getUploadedByUserName());
@@ -147,7 +147,7 @@ public class JobTransformer {
                 document.setFileType(TextUtils.getFileTypeFromFileUrl(documentUrl));
                 document.setDocumentUrl(awsS3BaseUrl + documentUrl);
                 document.setAttachType("JOB");
-                document.setAttachTypeId(job.getJobId());
+                document.setAttachTypeId(job.getUuid());
                 document.setUploadedByType(addJobDTO.getUploadedByType());
                 document.setUploadedByTypeId(addJobDTO.getUploadedByTypeId());
                 document.setUploadedByUserName(addJobDTO.getUploadedByUserName());
@@ -249,10 +249,12 @@ public class JobTransformer {
                     LocalDate jobStartDate = LocalDate.parse(addJobDTO.getJobStartDate());
                     job.setJobStartDate(jobStartDate);
                 }
+                LocalDate jobEndDate=null;
                 if (!TextUtils.isEmpty(addJobDTO.getJobEndDate())) {
-                    LocalDate jobEndDate = LocalDate.parse(addJobDTO.getJobEndDate());
-                    job.setJobEndDate(jobEndDate);
+                    jobEndDate = LocalDate.parse(addJobDTO.getJobEndDate());
                 }
+                    job.setJobEndDate(jobEndDate);
+                //}
             } catch (Exception e) {
                 e.printStackTrace();
             }

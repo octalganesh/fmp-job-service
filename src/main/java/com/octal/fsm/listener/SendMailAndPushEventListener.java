@@ -2,10 +2,7 @@ package com.octal.fsm.listener;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.octal.fsm.clients.AdminClient;
-import com.octal.fsm.clients.NotificationClient;
-import com.octal.fsm.clients.TechnicianClient;
+import com.octal.fsm.clients.*;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.dto.enums.PushNotificationType;
 import com.octal.fsm.entities.Job;
@@ -14,7 +11,10 @@ import com.octal.fsm.entities.JobTaskMappingTechnician;
 import com.octal.fsm.entities.MultiUserDeviceDetails;
 import com.octal.fsm.listener.events.SendMailAndPushEvent;
 import com.octal.fsm.repositories.JobMappingTaskRepository;
+import com.octal.fsm.service.AdminClientService;
 import com.octal.fsm.service.EmailService;
+import com.octal.fsm.service.NotificationClientService;
+import com.octal.fsm.service.TechnicianClientService;
 import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
@@ -46,6 +46,14 @@ public class SendMailAndPushEventListener implements ApplicationListener<SendMai
     @Autowired
     private JobMappingTaskRepository jobMappingTaskRepository;
 
+    @Autowired
+    private TechnicianClientService technicianClientService;
+
+    @Autowired
+    private AdminClientService adminClientService;
+
+    @Autowired
+    private NotificationClientService notificationClientService;
 
     @Override
     @Async("sendMailAndPushEvent")
@@ -57,22 +65,14 @@ public class SendMailAndPushEventListener implements ApplicationListener<SendMai
 
     private void processData(JobTaskMappingTechnician jobTaskMappingTechnician, Long tenantId, String userName) {
         try {
-            ResponseEntity<ApiResponse> notificationSlugContent = notificationClient.getNotificationContent(PushNotificationType.TASK_STATUS_CHANGE.toString());
-            ApiResponse body = notificationSlugContent.getBody();
-            if (body != null) {
+            NotificationContentDTO.Request notificationContent = notificationClientService.getNotificationContent(PushNotificationType.TASK_STATUS_CHANGE.toString());
+            if (notificationContent != null) {
                 PushNotificationRequest.SendBulkNotificationToUsers sendBulkNotificationToFront = new PushNotificationRequest.SendBulkNotificationToUsers();
-                NotificationContentDTO.Request content = objectMapper.convertValue(body.getData(), NotificationContentDTO.Request.class);
-                ApiResponse technicianResponse = technicianClient.getTechnicianById(jobTaskMappingTechnician.getTechnicianId(), userName).getBody();
-                if (technicianResponse != null && technicianResponse.getStatus() != null && technicianResponse.getStatus().equalsIgnoreCase("200") && technicianResponse.getData() != null) {
-                    try {
-                        Gson gson = new Gson();
-                        TechnicianDTO.GetDetails technicianDetails = gson.fromJson(gson.toJson(technicianResponse.getData()), TechnicianDTO.GetDetails.class);
-                        content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#technicianName", technicianDetails.getName()));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                TechnicianDTO.GetDetails technicianDetails = technicianClientService.getTechnicianById(jobTaskMappingTechnician.getTechnicianId(), userName);
+                if(technicianDetails != null){
+                    notificationContent.setMessage(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#technicianName", technicianDetails.getName()));
                 }
-                sendBulkNotificationToFront.setTitle(content.getTitle());
+                sendBulkNotificationToFront.setTitle(notificationContent.getTitle());
                 sendBulkNotificationToFront.setType(PushNotificationType.TASK_STATUS_CHANGE);
                 Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(jobTaskMappingTechnician.getJobTaskMappingId());
                 CustomerDTO.GetDetails customerDetails = new CustomerDTO.GetDetails();
@@ -93,15 +93,17 @@ public class SendMailAndPushEventListener implements ApplicationListener<SendMai
                     jobDetails.setServiceLocationLat(job.getServiceLocationLat());
                     jobDetails.setServiceLocationLng(job.getServiceLocationLng());
                     jobDetails.setJobStartDate(job.getJobStartDate().toString());
-                    jobDetails.setJobEndDate(job.getJobEndDate().toString());
-                    ApiResponse customerResponse = adminClient.getCustomerById(customerId).getBody();
-                    if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
-                        Gson gson = new Gson();
-                        customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
+                    if(job.getJobEndDate() != null){
+                        jobDetails.setJobEndDate(job.getJobEndDate().toString());
                     }
-                    content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#status", jobMappingTask.get().getJobTaskStatus()));
-                    content.setMessage(TextUtils.replacePlaceholderInMessage(content.getMessage(), "#jobId", job.getJobId()));
-                    sendBulkNotificationToFront.setTitle(TextUtils.replacePlaceholderInMessage(content.getTitle(), "#jobID", job.getJobId()));
+                    CustomerDTO.GetDetails customerById = adminClientService.getCustomerById(customerId);
+                    if(customerById != null){
+                        customerDetails = customerById;
+                    }
+                    notificationContent.setMessage(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#taskId", jobMappingTask.get().getTaskShowId()));
+                    notificationContent.setMessage(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#status", jobMappingTask.get().getJobTaskStatus()));
+                    notificationContent.setMessage(TextUtils.replacePlaceholderInMessage(notificationContent.getMessage(), "#jobId", job.getJobId()));
+                    sendBulkNotificationToFront.setTitle(TextUtils.replacePlaceholderInMessage(notificationContent.getTitle(), "#jobID", job.getJobId()));
                 }
                 ApiResponse frontOfficeDevices = jobService.getFrontOfficeDevices(null, tenantId).getBody();
                 Set<MultiUserDeviceDetails> frontOfficeDeviceDetails = new HashSet<>();
@@ -115,10 +117,11 @@ public class SendMailAndPushEventListener implements ApplicationListener<SendMai
                             dto.setDeviceType(multiUserDeviceDetails.getDeviceType());
                             dto.setAppVersion(multiUserDeviceDetails.getAppVersion());
                             dto.setDeviceId(multiUserDeviceDetails.getDeviceId());
+                            dto.setPushEnabled(multiUserDeviceDetails.getPushEnabled() != null ? multiUserDeviceDetails.getPushEnabled() : true);
                             frontOfficeDeviceDetails.add(dto);
                         }
                     }
-                    sendBulkNotificationToFront.setBody(content.getMessage());
+                    sendBulkNotificationToFront.setBody(notificationContent.getMessage());
                     sendBulkNotificationToFront.setTechnicianFcmTokenList(new HashSet<>());
                     sendBulkNotificationToFront.setFrontOfficeFcmTokenList(frontOfficeDeviceDetails);
 

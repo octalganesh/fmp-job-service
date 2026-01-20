@@ -15,6 +15,8 @@ import java.util.Optional;
 public interface JobMappingTaskRepository extends JpaRepository<JobMappingTask, Long>, JpaSpecificationExecutor<JobMappingTask>,JobMappingTaskCustomRepository  {
     Optional<JobMappingTask> findByUuid(String uuid);
 
+    List<JobMappingTask> findByUuidIn(List<String> uuids);
+
     Boolean existsByTaskShowId(String newCode);
 
     Boolean existsByUuidAndDeletedFalse(String uuid);
@@ -23,7 +25,7 @@ public interface JobMappingTaskRepository extends JpaRepository<JobMappingTask, 
 
     @Query("SELECT jmt FROM JobMappingTask jmt " +
             "JOIN FETCH jmt.job " +
-            "WHERE jmt.uuid = :uuid")
+            "WHERE jmt.uuid = :uuid AND jmt.deleted = false ")
     Optional<JobMappingTask> findByUuidWithJob(@Param("uuid") String uuid);
 
     List<JobMappingTask> findByJob(Job job);
@@ -34,5 +36,6 @@ public interface JobMappingTaskRepository extends JpaRepository<JobMappingTask, 
 
     List<JobMappingTask> findByTaskShowIdIn(List<String> taskShowId);
 
-    List<JobMappingTask> findByUuidIn(List<String> uuids);
+    Optional<JobMappingTask> findByUuidAndDeletedFalse(String uuid);
+
 }

@@ -46,5 +46,6 @@ public class DocumentDTO {
         private String createdAt;
         private String documentTypeId;
         private LocalDateTime createdAtInDate;
+        private String attachTypeId;
     }
 }

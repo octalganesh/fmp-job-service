@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,6 +26,8 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
     Boolean existsByJobId(String jobId);
 
     Boolean existsByUuidAndDeletedFalse(String uuid);
+
+    Boolean existsByJobIdAndDeletedFalse(String uuid);
 
     Boolean existsByUuidAndTenantIdAndDeletedFalse(String uuid, Long tenantId);
 
@@ -48,4 +52,9 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
     List<Job> findByCustomerId(String customerId);
 
     List<Job> findByFrontOfficeIdAndDeletedFalse(String frontOfficeId);
+
+    @Query("SELECT MIN(j.createdAt) FROM Job j WHERE j.tenantId = :tenantId")
+    LocalDateTime findEarliestJobCreatedAtByTenantId(@Param("tenantId") Long tenantId);
+
+    List<Job> findAllByFrontOfficeIdAndDeletedFalse(String frontOfficeId);
 }

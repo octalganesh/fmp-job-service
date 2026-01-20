@@ -17,6 +17,6 @@ public class SystemEventLogDTO {
     private String description;
     private String referenceId;   // jobId, invoiceId, taskId etc.
     private String performedBy;   // username/email
-    private LocalDateTime createdAt;
+    private String createdAt;
     private String profileUrl;
 }

@@ -6,14 +6,17 @@ import com.octal.fsm.dto.JobDashboardResponseDTO;
 import com.octal.fsm.dto.JobReportSummaryDTO;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
+import com.octal.fsm.repositories.JobInvoiceRepository;
 import com.octal.fsm.repositories.JobReportNativeRepository;
+import com.octal.fsm.repositories.JobRepository;
 import com.octal.fsm.service.JobReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.TextStyle;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,6 +25,10 @@ public class JobReportServiceImpl implements JobReportService {
     @Autowired
     private JobReportNativeRepository jobReportNativeRepository;
 
+    @Autowired
+    private JobRepository jobRepository;
+    @Autowired
+    private JobInvoiceRepository jobInvoiceRepository;
 
     @Override
     public JobReportSummaryDTO.Detail getJobReportSummary(JobReportSummaryDTO.Search data, Long tenantId) throws CodeException {
@@ -56,8 +63,10 @@ public class JobReportServiceImpl implements JobReportService {
     @Override
     public JobDashboardResponseDTO.Detail getDashboardData(JobDashboardResponseDTO.Search search, Long tenantId) throws CodeException {
         if (search.getStartDate() == null || search.getEndDate() == null) {
-            throw new CodeException("Start date and end date are required", ErrorCode.COMMON);
+//            throw new CodeException("Start date and end date are required", ErrorCode.COMMON);
+            normalizeSearchDates(search, tenantId);
         }
+
         JobDashboardResponseDTO.Detail dto = new JobDashboardResponseDTO.Detail();
         if (search.getStartDate() != null && search.getEndDate() != null) {
             Map<String, Object> result = jobReportNativeRepository.getJobDashboardReport(
@@ -70,9 +79,43 @@ public class JobReportServiceImpl implements JobReportService {
             ObjectMapper mapper = new ObjectMapper();
             dto.setPopularServiceLocations(parsePopularServiceLocations(mapper, result.get("popular_service_locations")));
             dto.setJobsByType(parseJsonMap(mapper, result.get("job_type_counts")));
+        }
+        try {
+            Object revenueOverview = jobInvoiceRepository.findRevenueOverview(6);
+            List<JobDashboardResponseDTO.RevenueOverviewPointDTO> revenueOverviewList = new ArrayList<>();
+            if (revenueOverview != null) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                List<Map<String, Object>> rawList = objectMapper.readValue(
+                        revenueOverview.toString(),
+                        new TypeReference<List<Map<String, Object>>>() {
+                        });
+                for (Map<String, Object> item : rawList) {
+                    JobDashboardResponseDTO.RevenueOverviewPointDTO revenueOverviewPointDTO = new JobDashboardResponseDTO.RevenueOverviewPointDTO();
 
+                    // Convert "2024-01-01" → "Jan"
+                    String monthStr = item.get("month").toString();
+                    LocalDate date = LocalDate.parse(monthStr);
+                    revenueOverviewPointDTO.setMonth(date.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH));
+                    revenueOverviewPointDTO.setValue(((Number) item.get("amount")).doubleValue());
+                    revenueOverviewList.add(revenueOverviewPointDTO);
+                }
+                dto.setRevenueOverview(revenueOverviewList);
+            }
+        } catch (Exception e) {
+            return dto;
         }
         return dto;
+    }
+
+    private void normalizeSearchDates(JobDashboardResponseDTO.Search search, Long tenantId) {
+        if (search.getStartDate() == null && search.getEndDate() == null) {
+            LocalDateTime firstCreatedDate = jobRepository.findEarliestJobCreatedAtByTenantId(tenantId);
+            if (firstCreatedDate == null) {
+                firstCreatedDate = LocalDateTime.now();
+            }
+            search.setStartDate(firstCreatedDate.toLocalDate());
+            search.setEndDate(LocalDate.now());
+        }
     }
 
     private List<JobDashboardResponseDTO.LocationSummaryDTO> parsePopularServiceLocations(ObjectMapper mapper, Object rawJson) {

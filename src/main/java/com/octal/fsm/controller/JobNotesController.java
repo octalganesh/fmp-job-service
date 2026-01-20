@@ -58,7 +58,7 @@ public class JobNotesController extends BaseController{
         try {
             Long tenantId = getTenantId(request);
             boolean isSuperAdmin=isSuperAdmin(request);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, CommonConstants.DETAILS_FETCHED, jobNotesService.getAllJobNotes(listRequest), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, CommonConstants.DETAILS_FETCHED, jobNotesService.getAllJobNotes(listRequest,tenantId), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return handleException(e);
         }
