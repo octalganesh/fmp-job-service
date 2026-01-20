@@ -390,6 +390,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (jobIds != null && !jobIds.isEmpty()) {
             builder.with(appointmentSpecificationFactory.in("jobId", jobIds));
         }
+        if (!TextUtils.isEmpty(listRequest.getAppointmentTypeId())) {
+            builder.with(appointmentSpecificationFactory.joinEquals("appointmentType", "uuid",listRequest.getAppointmentTypeId()));
+        }
         if (listRequest.getStartDate() != null) {
             builder.with(appointmentSpecificationFactory.isGreaterThanOrEquals("createdAt", listRequest.getStartDate().atStartOfDay()));
         }
