@@ -6,6 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.octal.fsm.clients.*;
+import com.octal.fsm.clients.AdminClient;
+import com.octal.fsm.clients.NotificationClient;
+import com.octal.fsm.clients.QuickBookClientService;
+import com.octal.fsm.clients.TechnicianClient;
 import com.octal.fsm.dto.*;
 import com.octal.fsm.dto.JobDTO.JobStatusDetail;
 import com.octal.fsm.dto.enums.JobUpdateType;
@@ -13,6 +17,7 @@ import com.octal.fsm.entities.*;
 import com.octal.fsm.entities.enums.TaskAssignedType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
+import com.octal.fsm.helper.CodeGenerator;
 import com.octal.fsm.listener.events.SendMailAndPushEvent;
 import com.octal.fsm.listener.events.SendMailToTechnicianEvent;
 import com.octal.fsm.repositories.*;
@@ -42,6 +47,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.validation.Valid;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -129,6 +136,13 @@ public class JobServiceImpl implements JobService {
     private TechnicianClientService technicianClientService;
     @Autowired
     private AdminClientService adminClientService;
+    @Autowired
+    private CodeGenerator codeGenerator;
+
+    @Autowired
+    private QuickBookClientService quickBookClientService;
+    @Autowired
+    private InventoryRequestRepository inventoryRequestRepository;
 
     @Autowired
     private JobService jobService;
@@ -169,8 +183,8 @@ public class JobServiceImpl implements JobService {
                 throw new CodeException("Job Description is required", ErrorCode.COMMON);
             if (TextUtils.isEmpty(addJobDTO.getJobStartDate()))
                 throw new CodeException("Job Start Date is required", ErrorCode.COMMON);
-            if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
-                throw new CodeException("Job End Date is required", ErrorCode.COMMON);
+//            if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
+//                throw new CodeException("Job End Date is required", ErrorCode.COMMON);
             if (addJobDTO.getJobTags() == null || addJobDTO.getJobTags().isEmpty())
                 throw new CodeException("At least one Job Tag is required", ErrorCode.COMMON);
             return jobTransformer.updateJob(addJobDTO, tenantId, isSuperAdmin);
@@ -205,7 +219,7 @@ public class JobServiceImpl implements JobService {
         lineItem.setSalesItemLineDetail(salesItemLineDetail);
         lineItems.add(lineItem);
         invoiceRequest.setLine(lineItems);
-        CreateInvoiceDTO invoiceResponse = null;
+//        CreateInvoiceDTO invoiceResponse = null;
         if (!TextUtils.isEmpty(createUpFrontInvoice.getDueDate())) {
             invoiceRequest.setDueDate(createUpFrontInvoice.getDueDate());
         }
@@ -213,12 +227,47 @@ public class JobServiceImpl implements JobService {
             invoiceRequest.setPrivateNote(createUpFrontInvoice.getNote());
         }
         try {
-            invoiceResponse = quickBooksCustomerService.createInvoice(invoiceRequest);
-            //Send Mail
-            JsonNode sendMailResponse = quickBooksCustomerService.sendInvoice(invoiceResponse.getInvoice().getId(), createUpFrontInvoice.getEmail());
+            // Queue Invoice Creation
+            InvoiceRestDTO.Add invoiceDto = new InvoiceRestDTO.Add();
+            invoiceDto.setCustomerFullName("Unknown");
+            try {
+                ApiResponse customerResponse = adminClient.getCustomerById(job.get().getCustomerId()).getBody();
+                if (customerResponse != null && customerResponse.getStatus() != null && customerResponse.getStatus().equalsIgnoreCase("200") && customerResponse.getData() != null) {
+                    Gson gson = new Gson();
+                    CustomerDTO.GetDetails customerDetails = gson.fromJson(gson.toJson(customerResponse.getData()), CustomerDTO.GetDetails.class);
+                    invoiceDto.setCustomerFullName(customerDetails.getName());
+                    if(customerDetails.getQuickBookUserId() != null){
+                        invoiceDto.setCustomerListId(customerDetails.getQuickBookUserId());
+                    }else{
+                        invoiceDto.setCustomerListId(customerDetails.getId());
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error fetching customer details: {}", e.getMessage());
+            }
+            invoiceDto.setSyncStatus("QUEUE");
+            invoiceDto.setAmount(BigDecimal.valueOf(createUpFrontInvoice.getAmount()).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString());
             JobInvoice jobInvoice = new JobInvoice();
+            Gson gson = new Gson();
             jobInvoice.setJobId(createUpFrontInvoice.getJobId());
-            jobInvoice.setInvoiceId(invoiceResponse.getInvoice().getId());
+            invoiceDto.setInvoiceId(jobInvoice.getUuid());
+            try{
+                ApiResponse invoiceQueue = quickBookClientService.createInvoiceQueue(invoiceDto, 1L).getBody();
+                if (invoiceQueue == null) {
+                    throw new CodeException("Quick Book service returned empty response", ErrorCode.COMMON);
+                }
+                if ("200".equalsIgnoreCase(invoiceQueue.getStatus()) && invoiceQueue.getData() != null) {
+                    String invoiceQueueId = (String) invoiceQueue.getData();
+                    jobInvoice.setInvoiceId(invoiceQueueId);
+                    jobInvoice.setResponseDTO(gson.toJson(invoiceQueue));
+                }
+            }
+            catch (Exception e) {
+                throw new CodeException("Invoice creation failed: " +e.getMessage(), ErrorCode.COMMON);
+            }
+//            invoiceResponse = quickBooksCustomerService.createInvoice(invoiceRequest);
+            //Send Mail
+//            JsonNode sendMailResponse = quickBooksCustomerService.sendInvoice(invoiceResponse.getInvoice().getId(), createUpFrontInvoice.getEmail());
             jobInvoice.setAmount(createUpFrontInvoice.getAmount());
             jobInvoice.setSendOnEmail(createUpFrontInvoice.getEmail());
             if (!TextUtils.isEmpty(createUpFrontInvoice.getDueDate())) {
@@ -229,10 +278,8 @@ public class JobServiceImpl implements JobService {
                     e.printStackTrace();
                 }
             }
-            Gson gson = new Gson();
             jobInvoice.setNote(createUpFrontInvoice.getNote());
             jobInvoice.setRequestDTO(gson.toJson(invoiceRequest));
-            jobInvoice.setResponseDTO(gson.toJson(invoiceResponse));
             jobInvoice.setPaid(false);
             jobInvoice.setInvoiceType(createUpFrontInvoice.getInvoiceType());
             jobInvoiceRepository.save(jobInvoice);
@@ -240,6 +287,8 @@ public class JobServiceImpl implements JobService {
             e.printStackTrace();
         }
     }
+
+
 
     @Override
     public PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail,Long tenantId) throws CodeException {
@@ -552,10 +601,17 @@ public class JobServiceImpl implements JobService {
                         dto.setTechnicianId(technicianDetails.getId());
                     }
                 } else {
-                    dto.setTaskStatus("NOT ASSIGNED");
+                    if(jobMappingTask.getJobTaskStatus().equalsIgnoreCase("COMPLETED")){
+                        dto.setTaskStatus(jobMappingTask.getJobTaskStatus());
+                    }else{
+                        dto.setTaskStatus("NOT ASSIGNED");
+                    }
                 }
                 responseList.add(dto);
             }
+            responseList.sort(Comparator.comparing(
+                            (JobDTO.JobTaskListResponse jobDto) -> "COMPLETED".equalsIgnoreCase(jobDto.getTaskStatus()))
+                    .thenComparing(JobDTO.JobTaskListResponse::getSequenceNumber));
         }
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, page,
                 size);
@@ -925,9 +981,9 @@ public class JobServiceImpl implements JobService {
             if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getCustomerName())) {
                 throw new CodeException("Customer Name is required", ErrorCode.COMMON);
             }
-            if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getEmail())) {
-                throw new CodeException("Customer Email is required", ErrorCode.COMMON);
-            }
+//            if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getEmail())) {
+//                throw new CodeException("Customer Email is required", ErrorCode.COMMON);
+//            }
             if (TextUtils.isEmpty(addJobDTO.getCustomerDetails().getMobileNumber())) {
                 throw new CodeException("Customer Mobile Number is required", ErrorCode.COMMON);
             }
@@ -955,8 +1011,8 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Lead Received Date is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getJobStartDate()))
             throw new CodeException("Job Start Date is required", ErrorCode.COMMON);
-        if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
-            throw new CodeException("Job End Date is required", ErrorCode.COMMON);
+//        if (TextUtils.isEmpty(addJobDTO.getJobEndDate()))
+//            throw new CodeException("Job End Date is required", ErrorCode.COMMON);
         if (TextUtils.isEmpty(addJobDTO.getLeadSourceId()))
             throw new CodeException("Lead Source is required", ErrorCode.COMMON);
 //        if (TextUtils.isEmpty(addJobDTO.getBudget()))
@@ -975,8 +1031,41 @@ public class JobServiceImpl implements JobService {
 //            return new PageItem<>()
 //        }
         JobTaskMappingTechnician taskMapping = taskMappingOpt.get();
+        List<InventoryRequest> inventoryRequests = inventoryRequestRepository.findByTaskId(taskId);
+        List<InventoryRequestResponseDTO> dtoList = inventoryRequests.stream().map(this::toDto).collect(Collectors.toList());
+
         List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping), "", userName, tenantId);
+        if (!detailsList.isEmpty()) {
+            detailsList.get(0).setInventoryList(dtoList);
+        }
         return detailsList.isEmpty() ? null : detailsList.get(0);
+    }
+
+    private InventoryRequestResponseDTO toDto(InventoryRequest request) {
+        InventoryRequestResponseDTO dto = new InventoryRequestResponseDTO();
+        dto.setId(request.getUuid());
+        dto.setTechnicianId(request.getTechnicianId());
+        dto.setTaskId(request.getTaskId());
+        dto.setComment(request.getComment());
+        dto.setRequestShowId(request.getRequestShowId());
+        dto.setRequestedAt(request.getRequestedAt().toString());
+        dto.setApprovedAt(request.getApprovedAt() != null ? request.getApprovedAt().toString() : null);
+        dto.setApprovedBy(request.getApprovedBy());
+        dto.setStatus(request.getStatus());
+        dto.setRejectionReason(request.getRejectionReason());
+        List<InventoryRequestResponseDTO.Item> items = request.getItems().stream()
+                .map(item -> {
+                    InventoryRequestResponseDTO.Item i =
+                            new InventoryRequestResponseDTO.Item();
+                    i.setInventoryListId(item.getInventoryListId());
+                    i.setInventoryName(item.getInventoryName());
+                    i.setRequestedQty(item.getRequestedQty());
+                    i.setApprovedQty(item.getApprovedQty());
+                    return i;
+                })
+                .collect(Collectors.toList());
+        dto.setItems(items);
+        return dto;
     }
 
     @Override
@@ -1461,6 +1550,11 @@ public class JobServiceImpl implements JobService {
             throw new CodeException("Assigned Type update is not allowed", ErrorCode.BAD_REQUEST);
         if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.SYSTEM)) {
             // todo need to perform related task automatically for example BOM generation and quickbooks related stuff.
+            Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
+            if (jobMappingTask.isEmpty())
+                throw new CodeException("Job Task mapping not found", ErrorCode.BAD_REQUEST);
+            jobMappingTask.get().setJobTaskStatus("COMPLETED");
+            jobMappingTaskRepository.save(jobMappingTask.get());
         } else if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.CSR)) {
             if (TextUtils.isEmpty(updateJobTaskDetails.getTaskId()))
                 throw new CodeException("Task Id is required to update the task details", ErrorCode.BAD_REQUEST);
@@ -1479,6 +1573,7 @@ public class JobServiceImpl implements JobService {
             if (!TextUtils.isEmpty(updateJobTaskDetails.getNote())){
                 jobMappingTask.get().setNote(updateJobTaskDetails.getNote());
             }
+            jobMappingTask.get().setJobTaskStatus("COMPLETED");
             jobMappingTaskRepository.save(jobMappingTask.get());
         }
         if (updateJobTaskDetails.getIsDone()) {
@@ -2523,6 +2618,155 @@ public class JobServiceImpl implements JobService {
         return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Data fetch successfully", jobMappingTaskTechnicianPageItem, "200", HttpStatus.OK), HttpStatus.OK);
     }
 
+    @Override
+    public void updateInvoiceDetails(InvoiceRestDTO.Add add) throws CodeException {
+        if(add.getInvoiceId() != null){
+            Optional<JobInvoice> byUuid = jobInvoiceRepository.getByUuid(add.getInvoiceId());
+            if(byUuid.isPresent() && add.getRefId() != null){
+                JobInvoice jobInvoice = byUuid.get();
+                jobInvoice.setInvoiceId(add.getRefId());
+                jobInvoice.setPaid(add.getIsPaid());
+                jobInvoice.setUpdatedAt(LocalDateTime.now());
+                jobInvoiceRepository.save(jobInvoice);
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> addTaskFromJob(JobTaskDTO.AddWithJobDetails withJobDetails, Long tenantId, boolean isSuperAdmin) throws CodeException {
+        try {
+            if (withJobDetails == null) {
+                throw new CodeException("Request body cannot be null", ErrorCode.COMMON);
+            }
+            if (withJobDetails.getJobId() == null) {
+                throw new CodeException("Job Id is required", ErrorCode.COMMON);
+            }
+            if (withJobDetails.getJobTypeId() == null) {
+                throw new CodeException("JobTypeId is required", ErrorCode.COMMON);
+            }
+            if (withJobDetails.getName() == null || withJobDetails.getName().isBlank()) {
+                throw new CodeException("Task name is required", ErrorCode.COMMON);
+            }
+            Job job = jobRepository.findByUuidAndDeletedFalse(withJobDetails.getJobId()).
+                    orElseThrow(() -> new CodeException("Job not found", ErrorCode.COMMON));
+            JobType jobType = jobTypeRepository.findByUuid(withJobDetails.getJobTypeId()).
+                    orElseThrow(() -> new CodeException("Job type not found", ErrorCode.COMMON));
+            JobStatusMaster jobStatusMaster = jobStatusMasterRepository.findByUuid(withJobDetails.getStatusMasterId())
+                    .orElseThrow(() -> new CodeException("Job status not found", ErrorCode.COMMON));
+
+            //Create JobTask entity
+            JobTask jobTask = new JobTask();
+            jobTask.setName(withJobDetails.getName());
+            jobTask.setDescription(withJobDetails.getDescription());
+            jobTask.setAssignedType(withJobDetails.getAssignedType());
+            jobTask.setSequence(withJobDetails.getPreviousTaskSequence() == null ? 1 : withJobDetails.getPreviousTaskSequence() + 1);
+            jobTask.setJobType(jobType);
+            jobTask.setJobStatusMaster(jobStatusMaster);
+            //Save JobTask
+            JobTask savedTask = jobTaskRepository.save(jobTask);
+            //save job mapping task
+            if (savedTask.getSequence() == 1) {
+                job.setCurrentTaskId(savedTask.getUuid());
+                job.setJobStatusMaster(savedTask.getJobStatusMaster());
+                job.setJobStatus(savedTask.getName());
+            }
+            JobMappingTask task = new JobMappingTask();
+            task.setTaskId(savedTask.getUuid());
+            task.setTaskName(savedTask.getName());
+            task.setTaskShowId(codeGenerator.generateTaskId());
+            task.setTaskSequence(savedTask.getSequence());
+            task.setJobTaskStatus(savedTask.getJobStatusMaster().getName());
+            task.setAssignType(savedTask.getAssignedType());
+            task.setJob(job);
+            job.getJobMappingTasks().add(task);
+            Job save = jobRepository.save(job);
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task saved successfully", savedTask.getUuid(), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, e.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<com.octal.fsm.common.ApiResponse> removeTask(String taskId, Long tenantId, boolean isSuperAdmin) throws CodeException {
+        try {
+            if (taskId == null || taskId.isBlank()) {
+                throw new CodeException("TaskId is required", ErrorCode.COMMON);
+            }
+            JobMappingTask mappingTask = jobMappingTaskRepository.findByUuidWithJob(taskId)
+                                        .orElseThrow(() ->new CodeException("Task not found", ErrorCode.COMMON));
+
+            Job job = mappingTask.getJob();
+            Integer deletedSequence = mappingTask.getTaskSequence();
+
+            mappingTask.setDeleted(true);
+
+            job.getJobMappingTasks().stream()
+                    .filter(t -> !Boolean.TRUE.equals(t.isDeleted()))
+                    .filter(t -> t.getTaskSequence() > deletedSequence)
+                    .forEach(t -> t.setTaskSequence(t.getTaskSequence() - 1));
+
+            if (mappingTask.getTaskId().equals(job.getCurrentTaskId())) {
+                JobMappingTask nextTask = job.getJobMappingTasks().stream()
+                                .filter(t -> !Boolean.TRUE.equals(t.isDeleted()))
+                                .min(Comparator.comparing(JobMappingTask::getTaskSequence))
+                                .orElse(null);
+
+                if (nextTask != null) {
+                    JobTask nextJobTask = jobTaskRepository.findByUuidAndDeletedFalse(nextTask.getTaskId()).orElse(null);
+                    if(nextJobTask != null){
+                        job.setCurrentTaskId(nextJobTask.getUuid());
+                        job.setJobStatus(nextJobTask.getName());
+                        job.setJobStatusMaster(nextJobTask.getJobStatusMaster());
+                    }
+                } else {
+                    job.setCurrentTaskId(null);
+                }
+            }
+            jobRepository.save(job);
+            jobMappingTaskRepository.save(mappingTask);
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task Removed successfully", "", "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, e.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
+        }
+    }
+
+    @Override
+    public void updateInvoiceDetailsList(List<InvoiceRestDTO.Add> addList) throws CodeException {
+        try{
+            List<String> refIds = addList.stream()
+                    .map(i -> i.getRefId() != null ? i.getRefId() : null)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            Map<String, JobInvoice> queueMap =
+                    jobInvoiceRepository.findByInvoiceIdIn(refIds)
+                            .stream()
+                            .collect(Collectors.toMap(JobInvoice::getInvoiceId, q -> q));
+
+            List<JobInvoice> toSave = new ArrayList<>();
+            for (InvoiceRestDTO.Add add : addList) {
+                String refId = add.getRefId();
+                if (refId == null) continue;
+
+                JobInvoice queue = queueMap.get(refId);
+                if (queue == null) continue;
+
+                queue.setPaid(add.getIsPaid());
+                queue.setBalanceDue(add.getBalanceDue());
+                queue.setTotalAmountWithTax(add.getTotalAmountWithTax());
+                queue.setUpdatedAt(LocalDateTime.now());
+                toSave.add(queue);
+            }
+            if (!toSave.isEmpty()) {
+                jobInvoiceRepository.saveAll(toSave);
+            }
+        } catch (Exception e) {
+           e.printStackTrace();
+        }
+    }
+
     private DocumentDTO.Add convertDocumentToDto(Documents doc) {
         DocumentDTO.Add dto = new DocumentDTO.Add();
         dto.setFileName(doc.getFileName());
@@ -2536,6 +2780,16 @@ public class JobServiceImpl implements JobService {
         dto.setUploadedBType(doc.getUploadedByType());
         dto.setUploadedBTypeId(doc.getUploadedByTypeId());
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<JobDetailsForInventory> getAllJobByTechnicianId(String technicianId, String loggedInUserEmail, Long tenantId, Boolean isSuperAdmin) throws CodeException {
+
+        if (technicianId == null || technicianId.isBlank()) {
+            return Collections.emptyList();
+        }
+        return jobTaskMappingTechnicianRepository.findTaskDetailsByTechnicianId(technicianId);
     }
 
 
@@ -2799,8 +3053,8 @@ public class JobServiceImpl implements JobService {
         if (!TextUtils.isEmpty(listReq.getJobTypeId())) {
             builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "jobTypeId", listReq.getJobTypeId()));
         }
-        if (!TextUtils.isEmpty(listReq.getCustomerId())) {
-            builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "customerId", listReq.getCustomerId()));
+        if (listReq.getCustomerIds() != null && !listReq.getCustomerIds().isEmpty()) {
+            builder.with(jobMappingTaskSpecificationFactory.joinIn("job", "customerId", listReq.getCustomerIds()));
         }
 
         builder.with(
@@ -2909,8 +3163,8 @@ public class JobServiceImpl implements JobService {
         if (!TextUtils.isEmpty(listReq.getJobTypeId())) {
             builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "jobTypeId", listReq.getJobTypeId()));
         }
-        if (!TextUtils.isEmpty(listReq.getCustomerId())) {
-            builder.with(jobMappingTaskSpecificationFactory.joinEquals("job", "customerId", listReq.getCustomerId()));
+        if (listReq.getCustomerIds() != null && !listReq.getCustomerIds().isEmpty()) {
+            builder.with(jobMappingTaskSpecificationFactory.joinIn("job", "customerId", listReq.getCustomerIds()));
         }
 
         builder.with(jobMappingTaskSpecificationFactory.isEqual("assignType", TaskAssignedType.CSR));//for CSR

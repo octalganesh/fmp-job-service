@@ -18,4 +18,5 @@ public class MultiUserDeviceDetailsDTO {
     private String deviceToken;
     private String deviceData;
     private String userId;
+    private Boolean pushEnabled;
 }

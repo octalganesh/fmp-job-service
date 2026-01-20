@@ -37,5 +37,22 @@ public class JobTaskDTO {
         private Integer sequence;
     }
 
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class AddWithJobDetails {
+        private String id;
+        private String name;
+        private String jobTypeId;
+        private Boolean isActive;
+        private String description;
+        private TaskAssignedType assignedType;
+        private Integer sequence;
+        private String statusMasterId;
+        private Integer previousTaskSequence;
+        private String jobId;
+
+    }
+
 
 }
