@@ -1028,7 +1028,7 @@ public class JobServiceImpl implements JobService {
 //            return new PageItem<>()
 //        }
         JobTaskMappingTechnician taskMapping = taskMappingOpt.get();
-        List<InventoryRequest> inventoryRequests = inventoryRequestRepository.findByTaskId(taskId);
+        List<InventoryRequest> inventoryRequests = inventoryRequestRepository.findByTaskIdAndCreatedAtDesc(taskId);
         List<InventoryRequestResponseDTO> dtoList = inventoryRequests.stream().map(this::toDto).collect(Collectors.toList());
 
         List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping), "", userName, tenantId);
