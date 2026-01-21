@@ -56,6 +56,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     private AdminClient adminClient;
     @Autowired
     private JobRepository jobRepository;
+    @Autowired
+    private AppointmentTypeRepository appointmentTypeRepository;
 
     @Autowired
     private TechnicianClientService technicianClientService;
@@ -95,6 +97,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (TextUtils.isEmpty(add.getId())) {
             appointment = new Appointment();
             appointment.setCreatedAt(LocalDateTime.now());
+            appointment.setStatus("Scheduled");
         } else {
             Optional<Appointment> announcementOptional = appointmentRepository.findByUuidAndDeletedFalse(add.getId());
             if (announcementOptional.isEmpty()) {
@@ -102,6 +105,12 @@ public class AppointmentServiceImpl implements AppointmentService {
             }
             appointment = announcementOptional.get();
             appointment.setUpdatedAt(LocalDateTime.now());
+        }
+        if(!TextUtils.isEmpty(add.getAppointmentTypeId())){
+            Optional<AppointmentType> byUuid = appointmentTypeRepository.findByUuid(add.getAppointmentTypeId());
+            if(byUuid.isPresent()){
+                appointment.setAppointmentType(byUuid.get());
+            }
         }
         appointment.setActive(true);
         appointment.setDeleted(false);
@@ -202,6 +211,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             dto.setEndDateTime(appointment.getEndDateTime() != null ? appointment.getEndDateTime().format(dateTimeFormatter) : null);
             dto.setTechnicianId(appointment.getTechnicianId());
             dto.setStatus(appointment.getStatus() != null ? appointment.getStatus() : "Scheduled");
+            dto.setAppointmentTypeId(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getUuid() : null);
             Job job = jobMap.get(appointment.getJobId());
             if (job != null && customerToNameMap != null) {
                 CustomerDTO.GetDetails customer = customerToNameMap.get(job.getCustomerId());
@@ -213,6 +223,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             if (jobMappingTask != null) {
                 dto.setTaskName(jobMappingTask.getTaskName());
             }
+            dto.setAppointmentTypeId(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getUuid() : null);
+            dto.setAppointmentTypeName(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getName() : null);
             responseList.add(dto);
         }
 
@@ -298,6 +310,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             if (jobMappingTask != null) {
                 dto.setTaskName(jobMappingTask.getTaskName());
             }
+            dto.setAppointmentTypeId(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getUuid() : null);
+            dto.setAppointmentTypeName(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getName() : null);
             responseList.add(dto);
         }
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, listRequest.getPageNumber(),
@@ -375,6 +389,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         if (jobIds != null && !jobIds.isEmpty()) {
             builder.with(appointmentSpecificationFactory.in("jobId", jobIds));
+        }
+        if (!TextUtils.isEmpty(listRequest.getAppointmentTypeId())) {
+            builder.with(appointmentSpecificationFactory.joinEquals("appointmentType", "uuid",listRequest.getAppointmentTypeId()));
         }
         if (listRequest.getStartDate() != null) {
             builder.with(appointmentSpecificationFactory.isGreaterThanOrEquals("createdAt", listRequest.getStartDate().atStartOfDay()));
