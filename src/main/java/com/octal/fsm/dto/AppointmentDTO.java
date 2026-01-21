@@ -51,9 +51,9 @@ public class AppointmentDTO {
         private Boolean isActive;
         private String status;
         private String customerName;
-        private String customerLocation;
-        private Double customerLat;
-        private Double customerLng;
+        private String location;
+        private Double lat;
+        private Double lng;
         private String taskName;
         private String appointmentTypeId;
         private String appointmentTypeName;
