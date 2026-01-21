@@ -304,6 +304,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                 CustomerDTO.GetDetails customer = customerToNameMap.get(job.getCustomerId());
                 if (customer != null) {
                     dto.setCustomerName(customer.getName());
+                    dto.setCustomerLocation(Objects.nonNull(customer.getAddress()) ? customer.getAddress() : null);
+                    dto.setCustomerLat(Objects.nonNull(customer.getLat()) ? customer.getLat() : null);
+                    dto.setCustomerLng(Objects.nonNull(customer.getLng()) ? customer.getLng() : null);
                 }
             }
             JobMappingTask jobMappingTask = jobMappingTaskMap.get(appointment.getJobTaskId());
@@ -370,6 +373,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         dto.setIsActive(appointment.getActive());
         if (customerList != null && !customerList.isEmpty()) {
             dto.setCustomerName(customerList.get(0).getName());
+            dto.setCustomerLocation(Objects.nonNull(customerList.get(0).getAddress()) ? customerList.get(0).getAddress() : null);
+            dto.setCustomerLat(Objects.nonNull(customerList.get(0).getLat()) ? customerList.get(0).getLat() : null);
+            dto.setCustomerLng(Objects.nonNull(customerList.get(0).getLng()) ? customerList.get(0).getLng() : null);
         }
         if (byJobTaskIdIn != null && !byJobTaskIdIn.isEmpty()) {
             dto.setTaskName(byJobTaskIdIn.get(0).getTaskName());

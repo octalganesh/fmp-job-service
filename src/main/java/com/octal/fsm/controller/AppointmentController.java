@@ -66,7 +66,7 @@ public class AppointmentController extends BaseController {
         }
     }
 
-    @GetMapping("/update-status/{id}")
+    @PutMapping("/update-status/{id}")
     public ResponseEntity<ApiResponse> updateAppointmentStatus(@PathVariable("id") String id, HttpServletRequest request) {
         try {
             Long tenantId = getTenantId(request);
