@@ -123,6 +123,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
                 request.setApprovedBy(approvalDTO.getApprovedBy());
                 request.setRejectionReason(approvalDTO.getRejectionReason());
                 request.setApprovedAt(LocalDateTime.now());
+                applicationEventPublisher.publishEvent(new InventoryRequestNotificationEvent(request, tenantId, userName));
                 inventoryRequestRepository.save(request);
                 return toDto(request);
             }
