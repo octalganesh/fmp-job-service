@@ -406,12 +406,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (listRequest.getEndDate() != null) {
             builder.with(appointmentSpecificationFactory.isLessThanOrEquals("createdAt", listRequest.getEndDate().atTime(23, 59, 59)));
         }
-        if (listRequest.getSearchText() != null && !listRequest.getSearchText().isEmpty()) {
-            builder.with(appointmentSpecificationFactory.group(appointmentSpecificationFactory.like("taskId", listRequest.getSearchText()).
-                    or(appointmentSpecificationFactory.like("jobId", listRequest.getSearchText())).
-                    or(appointmentSpecificationFactory.isEqual("taskId", listRequest.getSearchText())).
-                    or(appointmentSpecificationFactory.isEqual("jobId", listRequest.getSearchText()))));
-        }
 
     }
 
@@ -432,6 +426,12 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         if (listRequest.getEndDate() != null) {
             builder.with(appointmentSpecificationFactory.isLessThanOrEquals("createdAt", listRequest.getEndDate().atTime(23, 59, 59)));
+        }
+        if (listRequest.getSearchText() != null && !listRequest.getSearchText().isEmpty()) {
+            builder.with(appointmentSpecificationFactory.group(appointmentSpecificationFactory.like("taskId", listRequest.getSearchText()).
+                    or(appointmentSpecificationFactory.like("jobId", listRequest.getSearchText())).
+                    or(appointmentSpecificationFactory.isEqual("taskId", listRequest.getSearchText())).
+                    or(appointmentSpecificationFactory.isEqual("jobId", listRequest.getSearchText()))));
         }
 
     }
