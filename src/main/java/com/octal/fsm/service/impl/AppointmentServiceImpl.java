@@ -106,9 +106,9 @@ public class AppointmentServiceImpl implements AppointmentService {
             appointment = announcementOptional.get();
             appointment.setUpdatedAt(LocalDateTime.now());
         }
-        if(!TextUtils.isEmpty(add.getAppointmentTypeId())){
+        if (!TextUtils.isEmpty(add.getAppointmentTypeId())) {
             Optional<AppointmentType> byUuid = appointmentTypeRepository.findByUuid(add.getAppointmentTypeId());
-            if(byUuid.isPresent()){
+            if (byUuid.isPresent()) {
                 appointment.setAppointmentType(byUuid.get());
             }
         }
@@ -157,7 +157,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         } else {
             pageable = org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
         }
-        prepareJobTypeSearchFilter(listRequest, builder,jobIds);
+        prepareJobTypeSearchFilter(listRequest, builder, jobIds);
         Page<Appointment> pagedResult = appointmentRepository.findAll(builder.build(), pageable);
         Map<String, TechnicianDTO.GetDetails> techMap = null;
         Map<String, CustomerDTO.GetDetails> customerToNameMap = null;
@@ -173,22 +173,22 @@ public class AppointmentServiceImpl implements AppointmentService {
         Map<String, JobMappingTask> jobMappingTaskMap = byJobTaskIdIn.stream()
                 .collect(Collectors.toMap(JobMappingTask::getTaskShowId, j -> j));
 
-        if(!byUuidIn.isEmpty()) {
+        if (!byUuidIn.isEmpty()) {
             List<CustomerDTO.GetDetails> customerList = adminClientService.getCustomerList(new ArrayList<>(byUuidIn.stream().map(Job::getCustomerId).filter(Objects::nonNull).distinct().collect(Collectors.toList())), tenantId, false);
-            if(customerList != null){
+            if (customerList != null) {
                 customerToNameMap = customerList.stream()
                         .collect(Collectors.toMap(CustomerDTO.GetDetails::getId, t -> t));
             }
         }
-        List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).collect(Collectors.toList())),tenantId);
-        if(techDetails != null){
+        List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).collect(Collectors.toList())), tenantId);
+        if (techDetails != null) {
             techMap = techDetails.stream()
                     .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
         }
         List<AppointmentDTO.ListResponse> responseList = new ArrayList<>();
         Type listType = new TypeToken<List<String>>() {
         }.getType();
-        List<JobType>jobTypeList=jobTypeRepository.findByUuidAndDeletedFalse(pagedResult.getContent().stream().map(Appointment::getJobTypeId).collect(Collectors.toList()));
+        List<JobType> jobTypeList = jobTypeRepository.findByUuidAndDeletedFalse(pagedResult.getContent().stream().map(Appointment::getJobTypeId).collect(Collectors.toList()));
         Map<String, String> jobTypeMap = jobTypeList.stream()
                 .collect(Collectors.toMap(JobType::getUuid, JobType::getName));
         DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
@@ -211,7 +211,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             dto.setEndDateTime(appointment.getEndDateTime() != null ? appointment.getEndDateTime().format(dateTimeFormatter) : null);
             dto.setTechnicianId(appointment.getTechnicianId());
             dto.setStatus(appointment.getStatus() != null ? appointment.getStatus() : "Scheduled");
-            dto.setAppointmentTypeId(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getUuid() : null);
+            dto.setAppointmentTypeId(appointment.getAppointmentType() != null ? appointment.getAppointmentType().getUuid() : null);
             Job job = jobMap.get(appointment.getJobId());
             if (job != null && customerToNameMap != null) {
                 CustomerDTO.GetDetails customer = customerToNameMap.get(job.getCustomerId());
@@ -223,8 +223,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             if (jobMappingTask != null) {
                 dto.setTaskName(jobMappingTask.getTaskName());
             }
-            dto.setAppointmentTypeId(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getUuid() : null);
-            dto.setAppointmentTypeName(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getName() : null);
+            dto.setAppointmentTypeId(appointment.getAppointmentType() != null ? appointment.getAppointmentType().getUuid() : null);
+            dto.setAppointmentTypeName(appointment.getAppointmentType() != null ? appointment.getAppointmentType().getName() : null);
             responseList.add(dto);
         }
 
@@ -262,23 +262,23 @@ public class AppointmentServiceImpl implements AppointmentService {
         Map<String, JobMappingTask> jobMappingTaskMap = byJobTaskIdIn.stream()
                 .collect(Collectors.toMap(JobMappingTask::getTaskShowId, j -> j));
 
-        if(!byUuidIn.isEmpty()) {
+        if (!byUuidIn.isEmpty()) {
             List<CustomerDTO.GetDetails> customerList = adminClientService.getCustomerList(new ArrayList<>(byUuidIn.stream().map(Job::getCustomerId).filter(Objects::nonNull).distinct().collect(Collectors.toList())), tenantId, false);
-            if(customerList != null){
+            if (customerList != null) {
                 customerToNameMap = customerList.stream()
                         .collect(Collectors.toMap(CustomerDTO.GetDetails::getId, t -> t));
             }
         }
 
         List<TechnicianDTO.GetDetails> techDetails = technicianClientService.getTechniciansList(new ArrayList<>(pagedResult.getContent().stream().map(Appointment::getTechnicianId).collect(Collectors.toList())), tenantId);
-        if(techDetails != null){
+        if (techDetails != null) {
             techMap = techDetails.stream()
                     .collect(Collectors.toMap(TechnicianDTO.GetDetails::getId, t -> t));
         }
         List<AppointmentDTO.ListResponse> responseList = new ArrayList<>();
         Type listType = new TypeToken<List<String>>() {
         }.getType();
-        List<JobType>jobTypeList=jobTypeRepository.findByUuidAndDeletedFalse(pagedResult.getContent().stream().map(Appointment::getJobTypeId).collect(Collectors.toList()));
+        List<JobType> jobTypeList = jobTypeRepository.findByUuidAndDeletedFalse(pagedResult.getContent().stream().map(Appointment::getJobTypeId).collect(Collectors.toList()));
         Map<String, String> jobTypeMap = jobTypeList.stream()
                 .collect(Collectors.toMap(JobType::getUuid, JobType::getName));
         DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
@@ -313,8 +313,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             if (jobMappingTask != null) {
                 dto.setTaskName(jobMappingTask.getTaskName());
             }
-            dto.setAppointmentTypeId(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getUuid() : null);
-            dto.setAppointmentTypeName(appointment.getAppointmentType() != null ?  appointment.getAppointmentType().getName() : null);
+            dto.setAppointmentTypeId(appointment.getAppointmentType() != null ? appointment.getAppointmentType().getUuid() : null);
+            dto.setAppointmentTypeName(appointment.getAppointmentType() != null ? appointment.getAppointmentType().getName() : null);
             responseList.add(dto);
         }
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, listRequest.getPageNumber(),
@@ -336,7 +336,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public AppointmentDTO.ListResponse getAppointmentById(String id,Long tenantId, String userName) throws CodeException {
+    public AppointmentDTO.ListResponse getAppointmentById(String id, Long tenantId, String userName) throws CodeException {
         if (TextUtils.isEmpty(id))
             throw new CodeException("appointment id is required", ErrorCode.COMMON);
         Optional<Appointment> appointmentOptional = appointmentRepository.findByUuidAndDeletedFalse(id);
@@ -351,10 +351,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<JobMappingTask> byJobTaskIdIn = jobMappingTaskRepository.findByTaskShowIdIn(new ArrayList<>(Collections.singleton(appointmentOptional.get().getJobTaskId())));
         List<CustomerDTO.GetDetails> customerList = new ArrayList<>();
 
-        if(!byUuidIn.isEmpty()) {
+        if (!byUuidIn.isEmpty()) {
             customerList = adminClientService.getCustomerList(new ArrayList<>(byUuidIn.stream().map(Job::getCustomerId).filter(Objects::nonNull).distinct().collect(Collectors.toList())), tenantId, false);
         }
-        List<JobType>jobTypeList=jobTypeRepository.findByUuidAndDeletedFalse(new ArrayList<>(Collections.singleton(appointmentOptional.get().getJobTypeId())));
+        List<JobType> jobTypeList = jobTypeRepository.findByUuidAndDeletedFalse(new ArrayList<>(Collections.singleton(appointmentOptional.get().getJobTypeId())));
 
         Appointment appointment = appointmentOptional.get();
         DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
@@ -385,7 +385,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         return dto;
     }
 
-    private void prepareJobTypeSearchFilter(PageRequest.List listRequest, GenericSpecificationsBuilder<Appointment> builder,List<String> jobIds) {
+    private void prepareJobTypeSearchFilter(PageRequest.List listRequest, GenericSpecificationsBuilder<Appointment> builder, List<String> jobIds) {
         builder.with(appointmentSpecificationFactory.isEqual("deleted", false));
         if (listRequest.getIsActive() != null) {
             builder.with(appointmentSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
@@ -397,7 +397,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             builder.with(appointmentSpecificationFactory.in("jobId", jobIds));
         }
         if (!TextUtils.isEmpty(listRequest.getAppointmentTypeId())) {
-            builder.with(appointmentSpecificationFactory.joinEquals("appointmentType", "uuid",listRequest.getAppointmentTypeId()));
+            builder.with(appointmentSpecificationFactory.joinEquals("appointmentType", "uuid", listRequest.getAppointmentTypeId()));
         }
         if (listRequest.getStartDate() != null) {
             builder.with(appointmentSpecificationFactory.isGreaterThanOrEquals("createdAt", listRequest.getStartDate().atStartOfDay()));
@@ -406,8 +406,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (listRequest.getEndDate() != null) {
             builder.with(appointmentSpecificationFactory.isLessThanOrEquals("createdAt", listRequest.getEndDate().atTime(23, 59, 59)));
         }
-        if(listRequest.getSearchText()!=null && !listRequest.getSearchText().isEmpty()){
-            builder.with(appointmentSpecificationFactory.like("taskId", listRequest.getSearchText()).or(appointmentSpecificationFactory.like("jobId", listRequest.getSearchText())));
+        if (listRequest.getSearchText() != null && !listRequest.getSearchText().isEmpty()) {
+            builder.with(appointmentSpecificationFactory.like("taskId", listRequest.getSearchText()).or(appointmentSpecificationFactory.like("jobId", listRequest.getSearchText()))
+                    .or(appointmentSpecificationFactory.isEqual("taskId", listRequest.getSearchText())).or(appointmentSpecificationFactory.isEqual("jobId", listRequest.getSearchText())));
         }
 
     }
@@ -417,7 +418,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (listRequest.getIsActive() != null) {
             builder.with(appointmentSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
         }
-        if (listRequest.getTechnicianId() !=null && !listRequest.getTechnicianId().isEmpty()) {
+        if (listRequest.getTechnicianId() != null && !listRequest.getTechnicianId().isEmpty()) {
             builder.with(appointmentSpecificationFactory.in("technicianId", listRequest.getTechnicianId()));
         }
         if (!TextUtils.isEmpty(listRequest.getJobId())) {
