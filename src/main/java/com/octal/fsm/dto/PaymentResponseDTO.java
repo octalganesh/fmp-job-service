@@ -24,7 +24,6 @@ public class PaymentResponseDTO {
     private String paymentType;//cash/ card/
 
     private Double totalTransactions;
-    private Double TotalAmount;
     private String paymentReceivedDate;
     private String paymentStatus;        // PAID / PENDING
     private String receivedPaymentMethod;
