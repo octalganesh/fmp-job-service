@@ -344,6 +344,7 @@ public class JobInvoiceServiceImpl implements JobInvoiceService {
         dto.setNotes(invoice.getNote());
         dto.setPaymentStatus(Boolean.TRUE.equals(invoice.getPaid()) ? "PAID" : "PENDING");
         dto.setTotalPaymentAmount(invoice.getAmount());
+        dto.setPaymentType(invoice.getPaymentType() != null ? invoice.getPaymentType() : null);
 
         if (invoice.getCreatedAt() != null) {
             String created = invoice.getCreatedAt().format(formatter);
