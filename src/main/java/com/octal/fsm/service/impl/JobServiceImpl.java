@@ -2680,7 +2680,13 @@ public class JobServiceImpl implements JobService {
             }
             JobMappingTask mappingTask = jobMappingTaskRepository.findByUuidWithJob(taskId)
                                         .orElseThrow(() ->new CodeException("Task not found", ErrorCode.COMMON));
-
+            Optional<JobTaskMappingTechnician> taskMappingTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(mappingTask.getUuid());
+            if(taskMappingTechnician.isPresent()) {
+                if(taskMappingTechnician.get().getTaskStatus().equalsIgnoreCase("INPROGRESS") || taskMappingTechnician.get().getTaskStatus().equalsIgnoreCase("COMPLETED"))
+                    throw new CodeException("Cannot remove task which is in progress or completed", ErrorCode.COMMON);
+                taskMappingTechnician.get().setDeleted(true);
+                jobTaskMappingTechnicianRepository.save(taskMappingTechnician.get());
+            }
             Job job = mappingTask.getJob();
             Integer deletedSequence = mappingTask.getTaskSequence();
 
@@ -2740,6 +2746,8 @@ public class JobServiceImpl implements JobService {
                 queue.setPaid(add.getIsPaid());
                 queue.setBalanceDue(add.getBalanceDue());
                 queue.setTotalAmountWithTax(add.getTotalAmountWithTax());
+                queue.setTxnId(add.getTxnId() != null ? add.getTxnId() : queue.getTxnId());
+                queue.setPaymentType(add.getPaymentType() != null ? add.getPaymentType() : queue.getPaymentType());
                 queue.setUpdatedAt(LocalDateTime.now());
                 toSave.add(queue);
             }
