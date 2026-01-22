@@ -111,10 +111,6 @@ public class JobInvoiceServiceImpl implements JobInvoiceService {
             builder.with(jobSpecificationFactory.isEqual("customerId", listRequest.getCustomerId()));
         }
 
-        if (listRequest.getLocation() != null && !listRequest.getLocation().isEmpty()) {
-            builder.with(jobSpecificationFactory.isEqual("serviceLocation", listRequest.getCustomerTypeId()));
-        }
-
         return jobRepository.findAll(builder.build());
     }
 
