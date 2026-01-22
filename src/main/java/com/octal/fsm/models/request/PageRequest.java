@@ -52,7 +52,6 @@ public class PageRequest {
         private String paymentStatus;
         java.util.List<String> customerIds;
         private String appointmentTypeId;
-
     }
 
 

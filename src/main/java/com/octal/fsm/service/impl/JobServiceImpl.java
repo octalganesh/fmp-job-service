@@ -197,7 +197,7 @@ public class JobServiceImpl implements JobService {
     public void createUpFrontInvoice(JobDTO.CreateUpFrontInvoiceRequest createUpFrontInvoice, Long tenantId, Boolean isSuperAdmin) throws CodeException {
         if (isSuperAdmin)
             tenantId = 1L;
-        Optional<Job> job = jobRepository.findByUuidAndTenantIdAndDeletedFalse(createUpFrontInvoice.getJobId(), tenantId);
+        Optional<Job> job = jobRepository.findByJobIdAndTenantIdAndDeletedFalse(createUpFrontInvoice.getJobId(), tenantId);
         if (job.isEmpty())
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         String customerRefId = job.get().getCustomerQuickBookId();
