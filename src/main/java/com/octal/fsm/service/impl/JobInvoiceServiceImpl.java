@@ -239,100 +239,16 @@ public class JobInvoiceServiceImpl implements JobInvoiceService {
         }
     }
 
-//    public PageItem<PaymentResponseDTO> getTrxData(PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
-//
-//        // Fetch all Jobs based on filters
-//        List<Job> jobList = getAllJobs(listRequest);
-//
-//        // Store UUIDs for invoice lookup
-//        List<String> jobUuids = jobList.stream()
-//                .map(Job::getUuid)
-//                .collect(Collectors.toList());
-//
-//        if (jobUuids.isEmpty()) {
-//            return new PageItem<>(0, 0, new ArrayList<>(), listRequest.getPageNumber(), listRequest.getPageSize());
-//        }
-//
-//        // Map jobId -> customerId
-//        Map<String, String> jobCustomerMap = jobList.stream()
-//                .collect(Collectors.toMap(
-//                        Job::getJobId,
-//                        Job::getCustomerId,
-//                        (existing, replacement) -> existing
-//                ));
-//
-//        // Collect unique customerIds for remote fetch
-//        List<String> customerIds = jobList.stream()
-//                .map(Job::getCustomerId)
-//                .distinct()
-//                .collect(Collectors.toList());
-//
-//        ApiResponse apiResponse = adminClient.getCustomerByIds(customerIds, tenantId, false).getBody();
-//
-//        List<CustomerDTO.GetDetails> customerList =
-//                apiResponse != null && apiResponse.getData() != null
-//                        ? objectMapper.convertValue(
-//                        apiResponse.getData(),
-//                        new TypeReference<List<CustomerDTO.GetDetails>>() {
-//                        })
-//                        : Collections.emptyList();
-//
-//        Map<String, CustomerDTO.GetDetails> customerDataMap =
-//                customerList.stream()
-//                        .collect(Collectors.toMap(
-//                                CustomerDTO.GetDetails::getId,
-//                                c -> c,
-//                                (existing, replacement) -> existing
-//                        ));
-//
-//        // Sort logic
-//        Pageable pageable = Boolean.TRUE.equals(listRequest.getAsc())
-//                ? org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).ascending())
-//                : org.springframework.data.domain.PageRequest.of(listRequest.getPageNumber(), listRequest.getPageSize(), Sort.by(listRequest.getShortingField()).descending());
-//
-//        // Invoice Filters
-//        GenericSpecificationsBuilder<JobInvoice> builder = new GenericSpecificationsBuilder<>();
-//        prepareInvoiceListSearchFilter(listRequest, builder, jobUuids, tenantId);
-//
-//        Page<JobInvoice> pagedResult = jobInvoiceRepository.findAll(builder.build(), pageable);
-//
-//        DateTimeFormatter formatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
-//
-//        List<PaymentResponseDTO> responseList = pagedResult.getContent().stream()
-//                .map(invoice -> mapToTrxResponseDTO(listRequest, invoice, formatter, jobCustomerMap, customerDataMap))
-//                .collect(Collectors.toList());
-//
-//        double totalAmount = responseList.stream()
-//                .map(PaymentResponseDTO::getTotalPaymentAmount)
-//                .filter(Objects::nonNull)
-//                .mapToDouble(Double::doubleValue)
-//                .sum();
-//
-//        long totalTrx = pagedResult.getTotalElements();
-//
-//        PageItem<PaymentResponseDTO> pageItem =
-//                new PageItem<>(
-//                        pagedResult.getTotalPages(),
-//                        pagedResult.getTotalElements(),
-//                        responseList,
-//                        listRequest.getPageNumber(),
-//                        listRequest.getPageSize()
-//                );
-//
-//        return pageItem;
-//    }
-
     public TransactionResponseDTO getTrxData(PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
 
-        // Fetch all Jobs based on filters
         List<Job> jobList = getAllJobs(listRequest);
 
         // Store UUIDs for invoice lookup
-        List<String> jobUuids = jobList.stream()
+        List<String> jobIds = jobList.stream()
                 .map(Job::getJobId)
                 .collect(Collectors.toList());
 
-        if (jobUuids.isEmpty()) {
+        if (jobIds.isEmpty()) {
             TransactionResponseDTO emptyResp = new TransactionResponseDTO();
             emptyResp.setItems(Collections.emptyList());
             emptyResp.setTotalPages(0);
@@ -382,7 +298,7 @@ public class JobInvoiceServiceImpl implements JobInvoiceService {
 
         // Invoice Filters
         GenericSpecificationsBuilder<JobInvoice> builder = new GenericSpecificationsBuilder<>();
-        prepareInvoiceListSearchFilter(listRequest, builder, jobUuids, tenantId);
+        prepareInvoiceListSearchFilter(listRequest, builder, jobIds, tenantId);
 
         Page<JobInvoice> pagedResult = jobInvoiceRepository.findAll(builder.build(), pageable);
 
