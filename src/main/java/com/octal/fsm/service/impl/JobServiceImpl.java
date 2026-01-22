@@ -576,15 +576,13 @@ public class JobServiceImpl implements JobService {
         Page<JobMappingTask> pagedResult = jobMappingTaskRepository.findAll(builder.build(), pageable);
         for (JobMappingTask jobMappingTask : pagedResult) {
             JobDTO.JobTaskListResponse dto = new JobDTO.JobTaskListResponse();
-            Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.getTaskId());
-            if (jobTask.isPresent()) {
                 dto.setId(jobMappingTask.getUuid());
-                dto.setTaskId(jobTask.get().getUuid());
+                dto.setTaskId(jobMappingTask.getTaskId());
                 dto.setTaskShowId(jobMappingTask.getTaskShowId());
-                dto.setTaskName(jobTask.get().getName());
-                dto.setTaskDescription(jobTask.get().getDescription());
+                dto.setTaskName(jobMappingTask.getTaskName());
+                dto.setTaskDescription(jobMappingTask.getDescription() != null ? jobMappingTask.getDescription() : null);
                 dto.setAssignedType(jobMappingTask.getAssignType());
-                dto.setSequenceNumber(jobTask.get().getSequence());
+                dto.setSequenceNumber(jobMappingTask.getTaskSequence());
                 dto.setNote(jobMappingTask.getNote());
                 dto.setDocuments(documentService.getJobDocuments(jobMappingTask.getUuid(),tenantId,false));
                 Optional<JobTaskMappingTechnician> jobTaskMappingTechnician = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.getUuid());
@@ -608,7 +606,6 @@ public class JobServiceImpl implements JobService {
                     }
                 }
                 responseList.add(dto);
-            }
             responseList.sort(Comparator.comparing(
                             (JobDTO.JobTaskListResponse jobDto) -> "COMPLETED".equalsIgnoreCase(jobDto.getTaskStatus()))
                     .thenComparing(JobDTO.JobTaskListResponse::getSequenceNumber));
@@ -1031,7 +1028,7 @@ public class JobServiceImpl implements JobService {
 //            return new PageItem<>()
 //        }
         JobTaskMappingTechnician taskMapping = taskMappingOpt.get();
-        List<InventoryRequest> inventoryRequests = inventoryRequestRepository.findByTaskId(taskId);
+        List<InventoryRequest> inventoryRequests = inventoryRequestRepository.findByTaskIdOrderByCreatedAtDesc(taskId);
         List<InventoryRequestResponseDTO> dtoList = inventoryRequests.stream().map(this::toDto).collect(Collectors.toList());
 
         List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping), "", userName, tenantId);
@@ -2343,10 +2340,10 @@ public class JobServiceImpl implements JobService {
             Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(id);
             if (jobMappingTask.isPresent()) {
                 Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobMappingTask.get().getJob().getUuid());
-                Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.get().getTaskId());
+//                Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.get().getTaskId());
                 Optional<JobTaskMappingTechnician> taskMapping = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.get().getUuid());
                 JobDTO.TechnicianForFrontOffice details = new JobDTO.TechnicianForFrontOffice();
-                if (job.isPresent() && jobTask.isPresent() && taskMapping.isPresent()) {
+                if (job.isPresent()  && taskMapping.isPresent()) {
                     if (TextUtils.isEmpty(job.get().getFrontOfficeId())) {
                         FrontOfficeStaffDTO.list frontOfficeResponseData = adminClientService.getFrontOfficeById(job.get().getFrontOfficeId(), tenantId);
                         if (frontOfficeResponseData != null) {
@@ -2361,7 +2358,7 @@ public class JobServiceImpl implements JobService {
                     DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
                     DateTimeFormatter timeFormatter = generalSettingService.buildTenantTimeFormatter(tenantId);
                     details.setId(taskMapping.get().getUuid());
-                    details.setTaskName(jobTask.get().getName());
+                    details.setTaskName(jobMappingTask.get().getTaskName());
                     details.setNote(taskMapping.get().getTechnicianNote());
                     details.setFrontOfficeNote(taskMapping.get().getNote());
                     String customerFeedbackLink = clientFeedbackLink
@@ -2380,7 +2377,7 @@ public class JobServiceImpl implements JobService {
                         details.setDrawingImage(taskMapping.get().getDrawingImage());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setAssignType(jobMappingTask.get().getAssignType().toString());
-                    details.setTaskDescription(jobTask.get().getDescription());
+                    details.setTaskDescription(jobMappingTask.get().getDescription() != null ? jobMappingTask.get().getDescription() : null);
                     details.setJobDescription(job.get().getJobDescription());
                     if(taskMapping.get().getStartDate() != null){
                         details.setStartDate(dateFormatter != null ? taskMapping.get().getStartDate().format(dateFormatter) : taskMapping.get().getStartDate().toString());
@@ -2471,13 +2468,13 @@ public class JobServiceImpl implements JobService {
                         details.setFormList(list);
                     }
                     return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Mapping Task fetched successfully", details, "200", HttpStatus.OK), HttpStatus.OK);
-                } else if (job.isPresent() && jobTask.isPresent()) {
+                } else if (job.isPresent()) {
                     details.setId(jobMappingTask.get().getUuid());
                     details.setTaskName(jobMappingTask.get().getTaskName());
                     details.setNote(jobMappingTask.get().getNote());
                     details.setFrontOfficeNote(jobMappingTask.get().getNote());
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
-                    details.setTaskDescription(jobTask.get().getDescription());
+                    details.setTaskDescription(jobMappingTask.get().getDescription() != null ? jobMappingTask.get().getDescription() : null);
                     details.setAssignType(jobMappingTask.get().getAssignType().toString());
                     return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Mapping Task fetched successfully", details, "200", HttpStatus.OK), HttpStatus.OK);
                 } else {
@@ -2642,46 +2639,33 @@ public class JobServiceImpl implements JobService {
             if (withJobDetails.getJobId() == null) {
                 throw new CodeException("Job Id is required", ErrorCode.COMMON);
             }
-            if (withJobDetails.getJobTypeId() == null) {
-                throw new CodeException("JobTypeId is required", ErrorCode.COMMON);
-            }
             if (withJobDetails.getName() == null || withJobDetails.getName().isBlank()) {
                 throw new CodeException("Task name is required", ErrorCode.COMMON);
             }
-            Job job = jobRepository.findByUuidAndDeletedFalse(withJobDetails.getJobId()).
+            Job job = jobRepository.findByIdWithTasks(withJobDetails.getJobId()).
                     orElseThrow(() -> new CodeException("Job not found", ErrorCode.COMMON));
-            JobType jobType = jobTypeRepository.findByUuid(withJobDetails.getJobTypeId()).
-                    orElseThrow(() -> new CodeException("Job type not found", ErrorCode.COMMON));
             JobStatusMaster jobStatusMaster = jobStatusMasterRepository.findByUuid(withJobDetails.getStatusMasterId())
                     .orElseThrow(() -> new CodeException("Job status not found", ErrorCode.COMMON));
+            int insertAt = withJobDetails.getPreviousTaskSequence() == null  ? 1 : withJobDetails.getPreviousTaskSequence() + 1;
+            // shift tasks below insertion point
+            job.getJobMappingTasks()
+                    .stream()
+                    .filter(t -> t.getTaskSequence() != null)
+                    .filter(t -> t.getTaskSequence() >= insertAt)
+                    .forEach(t -> t.setTaskSequence(t.getTaskSequence() + 1));
 
-            //Create JobTask entity
-            JobTask jobTask = new JobTask();
-            jobTask.setName(withJobDetails.getName());
-            jobTask.setDescription(withJobDetails.getDescription());
-            jobTask.setAssignedType(withJobDetails.getAssignedType());
-            jobTask.setSequence(withJobDetails.getPreviousTaskSequence() == null ? 1 : withJobDetails.getPreviousTaskSequence() + 1);
-            jobTask.setJobType(jobType);
-            jobTask.setJobStatusMaster(jobStatusMaster);
-            //Save JobTask
-            JobTask savedTask = jobTaskRepository.save(jobTask);
-            //save job mapping task
-            if (savedTask.getSequence() == 1) {
-                job.setCurrentTaskId(savedTask.getUuid());
-                job.setJobStatusMaster(savedTask.getJobStatusMaster());
-                job.setJobStatus(savedTask.getName());
-            }
             JobMappingTask task = new JobMappingTask();
-            task.setTaskId(savedTask.getUuid());
-            task.setTaskName(savedTask.getName());
+            task.setTaskId(UUID.randomUUID().toString());
+            task.setTaskName(withJobDetails.getName());
             task.setTaskShowId(codeGenerator.generateTaskId());
-            task.setTaskSequence(savedTask.getSequence());
-            task.setJobTaskStatus(savedTask.getJobStatusMaster().getName());
-            task.setAssignType(savedTask.getAssignedType());
+            task.setTaskSequence(insertAt);
+            task.setJobTaskStatus(jobStatusMaster.getName());
+            task.setAssignType(withJobDetails.getAssignedType());
+            task.setDescription(withJobDetails.getDescription());
             task.setJob(job);
             job.getJobMappingTasks().add(task);
             Job save = jobRepository.save(job);
-            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task saved successfully", savedTask.getUuid(), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task saved successfully", task.getUuid(), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, e.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
         }

@@ -45,6 +45,9 @@ public class JobMappingTask extends AbstractPersistable {
     @Column(name = "note")
     private String note;
 
+    @Column(name = "description")
+    private String description;
+
 
 
 
