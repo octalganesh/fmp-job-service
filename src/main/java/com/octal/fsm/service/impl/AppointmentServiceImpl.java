@@ -98,6 +98,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new CodeException("end date time cannot be null", ErrorCode.COMMON);
         if (TextUtils.isEmpty(add.getTechnicianId()))
             throw new CodeException("technician id is required", ErrorCode.COMMON);
+        boolean isUpdate = false;
         Appointment appointment;
         if (TextUtils.isEmpty(add.getId())) {
             appointment = new Appointment();
@@ -117,6 +118,8 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointment.setAppointmentType(byUuid.get());
             }
         }
+        if(!appointment.getTechnicianId().equalsIgnoreCase(add.getTechnicianId()))
+            isUpdate=true;
         appointment.setActive(true);
         appointment.setDeleted(false);
         appointment.setStatus("Scheduled");
@@ -132,7 +135,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment = appointmentRepository.save(appointment);
         if(TextUtils.isEmpty(add.getId())){
             applicationEventPublisher.publishEvent(new AppointmentNotificationEvent(this,appointment, userName));
-        }else if(!appointment.getTechnicianId().equalsIgnoreCase(add.getTechnicianId())){
+        }else if(isUpdate){
             applicationEventPublisher.publishEvent(new AppointmentNotificationEvent(this,appointment, userName));
         }
         return appointment.getUuid();
