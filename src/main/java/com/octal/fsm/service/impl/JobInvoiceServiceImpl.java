@@ -167,9 +167,10 @@ public class JobInvoiceServiceImpl implements JobInvoiceService {
 
         dto.setCustomerTypeId(listRequest.getCustomerTypeId());
 
-        dto.setPaymentId(invoice.getInvoiceId());
+        dto.setPaymentId(invoice.getTxnId() != null ? invoice.getTxnId() : invoice.getInvoiceId());
         dto.setTotalPaymentAmount(invoice.getAmount());
         dto.setNotes(invoice.getNote());
+        dto.setPaymentType(invoice.getPaymentType() != null ? invoice.getPaymentType() : null);
 
         dto.setPaymentStatus(Boolean.TRUE.equals(invoice.getPaid()) ? "PAID" : "PENDING");
 

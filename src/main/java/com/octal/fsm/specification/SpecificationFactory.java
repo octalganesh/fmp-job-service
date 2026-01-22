@@ -126,4 +126,8 @@ public class SpecificationFactory<T> {
         };
     }
 
+    public Specification<T> group(Specification<T> spec) {
+        return (root, query, cb) -> cb.and(spec.toPredicate(root, query, cb));
+    }
+
 }

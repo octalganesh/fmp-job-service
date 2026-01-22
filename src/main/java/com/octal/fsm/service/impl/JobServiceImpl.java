@@ -1028,7 +1028,7 @@ public class JobServiceImpl implements JobService {
 //            return new PageItem<>()
 //        }
         JobTaskMappingTechnician taskMapping = taskMappingOpt.get();
-        List<InventoryRequest> inventoryRequests = inventoryRequestRepository.findByTaskId(taskId);
+        List<InventoryRequest> inventoryRequests = inventoryRequestRepository.findByTaskIdOrderByCreatedAtDesc(taskId);
         List<InventoryRequestResponseDTO> dtoList = inventoryRequests.stream().map(this::toDto).collect(Collectors.toList());
 
         List<JobDTO.DetailsForTechnician> detailsList = buildTechnicianJobTaskDetails(List.of(taskMapping), "", userName, tenantId);
@@ -2740,6 +2740,8 @@ public class JobServiceImpl implements JobService {
                 queue.setPaid(add.getIsPaid());
                 queue.setBalanceDue(add.getBalanceDue());
                 queue.setTotalAmountWithTax(add.getTotalAmountWithTax());
+                queue.setTxnId(add.getTxnId() != null ? add.getTxnId() : queue.getTxnId());
+                queue.setPaymentType(add.getPaymentType() != null ? add.getPaymentType() : queue.getPaymentType());
                 queue.setUpdatedAt(LocalDateTime.now());
                 toSave.add(queue);
             }
