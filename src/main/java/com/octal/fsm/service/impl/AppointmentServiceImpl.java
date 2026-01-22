@@ -118,7 +118,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointment.setAppointmentType(byUuid.get());
             }
         }
-        if(!appointment.getTechnicianId().equalsIgnoreCase(add.getTechnicianId()))
+        if(!add.getTechnicianId().equalsIgnoreCase(appointment.getTechnicianId()))
             isUpdate=true;
         appointment.setActive(true);
         appointment.setDeleted(false);
