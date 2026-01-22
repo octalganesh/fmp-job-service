@@ -11,6 +11,7 @@ import com.octal.fsm.dto.*;
 import com.octal.fsm.entities.*;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
+import com.octal.fsm.listener.events.AppointmentNotificationEvent;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.*;
 import com.octal.fsm.service.AdminClientService;
@@ -21,6 +22,7 @@ import com.octal.fsm.specification.GenericSpecificationsBuilder;
 import com.octal.fsm.specification.SpecificationFactory;
 import com.octal.fsm.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -67,6 +69,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Autowired
     private GeneralSettingService generalSettingService;
+
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     public String addAppointment(AppointmentDTO.Add add, String userName) throws CodeException {
@@ -125,6 +130,11 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setEndDateTime(add.getEndDateTime());
         appointment.setTechnicianId(add.getTechnicianId());
         appointment = appointmentRepository.save(appointment);
+        if(TextUtils.isEmpty(add.getId())){
+            applicationEventPublisher.publishEvent(new AppointmentNotificationEvent(this,appointment, userName));
+        }else if(!appointment.getTechnicianId().equalsIgnoreCase(add.getTechnicianId())){
+            applicationEventPublisher.publishEvent(new AppointmentNotificationEvent(this,appointment, userName));
+        }
         return appointment.getUuid();
     }
 
