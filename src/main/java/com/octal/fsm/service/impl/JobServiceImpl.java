@@ -2704,12 +2704,9 @@ public class JobServiceImpl implements JobService {
                                 .orElse(null);
 
                 if (nextTask != null) {
-                    JobTask nextJobTask = jobTaskRepository.findByUuidAndDeletedFalse(nextTask.getTaskId()).orElse(null);
-                    if(nextJobTask != null){
-                        job.setCurrentTaskId(nextJobTask.getUuid());
-                        job.setJobStatus(nextJobTask.getName());
-                        job.setJobStatusMaster(nextJobTask.getJobStatusMaster());
-                    }
+                    job.setCurrentTaskId(nextTask.getUuid());
+                    job.setJobStatus(nextTask.getTaskName());
+                    job.setJobStatusMaster(nextTask.getJob().getJobStatusMaster());
                 } else {
                     job.setCurrentTaskId(null);
                 }
