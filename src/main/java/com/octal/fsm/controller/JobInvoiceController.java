@@ -34,4 +34,17 @@ public class JobInvoiceController extends BaseController {
             return handleException(e);
         }
     }
+
+    @PostMapping("/transactions")
+    public ResponseEntity<ApiResponse> getTransactions(@RequestBody PageRequest.List listRequest, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean superAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Payment list successfully",
+                    jobInvService.getTrxData(listRequest,tenantId,superAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving payments: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
 }

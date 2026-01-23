@@ -28,6 +28,7 @@ public class AppointmentDTO {
         private LocalDateTime endDateTime;
         private String additionalNotes;
         private String status;
+        private String appointmentTypeId;
     }
 
     @Data
@@ -50,6 +51,11 @@ public class AppointmentDTO {
         private Boolean isActive;
         private String status;
         private String customerName;
+        private String location;
+        private Double lat;
+        private Double lng;
         private String taskName;
+        private String appointmentTypeId;
+        private String appointmentTypeName;
     }
 }

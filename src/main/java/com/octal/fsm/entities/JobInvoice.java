@@ -57,4 +57,8 @@
 
         @Column(name = "is_paid")
         private Boolean isPaid;
+
+        private String txnId;
+        @Column(name = "payment_type")
+        private String paymentType;
     }

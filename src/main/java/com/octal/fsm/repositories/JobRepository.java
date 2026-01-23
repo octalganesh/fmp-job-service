@@ -19,7 +19,11 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
 
     Optional<Job> findByUuidAndDeletedFalse(String id);
 
+    Optional<Job> findByJobIdAndDeletedFalse(String jobId);
+
     Optional<Job> findByUuidAndTenantIdAndDeletedFalse(String id, Long tenantId);
+
+    Optional<Job> findByJobIdAndTenantIdAndDeletedFalse(String id, Long tenantId);
 
     Page<Job> findAllByDeletedFalse(Pageable pageable);
 
@@ -27,7 +31,7 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
 
     Boolean existsByUuidAndDeletedFalse(String uuid);
 
-    Boolean existsByJobIdAndDeletedFalse(String uuid);
+    Boolean existsByJobIdAndDeletedFalse(String jobId);
 
     Boolean existsByUuidAndTenantIdAndDeletedFalse(String uuid, Long tenantId);
 
@@ -57,4 +61,8 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
     LocalDateTime findEarliestJobCreatedAtByTenantId(@Param("tenantId") Long tenantId);
 
     List<Job> findAllByFrontOfficeIdAndDeletedFalse(String frontOfficeId);
+
+    @Query("select j from Job j left join fetch j.jobMappingTasks where j.uuid = :uuid")
+    Optional<Job> findByIdWithTasks(@Param("uuid") String uuid);
+
 }
