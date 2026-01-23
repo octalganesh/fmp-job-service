@@ -1148,10 +1148,11 @@ public class JobServiceImpl implements JobService {
             Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(taskMapping.getJobTaskMappingId());
             if (jobMappingTask.isPresent()) {
                 Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobMappingTask.get().getJob().getUuid());
-                Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.get().getTaskId());
+                //Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.get().getTaskId());
                 JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
 
-                if (job.isPresent() && jobTask.isPresent()) {
+                //if (job.isPresent() && jobTask.isPresent()) {
+                if(job.isPresent()){
                     if (!TextUtils.isEmpty(job.get().getFrontOfficeId())) {
                         FrontOfficeStaffDTO.list frontOfficeResponseData = adminClientService.getFrontOfficeById(job.get().getFrontOfficeId(), tenantId);
                         if (frontOfficeResponseData != null) {
@@ -1189,7 +1190,7 @@ public class JobServiceImpl implements JobService {
                         }
                     }
                     details.setId(taskMapping.getUuid());
-                    details.setTaskName(jobTask.get().getName());
+                    details.setTaskName(jobMappingTask.get().getTaskName());
                     details.setNote(taskMapping.getTechnicianNote());
                     details.setFrontOfficeNote(taskMapping.getNote());
                     String customerFeedbackLink = clientFeedbackLink
@@ -1215,8 +1216,8 @@ public class JobServiceImpl implements JobService {
                     if(job.get().getJobEndDate() != null){
                         details.setJobEndDate(dateFormatter != null ? job.get().getJobEndDate().format(dateFormatter) : job.get().getJobEndDate().toString());
                     }
-                    details.setTaskDescription(jobTask.get().getDescription());
-                    details.setJobTitle(jobTask.get().getName());
+                    details.setTaskDescription(jobMappingTask.get().getDescription());
+                    details.setJobTitle(jobMappingTask.get().getTaskName());
                     details.setJobDescription(job.get().getJobDescription());
                     if(taskMapping.getStartDate() != null){
                         details.setStartDate(dateFormatter != null ? taskMapping.getStartDate().format(dateFormatter) : taskMapping.getStartDate().toString());
