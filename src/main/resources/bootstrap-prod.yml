@@ -5,7 +5,7 @@ spring:
     vault:
       uri: http://192.168.1.73:8200
       authentication: TOKEN
-      token: hvs.CAESIAxdJ3YkyNZFqPPHWWtawCG0peI6nnPBl9Qu6_q-UXHaGh4KHGh2cy5KbjdMbk9GZmk2YUlubzJ5TGlReDJWbFE   # better to export this in env
+      token: hvs.CAESIEzB6ltEDQA0E7eoKnMj2MYwtpbS4tJwTj4QKoD5Vk6bGh4KHGh2cy5sZVVtVTU4ZlRNcThJcWowUVNST05UcEg   # better to export this in env
       generic:
         enabled: true
         backend: uat/fms
