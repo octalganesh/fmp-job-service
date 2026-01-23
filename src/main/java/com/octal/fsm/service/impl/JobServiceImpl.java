@@ -624,9 +624,9 @@ public class JobServiceImpl implements JobService {
         Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(assignJobToTechnician.getJobTaskMappingId());
         if (jobMappingTask.isEmpty())
             throw new CodeException("Job Task Mapping Not Found", ErrorCode.COMMON);
-        Boolean taskExist = jobTaskRepository.existsByUuid(jobMappingTask.get().getTaskId());
-        if (!taskExist)
-            throw new CodeException("Job Task Not Found", ErrorCode.COMMON);
+//        Boolean taskExist = jobTaskRepository.existsByUuid(jobMappingTask.get().getTaskId());
+//        if (!taskExist)
+//            throw new CodeException("Job Task Not Found", ErrorCode.COMMON);
         TechnicianDTO.GetDetails technicianDetails = technicianClientService.getTechnicianById(assignJobToTechnician.getTechnicianId(), loggedInUserEmail);
         if (technicianDetails != null) {
             JobTaskMappingTechnician jobTaskMappingTechnician = new JobTaskMappingTechnician();
