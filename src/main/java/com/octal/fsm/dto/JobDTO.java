@@ -189,6 +189,10 @@ public class JobDTO {
         private Integer sequenceNumber;
         private String note;
         private List<DocumentDTO.ListResponse> documents;
+        private String startDate;
+        private String endDate;
+        private String startTime;
+        private String endTime;
     }
 
     @Data
@@ -312,6 +316,7 @@ public class JobDTO {
         private List<HTMLFormDTO.Details> formList;
         private String frontOfficeName;
         private String frontOfficeId;
+        private List<InventoryRequestResponseDTO> inventoryList;
     }
 
     @Data

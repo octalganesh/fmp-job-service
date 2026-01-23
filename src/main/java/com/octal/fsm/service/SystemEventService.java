@@ -8,5 +8,5 @@ import java.util.List;
 
 public interface SystemEventService {
 
-    public List<SystemEventLogDTO> getEventsForReference(String referenceId);
+    public List<SystemEventLogDTO> getEventsForReference(String referenceId, Long tenantId);
 }

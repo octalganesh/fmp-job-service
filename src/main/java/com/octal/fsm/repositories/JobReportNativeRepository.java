@@ -15,7 +15,7 @@ public interface JobReportNativeRepository extends JpaRepository<Job, Long> {
     @Query(value =
             "SELECT " +
                     " (SELECT COUNT(*) FROM jobs j WHERE j.tenant_id = :tenantId AND j.created_at BETWEEN :startDate AND :endDate) AS total_jobs, " +
-                    " (SELECT COUNT(*) FROM jobs j WHERE j.tenant_id = :tenantId AND j.job_status = 'ACTIVE' AND j.created_at BETWEEN :startDate AND :endDate) AS active_jobs, " +
+                    " (SELECT COUNT(*) FROM jobs j WHERE j.tenant_id = :tenantId AND j.is_active = true AND j.created_at BETWEEN :startDate AND :endDate) AS active_jobs, " +
                     " (SELECT COALESCE(SUM(CASE WHEN i.paid = TRUE THEN i.amount ELSE 0 END), 0) FROM job_invoice i WHERE i.created_at BETWEEN :startDate AND :endDate) AS total_revenue_collected, " +
                     " (SELECT COALESCE(SUM(i.amount), 0) FROM job_invoice i WHERE i.created_at BETWEEN :startDate AND :endDate) AS total_revenue_generated, " +
                     " (SELECT COALESCE(SUM(CASE WHEN i.paid = FALSE OR i.paid IS NULL THEN i.amount ELSE 0 END), 0) FROM job_invoice i WHERE i.created_at BETWEEN :startDate AND :endDate) AS total_pending_amounts, " +
@@ -42,7 +42,7 @@ public interface JobReportNativeRepository extends JpaRepository<Job, Long> {
 
     @Query(value =
             "SELECT " +
-                    " (SELECT COUNT(*) FROM jobs j WHERE j.tenant_id = :tenantId AND j.job_status = 'ACTIVE' AND j.created_at BETWEEN :startDate AND :endDate) AS active_jobs, " +
+                    " (SELECT COUNT(*) FROM jobs j WHERE j.tenant_id = :tenantId AND j.is_active = true AND j.created_at BETWEEN :startDate AND :endDate) AS active_jobs, " +
                     " (SELECT COUNT(*) FROM jobs j WHERE j.tenant_id = :tenantId AND j.created_at BETWEEN :startDate AND :endDate) AS total_jobs, " +
 
                     // Total Revenue Generated (Paid Invoices)

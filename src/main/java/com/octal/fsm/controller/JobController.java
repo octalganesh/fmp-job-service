@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -279,7 +280,8 @@ public class JobController extends BaseController {
                                                       @RequestParam(defaultValue = "true") Boolean order, HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice List Successfully.", jobService.getAllJobInvoices(page, size, sortBy, order, jobId, userName), "200", HttpStatus.OK), HttpStatus.OK);
+            Long tenantId = getTenantId(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice List Successfully.", jobService.getAllJobInvoices(page, size, sortBy, order, jobId, userName,tenantId), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);
@@ -565,6 +567,65 @@ public class JobController extends BaseController {
             return jobService.getJobMappingTaskByTechnician(listRequest, tenantId, isSuperAdmin);
         } catch (Exception e) {
             logger.error("Error retrieving Forms Details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PostMapping("/invoice/update-details")
+    public ResponseEntity<ApiResponse> updateInvoiceDetails(@RequestBody InvoiceRestDTO.Add add, HttpServletRequest request) {
+        try {
+            jobService.updateInvoiceDetails(add);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice Update successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving invoice Details : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @GetMapping("/all-jobs-for-technician/{technicianId}")
+    public ResponseEntity<ApiResponse> getAllJobForTechnician(@PathVariable("technicianId") String technicianId, HttpServletRequest request) {
+        try {
+            String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job created successfully", jobService.getAllJobByTechnicianId(technicianId,userName, tenantId, isSuperAdmin), "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving job task details for technician: {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+
+    @PostMapping("/add-task-from-job")
+    public ResponseEntity<ApiResponse> addTaskFromJob(@RequestBody JobTaskDTO.AddWithJobDetails withJobDetails, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.addTaskFromJob(withJobDetails, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error add task : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+
+    @PutMapping("/remove-task/{taskId}")
+    public ResponseEntity<ApiResponse> removeTaskData(@PathVariable String taskId, HttpServletRequest request) {
+        try {
+            Long tenantId = getTenantId(request);
+            boolean isSuperAdmin = isSuperAdmin(request);
+            return jobService.removeTask(taskId, tenantId, isSuperAdmin);
+        } catch (Exception e) {
+            logger.error("Error add task : {}", e.getMessage(), e);
+            return handleException(e);
+        }
+    }
+    @PostMapping("/invoice/update-details-list")
+    public ResponseEntity<ApiResponse> updateInvoiceDetailsList(@RequestBody List<InvoiceRestDTO.Add> addList, HttpServletRequest request) {
+        try {
+            jobService.updateInvoiceDetailsList(addList);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Invoice Update successfully", null, "200", HttpStatus.OK), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error retrieving invoice Details : {}", e.getMessage(), e);
             return handleException(e);
         }
     }

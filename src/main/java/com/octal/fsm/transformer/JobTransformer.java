@@ -73,6 +73,7 @@ public class JobTransformer {
                 task.setTaskSequence(jobTaskExist.get().getSequence());
                 task.setJobTaskStatus(jobTaskExist.get().getJobStatusMaster().getName());
                 task.setAssignType(jobTaskExist.get().getAssignedType());
+                task.setDescription(jobTaskExist.get().getDescription() != null ? jobTaskExist.get().getDescription() : null);
                 task.setJob(job);
                 jobMappingTask.add(task);
             }
@@ -249,10 +250,12 @@ public class JobTransformer {
                     LocalDate jobStartDate = LocalDate.parse(addJobDTO.getJobStartDate());
                     job.setJobStartDate(jobStartDate);
                 }
+                LocalDate jobEndDate=null;
                 if (!TextUtils.isEmpty(addJobDTO.getJobEndDate())) {
-                    LocalDate jobEndDate = LocalDate.parse(addJobDTO.getJobEndDate());
-                    job.setJobEndDate(jobEndDate);
+                    jobEndDate = LocalDate.parse(addJobDTO.getJobEndDate());
                 }
+                    job.setJobEndDate(jobEndDate);
+                //}
             } catch (Exception e) {
                 e.printStackTrace();
             }

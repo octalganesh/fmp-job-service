@@ -16,4 +16,6 @@ public interface AppointmentService {
     PageItem<AppointmentDTO.ListResponse> listAllAppointmentsWithTechnicianId(PageRequest.List list, Long tenantId, Boolean isSuperAdmin, String userName) throws CodeException;
 
     String updateAppointmentStatus(String id) throws CodeException;
+
+    AppointmentDTO.ListResponse getAppointmentById(String id,Long tenantId,String userName) throws CodeException;
 }

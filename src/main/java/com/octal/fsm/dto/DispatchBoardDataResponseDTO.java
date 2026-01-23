@@ -23,5 +23,6 @@ public class DispatchBoardDataResponseDTO {
     private TechnicianDTO.GetDetails techDetails;
     private String jobTypeId;
     private String jobStatus;
+    private String jobTypeName;
 
 }

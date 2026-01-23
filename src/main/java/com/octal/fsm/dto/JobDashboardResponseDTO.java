@@ -22,6 +22,7 @@ public class JobDashboardResponseDTO {
         private List<LocationSummaryDTO> popularServiceLocations;
         private Long totalJobs;
         private Map<String, Long> jobsByType;
+        private List<RevenueOverviewPointDTO> revenueOverview;
     }
 
     @Data
@@ -39,6 +40,13 @@ public class JobDashboardResponseDTO {
         private String name; // service_location
         private int jobs;
         private double revenue;
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class RevenueOverviewPointDTO {
+        private String month; // "Jan", "Feb" etc.
+        private double value; // revenue value
     }
 
 

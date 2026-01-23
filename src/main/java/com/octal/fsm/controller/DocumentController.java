@@ -63,8 +63,9 @@ public class DocumentController extends BaseController {
                                                     HttpServletRequest request) {
         try {
             String userName = request.getHeader(CommonConstants.USER_NAME);
+            Long tenantId = getTenantId(request);
             //Todo List Method to get all Job List.
-            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", documentService.getListOfDocument(type, typeId, uploadedByType, uploadByTypeId, fileType, page, size, sortBy, order, documentTypeId, userName), "200", HttpStatus.OK), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse(Boolean.TRUE, "Job list successfully", documentService.getListOfDocument(tenantId,type, typeId, uploadedByType, uploadByTypeId, fileType, page, size, sortBy, order, documentTypeId, userName), "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error creating job: {}", e.getMessage(), e);
             return handleException(e);
