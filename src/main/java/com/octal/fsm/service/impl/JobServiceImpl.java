@@ -1118,6 +1118,8 @@ public class JobServiceImpl implements JobService {
                                 jobOptional.get().setJobStatus(jobStatus.get(0).getName());
                             }
                         }
+                        currentTask.setJobTaskStatus("COMPLETED");
+                        jobMappingTaskRepository.save(currentTask);
                         jobRepository.save(jobOptional.get());
                     }
                 }
@@ -1603,6 +1605,8 @@ public class JobServiceImpl implements JobService {
                             jobOptional.get().setJobStatus(jobStatus.get(0).getName());
                         }
                     }
+                    currentTask.setJobTaskStatus("COMPLETED");
+                    jobMappingTaskRepository.save(currentTask);
                     jobRepository.save(jobOptional.get());
                 }
             }
@@ -2699,20 +2703,35 @@ public class JobServiceImpl implements JobService {
 
             if (mappingTask.getTaskId().equals(job.getCurrentTaskId())) {
                 JobMappingTask nextTask = job.getJobMappingTasks().stream()
-                                .filter(t -> !Boolean.TRUE.equals(t.isDeleted()))
+                                .filter(t -> !Boolean.TRUE.equals(t.isDeleted()) && !t.getJobTaskStatus().equalsIgnoreCase("COMPLETED"))
                                 .min(Comparator.comparing(JobMappingTask::getTaskSequence))
                                 .orElse(null);
-
                 if (nextTask != null) {
-                    job.setCurrentTaskId(nextTask.getUuid());
-                    job.setJobStatus(nextTask.getTaskName());
-                    job.setJobStatusMaster(nextTask.getJob().getJobStatusMaster());
+                    JobTask nextJobTask = jobTaskRepository.findByUuidAndDeletedFalse(nextTask.getTaskId()).orElse(null);
+                    if(nextJobTask != null){
+                        job.setCurrentTaskId(nextJobTask.getUuid());
+                        job.setJobStatus(nextJobTask.getName());
+                        job.setJobStatusMaster(nextJobTask.getJobStatusMaster());
+                    }else{
+                        job.setCurrentTaskId(nextTask.getUuid());
+                        job.setJobStatus(nextTask.getTaskName());
+                        job.setJobStatusMaster(nextTask.getJob().getJobStatusMaster());
+                    }
                 } else {
                     job.setCurrentTaskId(null);
                 }
+            }else if(mappingTask.getUuid().equals(job.getCurrentTaskId())){
+                JobMappingTask nextTask = job.getJobMappingTasks().stream()
+                        .filter(t -> !Boolean.TRUE.equals(t.isDeleted()) && !t.getJobTaskStatus().equalsIgnoreCase("COMPLETED"))
+                        .min(Comparator.comparing(JobMappingTask::getTaskSequence))
+                        .orElse(null);
+
+                job.setCurrentTaskId(nextTask.getUuid());
+                job.setJobStatus(nextTask.getTaskName());
+                job.setJobStatusMaster(nextTask.getJob().getJobStatusMaster());
             }
             jobRepository.save(job);
-            jobMappingTaskRepository.save(mappingTask);
+//            jobMappingTaskRepository.save(mappingTask);
             return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task Removed successfully", "", "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, e.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
