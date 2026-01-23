@@ -31,7 +31,7 @@ public class QuickBooksTokenScheduler {
     @Autowired
     private QuickBooksTokenStore quickBooksTokenStore;
 
-    @Scheduled(cron = "0 */5 * * * *")
+    //@Scheduled(cron = "0 */5 * * * *")
     public void refreshTokens() throws OAuthException {
         LOGGER.info("refresh token method called - " + LocalDateTime.now());
         try {
