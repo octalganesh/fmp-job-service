@@ -1553,7 +1553,8 @@ public class JobServiceImpl implements JobService {
             Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
             if (jobMappingTask.isEmpty())
                 throw new CodeException("Job Task mapping not found", ErrorCode.BAD_REQUEST);
-            jobMappingTask.get().setJobTaskStatus("COMPLETED");
+            if(updateJobTaskDetails.getIsDone())
+                jobMappingTask.get().setJobTaskStatus("COMPLETED");
             jobMappingTaskRepository.save(jobMappingTask.get());
         } else if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.CSR)) {
             if (TextUtils.isEmpty(updateJobTaskDetails.getTaskId()))
@@ -1573,7 +1574,8 @@ public class JobServiceImpl implements JobService {
             if (!TextUtils.isEmpty(updateJobTaskDetails.getNote())){
                 jobMappingTask.get().setNote(updateJobTaskDetails.getNote());
             }
-            jobMappingTask.get().setJobTaskStatus("COMPLETED");
+            if(updateJobTaskDetails.getIsDone())
+                jobMappingTask.get().setJobTaskStatus("COMPLETED");
             jobMappingTaskRepository.save(jobMappingTask.get());
         }
         if (updateJobTaskDetails.getIsDone()) {
