@@ -292,7 +292,7 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail,Long tenantId) throws CodeException {
-        Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(jobId);
+        Boolean jobExist = jobRepository.existsByJobIdAndDeletedFalse(jobId);
         if (!jobExist)
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         GenericSpecificationsBuilder<JobInvoice> builder = new GenericSpecificationsBuilder<>();
@@ -624,9 +624,9 @@ public class JobServiceImpl implements JobService {
         Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(assignJobToTechnician.getJobTaskMappingId());
         if (jobMappingTask.isEmpty())
             throw new CodeException("Job Task Mapping Not Found", ErrorCode.COMMON);
-        Boolean taskExist = jobTaskRepository.existsByUuid(jobMappingTask.get().getTaskId());
-        if (!taskExist)
-            throw new CodeException("Job Task Not Found", ErrorCode.COMMON);
+//        Boolean taskExist = jobTaskRepository.existsByUuid(jobMappingTask.get().getTaskId());
+//        if (!taskExist)
+//            throw new CodeException("Job Task Not Found", ErrorCode.COMMON);
         TechnicianDTO.GetDetails technicianDetails = technicianClientService.getTechnicianById(assignJobToTechnician.getTechnicianId(), loggedInUserEmail);
         if (technicianDetails != null) {
             JobTaskMappingTechnician jobTaskMappingTechnician = new JobTaskMappingTechnician();
@@ -1118,6 +1118,8 @@ public class JobServiceImpl implements JobService {
                                 jobOptional.get().setJobStatus(jobStatus.get(0).getName());
                             }
                         }
+                        currentTask.setJobTaskStatus("COMPLETED");
+                        jobMappingTaskRepository.save(currentTask);
                         jobRepository.save(jobOptional.get());
                     }
                 }
@@ -1146,10 +1148,11 @@ public class JobServiceImpl implements JobService {
             Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(taskMapping.getJobTaskMappingId());
             if (jobMappingTask.isPresent()) {
                 Optional<Job> job = jobRepository.findByUuidAndDeletedFalse(jobMappingTask.get().getJob().getUuid());
-                Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.get().getTaskId());
+                //Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.get().getTaskId());
                 JobDTO.DetailsForTechnician details = new JobDTO.DetailsForTechnician();
 
-                if (job.isPresent() && jobTask.isPresent()) {
+                //if (job.isPresent() && jobTask.isPresent()) {
+                if(job.isPresent()){
                     if (!TextUtils.isEmpty(job.get().getFrontOfficeId())) {
                         FrontOfficeStaffDTO.list frontOfficeResponseData = adminClientService.getFrontOfficeById(job.get().getFrontOfficeId(), tenantId);
                         if (frontOfficeResponseData != null) {
@@ -1187,7 +1190,7 @@ public class JobServiceImpl implements JobService {
                         }
                     }
                     details.setId(taskMapping.getUuid());
-                    details.setTaskName(jobTask.get().getName());
+                    details.setTaskName(jobMappingTask.get().getTaskName());
                     details.setNote(taskMapping.getTechnicianNote());
                     details.setFrontOfficeNote(taskMapping.getNote());
                     String customerFeedbackLink = clientFeedbackLink
@@ -1213,8 +1216,8 @@ public class JobServiceImpl implements JobService {
                     if(job.get().getJobEndDate() != null){
                         details.setJobEndDate(dateFormatter != null ? job.get().getJobEndDate().format(dateFormatter) : job.get().getJobEndDate().toString());
                     }
-                    details.setTaskDescription(jobTask.get().getDescription());
-                    details.setJobTitle(jobTask.get().getName());
+                    details.setTaskDescription(jobMappingTask.get().getDescription());
+                    details.setJobTitle(jobMappingTask.get().getTaskName());
                     details.setJobDescription(job.get().getJobDescription());
                     if(taskMapping.getStartDate() != null){
                         details.setStartDate(dateFormatter != null ? taskMapping.getStartDate().format(dateFormatter) : taskMapping.getStartDate().toString());
@@ -1550,7 +1553,8 @@ public class JobServiceImpl implements JobService {
             Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
             if (jobMappingTask.isEmpty())
                 throw new CodeException("Job Task mapping not found", ErrorCode.BAD_REQUEST);
-            jobMappingTask.get().setJobTaskStatus("COMPLETED");
+            if(updateJobTaskDetails.getIsDone())
+                jobMappingTask.get().setJobTaskStatus("COMPLETED");
             jobMappingTaskRepository.save(jobMappingTask.get());
         } else if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.CSR)) {
             if (TextUtils.isEmpty(updateJobTaskDetails.getTaskId()))
@@ -1570,7 +1574,8 @@ public class JobServiceImpl implements JobService {
             if (!TextUtils.isEmpty(updateJobTaskDetails.getNote())){
                 jobMappingTask.get().setNote(updateJobTaskDetails.getNote());
             }
-            jobMappingTask.get().setJobTaskStatus("COMPLETED");
+            if(updateJobTaskDetails.getIsDone())
+                jobMappingTask.get().setJobTaskStatus("COMPLETED");
             jobMappingTaskRepository.save(jobMappingTask.get());
         }
         if (updateJobTaskDetails.getIsDone()) {
@@ -1603,6 +1608,8 @@ public class JobServiceImpl implements JobService {
                             jobOptional.get().setJobStatus(jobStatus.get(0).getName());
                         }
                     }
+                    currentTask.setJobTaskStatus("COMPLETED");
+                    jobMappingTaskRepository.save(currentTask);
                     jobRepository.save(jobOptional.get());
                 }
             }
@@ -2699,20 +2706,35 @@ public class JobServiceImpl implements JobService {
 
             if (mappingTask.getTaskId().equals(job.getCurrentTaskId())) {
                 JobMappingTask nextTask = job.getJobMappingTasks().stream()
-                                .filter(t -> !Boolean.TRUE.equals(t.isDeleted()))
+                                .filter(t -> !Boolean.TRUE.equals(t.isDeleted()) && !t.getJobTaskStatus().equalsIgnoreCase("COMPLETED"))
                                 .min(Comparator.comparing(JobMappingTask::getTaskSequence))
                                 .orElse(null);
-
                 if (nextTask != null) {
-                    job.setCurrentTaskId(nextTask.getUuid());
-                    job.setJobStatus(nextTask.getTaskName());
-                    job.setJobStatusMaster(nextTask.getJob().getJobStatusMaster());
+                    JobTask nextJobTask = jobTaskRepository.findByUuidAndDeletedFalse(nextTask.getTaskId()).orElse(null);
+                    if(nextJobTask != null){
+                        job.setCurrentTaskId(nextJobTask.getUuid());
+                        job.setJobStatus(nextJobTask.getName());
+                        job.setJobStatusMaster(nextJobTask.getJobStatusMaster());
+                    }else{
+                        job.setCurrentTaskId(nextTask.getUuid());
+                        job.setJobStatus(nextTask.getTaskName());
+                        job.setJobStatusMaster(nextTask.getJob().getJobStatusMaster());
+                    }
                 } else {
                     job.setCurrentTaskId(null);
                 }
+            }else if(mappingTask.getUuid().equals(job.getCurrentTaskId())){
+                JobMappingTask nextTask = job.getJobMappingTasks().stream()
+                        .filter(t -> !Boolean.TRUE.equals(t.isDeleted()) && !t.getJobTaskStatus().equalsIgnoreCase("COMPLETED"))
+                        .min(Comparator.comparing(JobMappingTask::getTaskSequence))
+                        .orElse(null);
+
+                job.setCurrentTaskId(nextTask.getUuid());
+                job.setJobStatus(nextTask.getTaskName());
+                job.setJobStatusMaster(nextTask.getJob().getJobStatusMaster());
             }
             jobRepository.save(job);
-            jobMappingTaskRepository.save(mappingTask);
+//            jobMappingTaskRepository.save(mappingTask);
             return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Task Removed successfully", "", "200", HttpStatus.OK), HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.FALSE, e.getMessage(), null, "500", HttpStatus.OK), HttpStatus.OK);
