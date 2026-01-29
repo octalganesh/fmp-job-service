@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.octal.fsm.dto.JobDashboardResponseDTO;
 import com.octal.fsm.dto.JobReportSummaryDTO;
+import com.octal.fsm.entities.Job;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.exceptions.ErrorCode;
 import com.octal.fsm.repositories.JobInvoiceRepository;
@@ -81,7 +82,15 @@ public class JobReportServiceImpl implements JobReportService {
             dto.setJobsByType(parseJsonMap(mapper, result.get("job_type_counts")));
         }
         try {
-            Object revenueOverview = jobInvoiceRepository.findRevenueOverview(6);
+            if(tenantId == null){
+                tenantId = 1L;
+            }
+            List<Job> jobs = Optional.ofNullable(jobRepository.findByTenantId(tenantId)).orElse(Collections.emptyList());
+            List<String> jobIds = jobs.stream().map(Job::getJobId).filter(Objects::nonNull).distinct().collect(Collectors.toList());
+            if (jobIds.isEmpty()) {
+                jobIds =  Collections.emptyList();
+            }
+            Object revenueOverview = jobInvoiceRepository.findRevenueOverview(6, jobIds);
             List<JobDashboardResponseDTO.RevenueOverviewPointDTO> revenueOverviewList = new ArrayList<>();
             if (revenueOverview != null) {
                 ObjectMapper objectMapper = new ObjectMapper();
