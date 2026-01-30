@@ -497,7 +497,7 @@ public class JobServiceImpl implements JobService {
         }
         if (!TextUtils.isEmpty(job.getLeadSourceId()) || !TextUtils.isEmpty(job.getCustomerTypeId()) || !TextUtils.isEmpty(job.getCustomerId())) {
             try {
-                ApiResponse apiResponse = adminClient.getJobDetailsForCustomerInfo(job.getCustomerId(), job.getLeadSourceId(), job.getCustomerTypeId(), loggedInUserEmail, tenantId, isSuperAdmin).getBody();
+                ApiResponse apiResponse = adminClient.getJobDetailsForCustomerInfo(job.getCustomerId(), job.getLeadSourceId(), job.getCustomerTypeId(), tenantId).getBody();
                 if (apiResponse != null && apiResponse.getData() != null) {
                     Gson gson = new Gson();
                     Type customerDetailsStr = new TypeToken<Map<String, String>>() {
