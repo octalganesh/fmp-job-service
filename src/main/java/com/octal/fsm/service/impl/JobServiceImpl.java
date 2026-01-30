@@ -2425,7 +2425,15 @@ public class JobServiceImpl implements JobService {
                         tag.ifPresent(jobTag -> jobTags.add(jobTag.getName()));
                     }
                     details.setJobTags(jobTags);
-                    List<Documents> jobDocuments = documentsRepository.findByAttachTypeId(job.get().getJobId());
+                    List<Documents> jobDocuments = new ArrayList<>();
+                    List<Documents> byJobId  = documentsRepository.findByAttachTypeId(job.get().getJobId());
+                    List<Documents> byUuid = documentsRepository.findByAttachTypeId(job.get().getUuid());
+                    if (byJobId != null) {
+                        jobDocuments.addAll(byJobId);
+                    }
+                    if (byUuid != null) {
+                        jobDocuments.addAll(byUuid);
+                    }
                     if (!jobDocuments.isEmpty()) {
                         for (Documents documents : jobDocuments) {
                             JobDTO.Document document = new JobDTO.Document();
