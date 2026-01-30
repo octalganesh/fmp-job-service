@@ -292,7 +292,7 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public PageItem<JobDTO.InvoiceListResponse> getAllJobInvoices(int page, int size, String sortBy, Boolean order, String jobId, String loggedInUserEmail,Long tenantId) throws CodeException {
-        Boolean jobExist = jobRepository.existsByUuidAndDeletedFalse(jobId);
+        Boolean jobExist = jobRepository.existsByJobIdAndDeletedFalse(jobId);
         if (!jobExist)
             throw new CodeException("Job Not Found", ErrorCode.COMMON);
         GenericSpecificationsBuilder<JobInvoice> builder = new GenericSpecificationsBuilder<>();
@@ -497,7 +497,7 @@ public class JobServiceImpl implements JobService {
         }
         if (!TextUtils.isEmpty(job.getLeadSourceId()) || !TextUtils.isEmpty(job.getCustomerTypeId()) || !TextUtils.isEmpty(job.getCustomerId())) {
             try {
-                ApiResponse apiResponse = adminClient.getJobDetailsForCustomerInfo(job.getCustomerId(), job.getLeadSourceId(), job.getCustomerTypeId(), loggedInUserEmail, tenantId, isSuperAdmin).getBody();
+                ApiResponse apiResponse = adminClient.getJobDetailsForCustomerInfo(job.getCustomerId(), job.getLeadSourceId(), job.getCustomerTypeId(), tenantId).getBody();
                 if (apiResponse != null && apiResponse.getData() != null) {
                     Gson gson = new Gson();
                     Type customerDetailsStr = new TypeToken<Map<String, String>>() {
@@ -1553,7 +1553,8 @@ public class JobServiceImpl implements JobService {
             Optional<JobMappingTask> jobMappingTask = jobMappingTaskRepository.findByUuid(updateJobTaskDetails.getTaskId());
             if (jobMappingTask.isEmpty())
                 throw new CodeException("Job Task mapping not found", ErrorCode.BAD_REQUEST);
-            jobMappingTask.get().setJobTaskStatus("COMPLETED");
+            if(updateJobTaskDetails.getIsDone())
+                jobMappingTask.get().setJobTaskStatus("COMPLETED");
             jobMappingTaskRepository.save(jobMappingTask.get());
         } else if (updateJobTaskDetails.getAssignedType().equals(TaskAssignedType.CSR)) {
             if (TextUtils.isEmpty(updateJobTaskDetails.getTaskId()))
@@ -1573,7 +1574,8 @@ public class JobServiceImpl implements JobService {
             if (!TextUtils.isEmpty(updateJobTaskDetails.getNote())){
                 jobMappingTask.get().setNote(updateJobTaskDetails.getNote());
             }
-            jobMappingTask.get().setJobTaskStatus("COMPLETED");
+            if(updateJobTaskDetails.getIsDone())
+                jobMappingTask.get().setJobTaskStatus("COMPLETED");
             jobMappingTaskRepository.save(jobMappingTask.get());
         }
         if (updateJobTaskDetails.getIsDone()) {

@@ -65,4 +65,6 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
     @Query("select j from Job j left join fetch j.jobMappingTasks where j.uuid = :uuid")
     Optional<Job> findByIdWithTasks(@Param("uuid") String uuid);
 
+    List<Job> findByTenantId(Long tenantId);
+
 }

@@ -62,7 +62,7 @@ public class JobInvoiceServiceImpl implements JobInvoiceService {
         }
 
         // get All Jobs
-        List<String> jobIds = getAllJobs(listRequest).stream().map(Job::getJobId).collect(Collectors.toList());
+        List<String> jobIds = getAllJobs(listRequest, tenantId).stream().map(Job::getJobId).collect(Collectors.toList());
 
         if (jobIds.isEmpty()) {
             return new PageItem<>(0, 0, new ArrayList<>(), listRequest.getPageNumber(), listRequest.getPageSize());
@@ -87,9 +87,10 @@ public class JobInvoiceServiceImpl implements JobInvoiceService {
         return new PageItem<>(pagedResult.getTotalPages(), pagedResult.getTotalElements(), responseList, listRequest.getPageNumber(), listRequest.getPageSize());
     }
 
-    private List<Job> getAllJobs(PageRequest.List listRequest) {
+    private List<Job> getAllJobs(PageRequest.List listRequest, Long tenantId) {
         GenericSpecificationsBuilder<Job> builder = new GenericSpecificationsBuilder<>();
         builder.with(jobSpecificationFactory.isEqual("deleted", false));
+        builder.with(jobSpecificationFactory.isEqual("tenantId", tenantId));
 
         if (listRequest.getIsActive() != null) {
             builder.with(jobSpecificationFactory.isEqual("isActive", listRequest.getIsActive()));
@@ -165,6 +166,7 @@ public class JobInvoiceServiceImpl implements JobInvoiceService {
 
         dto.setPaymentId(invoice.getTxnId() != null ? invoice.getTxnId() : invoice.getInvoiceId());
         dto.setTotalPaymentAmount(invoice.getAmount());
+        dto.setTotalPaymentPending(invoice.getAmount());
         dto.setNotes(invoice.getNote());
         dto.setPaymentType(invoice.getPaymentType() != null ? invoice.getPaymentType() : null);
 
@@ -241,7 +243,7 @@ public class JobInvoiceServiceImpl implements JobInvoiceService {
 
     public TransactionResponseDTO getTrxData(PageRequest.List listRequest, Long tenantId, boolean isSuperAdmin) throws CodeException {
 
-        List<Job> jobList = getAllJobs(listRequest);
+        List<Job> jobList = getAllJobs(listRequest, tenantId);
 
         // Store UUIDs for invoice lookup
         List<String> jobIds = jobList.stream()
