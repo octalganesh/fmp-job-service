@@ -2358,7 +2358,7 @@ public class JobServiceImpl implements JobService {
 //                Optional<JobTask> jobTask = jobTaskRepository.findByUuid(jobMappingTask.get().getTaskId());
                 Optional<JobTaskMappingTechnician> taskMapping = jobTaskMappingTechnicianRepository.findByJobTaskMappingId(jobMappingTask.get().getUuid());
                 JobDTO.TechnicianForFrontOffice details = new JobDTO.TechnicianForFrontOffice();
-                if (job.isPresent()  && taskMapping.isPresent()) {
+                if (job.isPresent()) {
                     if (TextUtils.isEmpty(job.get().getFrontOfficeId())) {
                         FrontOfficeStaffDTO.list frontOfficeResponseData = adminClientService.getFrontOfficeById(job.get().getFrontOfficeId(), tenantId);
                         if (frontOfficeResponseData != null) {
@@ -2372,51 +2372,84 @@ public class JobServiceImpl implements JobService {
                     DateTimeFormatter dateTimeFormatter = generalSettingService.buildTenantDateTimeFormatter(tenantId);
                     DateTimeFormatter dateFormatter = generalSettingService.buildTenantDateFormatter(tenantId);
                     DateTimeFormatter timeFormatter = generalSettingService.buildTenantTimeFormatter(tenantId);
-                    details.setId(taskMapping.get().getUuid());
+
+
                     details.setTaskName(jobMappingTask.get().getTaskName());
-                    details.setNote(taskMapping.get().getTechnicianNote());
-                    details.setFrontOfficeNote(taskMapping.get().getNote());
+
+                    details.setFrontOfficeNote(jobMappingTask.get().getNote());
+                    details.setStatus(jobMappingTask.get().getJobTaskStatus());
                     String customerFeedbackLink = clientFeedbackLink
                             .replace("<jobId>", job.get().getJobId())
                             .replace("<taskId>", jobMappingTask.get().getTaskShowId())
-                            .replace("<technicianId>", taskMapping.get().getTechnicianId())
                             .replace("<customerId>", job.get().getCustomerId());
+                    // Get uploaded documents
+                    List<JobDTO.Document> documents = new ArrayList<>();
+                    if(taskMapping.isPresent()){
+                        details.setId(taskMapping.get().getUuid());
+                        details.setStatus(taskMapping.get().getTaskStatus());
+                        details.setNote(taskMapping.get().getTechnicianNote());
+                        customerFeedbackLink = clientFeedbackLink.replace("<technicianId>", taskMapping.get().getTechnicianId());
+                        if (!TextUtils.isEmpty(taskMapping.get().getSignature()))
+                            details.setSignature(taskMapping.get().getSignature());
+                        if (!TextUtils.isEmpty(taskMapping.get().getCancelReason()))
+                            details.setCancelReason(taskMapping.get().getCancelReason());
+                        if (!TextUtils.isEmpty(taskMapping.get().getDrawingJson()))
+                            details.setDrawingJsonData(taskMapping.get().getDrawingJson());
+                        if (!TextUtils.isEmpty(taskMapping.get().getDrawingImage()))
+                            details.setDrawingImage(taskMapping.get().getDrawingImage());
+
+                        if(taskMapping.get().getStartDate() != null){
+                            details.setStartDate(dateFormatter != null ? taskMapping.get().getStartDate().format(dateFormatter) : taskMapping.get().getStartDate().toString());
+                        }
+                        if(taskMapping.get().getEndDate() != null){
+                            details.setEndDate(dateFormatter != null ? taskMapping.get().getEndDate().format(dateFormatter) : taskMapping.get().getEndDate().toString());
+                        }
+                        if(taskMapping.get().getStartTime() != null){
+                            details.setStartTime(timeFormatter != null  ? taskMapping.get().getStartTime().toLocalTime().format(timeFormatter) : taskMapping.get().getStartTime().toString());
+                        }
+                        if(taskMapping.get().getEndTime() != null){
+                            details.setEndTime(timeFormatter != null  ? taskMapping.get().getEndTime().toLocalTime().format(timeFormatter) : taskMapping.get().getEndTime().toString());
+                        }
+                        if (!TextUtils.isEmpty(taskMapping.get().getDocuments())) {
+                            try {
+                                Gson gson = new Gson();
+                                Type listType = new TypeToken<List<String>>() {
+                                }.getType();
+                                List<String> documentList = gson.fromJson(taskMapping.get().getDocuments(), listType);
+                                for (String doc : documentList) {
+                                    JobDTO.Document document = new JobDTO.Document();
+                                    document.setFile(doc);
+                                    document.setFileType(TextUtils.getFileTypeFromFileUrl(doc));
+                                    document.setFileName(TextUtils.getFileNameFromFileUrl(doc));
+                                    documents.add(document);
+                                }
+                            } catch (Exception e) {
+                                logger.error("Error parsing documents: {}", e.getMessage());
+                            }
+                        }
+                        if (!taskMapping.get().getHtmlFormPages().isEmpty()) {
+                            List<HTMLFormDTO.Details> list = new ArrayList<>();
+                            for (HTMLFormPage htmlFormPage : taskMapping.get().getHtmlFormPages()) {
+                                HTMLFormDTO.Details htmlFormDTO = new HTMLFormDTO.Details();
+                                htmlFormDTO.setId(htmlFormPage.getUuid());
+                                htmlFormDTO.setContent(htmlFormPage.getContent());
+                                htmlFormDTO.setActive(htmlFormPage.getActive());
+                                htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt() != null ? htmlFormPage.getCreatedAt().format(dateTimeFormatter) : null);
+                                list.add(htmlFormDTO);
+                            }
+                            details.setFormList(list);
+                        }
+                    }
                     details.setClientFeedbackUrl(customerFeedbackLink);
-                    if (!TextUtils.isEmpty(taskMapping.get().getSignature()))
-                        details.setSignature(taskMapping.get().getSignature());
-                    if (!TextUtils.isEmpty(taskMapping.get().getCancelReason()))
-                        details.setCancelReason(taskMapping.get().getCancelReason());
-                    if (!TextUtils.isEmpty(taskMapping.get().getDrawingJson()))
-                        details.setDrawingJsonData(taskMapping.get().getDrawingJson());
-                    if (!TextUtils.isEmpty(taskMapping.get().getDrawingImage()))
-                        details.setDrawingImage(taskMapping.get().getDrawingImage());
+
                     details.setTaskId(jobMappingTask.get().getTaskShowId());
                     details.setAssignType(jobMappingTask.get().getAssignType().toString());
                     details.setTaskDescription(jobMappingTask.get().getDescription() != null ? jobMappingTask.get().getDescription() : null);
                     details.setJobDescription(job.get().getJobDescription());
-                    if(taskMapping.get().getStartDate() != null){
-                        details.setStartDate(dateFormatter != null ? taskMapping.get().getStartDate().format(dateFormatter) : taskMapping.get().getStartDate().toString());
-                    }
-                    if(taskMapping.get().getEndDate() != null){
-                        details.setEndDate(dateFormatter != null ? taskMapping.get().getEndDate().format(dateFormatter) : taskMapping.get().getEndDate().toString());
-                    }
-                    if(taskMapping.get().getStartTime() != null){
-                        details.setStartTime(timeFormatter != null  ? taskMapping.get().getStartTime().toLocalTime().format(timeFormatter) : taskMapping.get().getStartTime().toString());
-                    }
-                    if(taskMapping.get().getEndTime() != null){
-                        details.setEndTime(timeFormatter != null  ? taskMapping.get().getEndTime().toLocalTime().format(timeFormatter) : taskMapping.get().getEndTime().toString());
-                    }
+
                     details.setServiceLocationLat(job.get().getServiceLocationLat());
                     details.setServiceLocationLng(job.get().getServiceLocationLng());
-                    if (taskMapping.get().getTaskStatus().equalsIgnoreCase("ASSIGNED")) {
-                        details.setStatus("NEW");
-                    } else {
-                        details.setStatus(taskMapping.get().getTaskStatus());
-                    }
-
-                    // Get job type
-
-                    // Get customer details
+                    details.setStatus(jobMappingTask.get().getJobTaskStatus());
 
                     List<String> jobTags = new ArrayList<>();
                     List<JobMappingTags> jobMappingTags = job.get().getJobMappingTags();
@@ -2435,37 +2468,18 @@ public class JobServiceImpl implements JobService {
                         jobDocuments.addAll(byUuid);
                     }
                     if (!jobDocuments.isEmpty()) {
-                        for (Documents documents : jobDocuments) {
+                        for (Documents jdocuments : jobDocuments) {
                             JobDTO.Document document = new JobDTO.Document();
-                            document.setFile(documents.getDocumentUrl());
-                            document.setFileType(documents.getFileType());
-                            document.setFileName(documents.getFileName());
-                            if (documents.getThumbnail() != null)
-                                document.setThumbnail(documents.getThumbnail());
-                            document.setDocumentTypeId(documents.getDocumentTypeId());
+                            document.setFile(jdocuments.getDocumentUrl());
+                            document.setFileType(jdocuments.getFileType());
+                            document.setFileName(jdocuments.getFileName());
+                            if (jdocuments.getThumbnail() != null)
+                                document.setThumbnail(jdocuments.getThumbnail());
+                            document.setDocumentTypeId(jdocuments.getDocumentTypeId());
                             details.getJobUploadedDocuments().add(document);
                         }
                     }
-                    // Get uploaded documents
-                    List<JobDTO.Document> documents = new ArrayList<>();
-                    if (!TextUtils.isEmpty(taskMapping.get().getDocuments())) {
-                        try {
-                            Gson gson = new Gson();
-                            Type listType = new TypeToken<List<String>>() {
-                            }.getType();
-                            List<String> documentList = gson.fromJson(taskMapping.get().getDocuments(), listType);
-                            for (String doc : documentList) {
-                                JobDTO.Document document = new JobDTO.Document();
-                                document.setFile(doc);
-                                document.setFileType(TextUtils.getFileTypeFromFileUrl(doc));
-                                document.setFileName(TextUtils.getFileNameFromFileUrl(doc));
-                                documents.add(document);
-                            }
-                        } catch (Exception e) {
-                            logger.error("Error parsing documents: {}", e.getMessage());
-                        }
-                    }
-                    List<Documents> documentsList = documentsRepository.findByAttachTypeId(taskMapping.get().getJobTaskMappingId());
+                    List<Documents> documentsList = documentsRepository.findByAttachTypeId(jobMappingTask.get().getUuid());
                     if (!documentsList.isEmpty()) {
                         for (Documents documents1 : documentsList) {
                             JobDTO.Document document = new JobDTO.Document();
@@ -2478,18 +2492,7 @@ public class JobServiceImpl implements JobService {
                         }
                     }
                     details.setUploadedDocuments(documents);
-                    if (!taskMapping.get().getHtmlFormPages().isEmpty()) {
-                        List<HTMLFormDTO.Details> list = new ArrayList<>();
-                        for (HTMLFormPage htmlFormPage : taskMapping.get().getHtmlFormPages()) {
-                            HTMLFormDTO.Details htmlFormDTO = new HTMLFormDTO.Details();
-                            htmlFormDTO.setId(htmlFormPage.getUuid());
-                            htmlFormDTO.setContent(htmlFormPage.getContent());
-                            htmlFormDTO.setActive(htmlFormPage.getActive());
-                            htmlFormDTO.setCreatedAt(htmlFormPage.getCreatedAt() != null ? htmlFormPage.getCreatedAt().format(dateTimeFormatter) : null);
-                            list.add(htmlFormDTO);
-                        }
-                        details.setFormList(list);
-                    }
+
                     return new ResponseEntity<>(new com.octal.fsm.common.ApiResponse(Boolean.TRUE, "Job Mapping Task fetched successfully", details, "200", HttpStatus.OK), HttpStatus.OK);
                 } else if (job.isPresent()) {
                     details.setId(jobMappingTask.get().getUuid());
