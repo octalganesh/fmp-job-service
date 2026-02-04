@@ -1,5 +1,6 @@
 package com.octal.fsm.dto;
 
+import com.octal.fsm.entities.enums.QbdItemType;
 import lombok.Data;
 
 @Data
@@ -45,7 +46,7 @@ public class InventoryPartDTO {
         private String taxVendorListId;
         private String taxVendorFullName;
         private String salePrice;
-        private String itemType;
+        private QbdItemType itemType;
         private String createdAt;
     }
 

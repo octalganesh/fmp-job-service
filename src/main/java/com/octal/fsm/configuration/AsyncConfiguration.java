@@ -28,6 +28,10 @@ public class AsyncConfiguration {
     public Executor appointmentNotificationToTechnicianEvent() {
         return new ThreadPoolTaskExecutor();
     }
+    @Bean(name = "inventoryAssembly")
+    public Executor inventoryAssembly() {
+        return new ThreadPoolTaskExecutor();
+    }
 
 }
 

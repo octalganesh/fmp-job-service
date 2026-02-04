@@ -205,7 +205,7 @@ public class InventoryPartServiceImpl implements InventoryPartService {
         dto.setTaxVendorListId(part.getTaxVendorListId());
         dto.setTaxVendorFullName(part.getTaxVendorFullName());
         dto.setSalePrice(part.getSalePrice());
-        dto.setItemType(part.getItemType());
+        dto.setItemType(part.getItemType().getQbName());
         dto.setCreatedAt(part.getCreatedAt() != null ? part.getCreatedAt().toString() : null);
         return dto;
     }

@@ -23,4 +23,7 @@ public interface QuickBookClientService {
 
     @PostMapping("/api/rest/inventory-type/update-quantity")
     ResponseEntity<ApiResponse> updateInventory(@RequestBody List<InventoryPartDTO.Add> add, @RequestHeader("tenantId") Long tenantId);
+
+    @PostMapping("/assembly/add-queue")
+    ResponseEntity<ApiResponse> saveInventoryAssembly(@RequestBody AssemblyCreateRequest.AssemblyComponentAdd addList);
 }

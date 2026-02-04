@@ -1,10 +1,9 @@
 package com.octal.fsm.entities;
 
+import com.octal.fsm.entities.enums.QbdItemType;
 import lombok.Data;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
 @Table(name = "inventory_part")
@@ -49,5 +48,6 @@ public class InventoryPart extends AbstractPersistable {
     private String taxVendorListId;
     private String taxVendorFullName;
     private String salePrice;
-    private String itemType; //Custom Defined Column
+    @Enumerated(EnumType.STRING)
+    private QbdItemType itemType; //Custom Defined Column
 }
