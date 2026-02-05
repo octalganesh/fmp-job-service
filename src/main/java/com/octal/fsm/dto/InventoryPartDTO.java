@@ -3,6 +3,9 @@ package com.octal.fsm.dto;
 import com.octal.fsm.entities.enums.QbdItemType;
 import lombok.Data;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 public class InventoryPartDTO {
 
@@ -48,6 +51,7 @@ public class InventoryPartDTO {
         private String salePrice;
         private QbdItemType itemType;
         private String createdAt;
+        private List<InventoryItems> inventoryItems = new ArrayList<>();
     }
 
     @Data
@@ -93,5 +97,13 @@ public class InventoryPartDTO {
         private String salePrice;
         private String itemType;
         private String createdAt;
+        private List<InventoryItems> inventoryItems = new ArrayList<>();
+    }
+
+    @Data
+    public static class  InventoryItems {
+        public String listId;
+        public String fullName;
+        public String quantity;
     }
 }

@@ -1,6 +1,7 @@
 package com.octal.fsm.models.request;
 
 
+import com.octal.fsm.entities.enums.QbdItemType;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -52,6 +53,7 @@ public class PageRequest {
         private String paymentStatus;
         java.util.List<String> customerIds;
         private String appointmentTypeId;
+        private QbdItemType itemType;//
     }
 
 

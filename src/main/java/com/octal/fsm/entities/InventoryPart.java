@@ -4,6 +4,8 @@ import com.octal.fsm.entities.enums.QbdItemType;
 import lombok.Data;
 
 import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "inventory_part")
@@ -50,4 +52,7 @@ public class InventoryPart extends AbstractPersistable {
     private String salePrice;
     @Enumerated(EnumType.STRING)
     private QbdItemType itemType; //Custom Defined Column
+
+    @OneToMany(mappedBy = "inventoryPart", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<InventoryItems> inventoryItems = new ArrayList<>();
 }

@@ -2,8 +2,11 @@ package com.octal.fsm.service.impl;
 
 
 import com.octal.fsm.dto.InventoryPartDTO;
+import com.octal.fsm.dto.InventoryRequestDTO;
 import com.octal.fsm.dto.PageItem;
+import com.octal.fsm.entities.InventoryItems;
 import com.octal.fsm.entities.InventoryPart;
+import com.octal.fsm.entities.enums.QbdItemType;
 import com.octal.fsm.exceptions.CodeException;
 import com.octal.fsm.models.request.PageRequest;
 import com.octal.fsm.repositories.InventoryPartRepository;
@@ -18,6 +21,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +40,7 @@ public class InventoryPartServiceImpl implements InventoryPartService {
     @Autowired
     private SpecificationFactory<InventoryPart> inventoryPartSpecificationFactory;
 
+    @Transactional
     public void saveInventoryData(List<InventoryPartDTO.Add> addList) {
         if (addList == null || addList.isEmpty()) {
             return;
@@ -43,17 +49,20 @@ public class InventoryPartServiceImpl implements InventoryPartService {
             List<String> listIds = addList.stream()
                     .map(InventoryPartDTO.Add::getListId)
                     .collect(Collectors.toList());
-
-            Set<String> existingListIds = inventoryPartRepository.findByListIdIn(listIds)
-                    .stream()
-                    .map(InventoryPart::getListId)
-                    .collect(Collectors.toSet());
+            Map<String, InventoryPart> existingMap = inventoryPartRepository.findByListIdIn(listIds)
+                            .stream().collect(Collectors.toMap(InventoryPart::getListId,
+                                    Function.identity()));
 
             List<InventoryPart> entitiesToSave = new ArrayList<>();
             for (InventoryPartDTO.Add dto : addList) {
-                if (!existingListIds.contains(dto.getListId())) {
-                    entitiesToSave.add(toEntity(dto));
+                InventoryPart entity = existingMap.getOrDefault(dto.getListId(), new InventoryPart());
+                if (entity.getUuid() == null) {
+                    entity.setListId(dto.getListId());
+                    entity.setCreatedAt(LocalDateTime.now());
                 }
+                toEntity(dto, entity);
+                entity.setUpdatedAt(LocalDateTime.now());
+                entitiesToSave.add(entity);
             }
             if (!entitiesToSave.isEmpty()) {
                 inventoryPartRepository.saveAll(entitiesToSave);
@@ -93,6 +102,9 @@ public class InventoryPartServiceImpl implements InventoryPartService {
 //        if (!TextUtils.isEmpty(tenantId)) {
 //            builder.with(inventoryPartSpecificationFactory.isEqual("tenantId", tenantId));
 //        }
+        if(listRequest.getItemType() != null){
+            builder.with(inventoryPartSpecificationFactory.isEqual("itemType", listRequest.getItemType()));
+        }
 
         if (listRequest.getListId() != null) {
             builder.with(inventoryPartSpecificationFactory.isEqual("listId", listRequest.getListId()));
@@ -114,19 +126,19 @@ public class InventoryPartServiceImpl implements InventoryPartService {
         }
     }
 
-    private InventoryPart toEntity(InventoryPartDTO.Add dto) {
-        InventoryPart part = new InventoryPart();
-
-        part.setListId(dto.getListId());
+    private void toEntity(InventoryPartDTO.Add dto, InventoryPart part) {
+        if (part.getListId() == null) {
+            part.setListId(dto.getListId());
+        }
         part.setTimeCreated(dto.getTimeCreated());
         part.setTimeModified(dto.getTimeModified());
         part.setEditSequence(dto.getEditSequence());
         part.setName(dto.getName());
         part.setFullName(dto.getFullName());
-        if( dto.getIsActive() == null || dto.getIsActive().isEmpty()){
+        if (dto.getIsActive() == null || dto.getIsActive().isEmpty()) {
             part.setActive(true);
         } else {
-            part.setActive(Boolean.valueOf(dto.getIsActive()));
+            part.setActive(Boolean.parseBoolean(dto.getIsActive()));
         }
         part.setSublevel(dto.getSublevel());
         part.setSalesTaxCodeListId(dto.getSalesTaxCodeListId());
@@ -160,9 +172,21 @@ public class InventoryPartServiceImpl implements InventoryPartService {
         part.setTaxVendorFullName(dto.getTaxVendorFullName());
         part.setSalePrice(dto.getSalePrice());
         part.setItemType(dto.getItemType());
-
-        return part;
+        if (QbdItemType.INVENTORY_ASSEMBLY.equals(dto.getItemType())) {
+            if (dto.getInventoryItems() != null && !dto.getInventoryItems().isEmpty()) {
+                part.getInventoryItems().clear();
+                for (InventoryPartDTO.InventoryItems dtoItem : dto.getInventoryItems()) {
+                    InventoryItems entityItem = new InventoryItems();
+                    entityItem.setListId(dtoItem.getListId());
+                    entityItem.setFullName(dtoItem.getFullName());
+                    entityItem.setQuantity(dtoItem.getQuantity());
+                    entityItem.setInventoryPart(part);
+                    part.getInventoryItems().add(entityItem);
+                }
+            }
+        }
     }
+
 
     private InventoryPartDTO.Response convertDTO(InventoryPart part) {
         InventoryPartDTO.Response dto = new InventoryPartDTO.Response();
@@ -207,6 +231,17 @@ public class InventoryPartServiceImpl implements InventoryPartService {
         dto.setSalePrice(part.getSalePrice());
         dto.setItemType(part.getItemType().getQbName());
         dto.setCreatedAt(part.getCreatedAt() != null ? part.getCreatedAt().toString() : null);
+        if (QbdItemType.INVENTORY_ASSEMBLY.equals(part.getItemType()) && part.getInventoryItems() != null && !part.getInventoryItems().isEmpty()) {
+            List<InventoryPartDTO.InventoryItems> items = new ArrayList<>();
+            for (InventoryItems inventoryItems : part.getInventoryItems()) {
+                InventoryPartDTO.InventoryItems itemDto = new InventoryPartDTO.InventoryItems();
+                itemDto.setListId(inventoryItems.getListId());
+                itemDto.setFullName(inventoryItems.getFullName());
+                itemDto.setQuantity(inventoryItems.getQuantity());
+                items.add(itemDto);
+            }
+            dto.setInventoryItems(items);
+        }
         return dto;
     }
 
