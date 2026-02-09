@@ -52,7 +52,7 @@ public class EstimateBillServiceImpl implements EstimateBillService {
         estimate.setTaxAmount(dto.getTaxAmount());
         estimate.setGrandTotal(dto.getGrandTotal());
         estimate.setTenantId(tenantId);
-        estimate.setDocumentUrl(dto.getDocumentUrl());
+        estimate.setDocumentUrl(awsS3BaseUrl+dto.getDocumentUrl());
         List<EstimateItem> items = dto.getItems().stream().map(i -> {
             EstimateItem item = new EstimateItem();
             item.setListId(i.getListId());
